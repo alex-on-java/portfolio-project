@@ -23,3 +23,4 @@ runs:
       with:
         app-id: ${{ inputs.app-id }}
         private-key: ${{ inputs.private-key }}
+        repositories: portfolio-project-cluster-pool
