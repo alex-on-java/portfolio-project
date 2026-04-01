@@ -19,7 +19,6 @@ require_cmd() {
 
 require_cmd helm
 require_cmd yq
-require_cmd rg
 require_cmd awk
 
 chart_version="$(
@@ -47,8 +46,7 @@ if ! yq -e '.kind == "ProjectConfig"' "${project_config_manifest}" >/dev/null; t
   exit 1
 fi
 
-shopt -s nullglob
-stage_files=( ${stage_glob} )
+mapfile -t stage_files < <(compgen -G "${stage_glob}" || true)
 if [[ ${#stage_files[@]} -eq 0 ]]; then
   echo "ERROR: no Stage manifests matched ${stage_glob}" >&2
   exit 1
