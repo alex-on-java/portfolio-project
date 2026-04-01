@@ -5,10 +5,12 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "0"
 spec:
+  freightCreationPolicy: Automatic
   subscriptions:
     - image:
         repoURL: PLACEHOLDER
         imageSelectionStrategy: NewestBuild
+        strictSemvers: true
         insecureSkipTLSVerify: false
         discoveryLimit: 5
   interval: 60s
