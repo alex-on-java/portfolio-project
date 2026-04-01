@@ -54,6 +54,6 @@ Mark **crucial assumptions** separately: those where being wrong would invalidat
 
 ## What's Next?
 
-After writing pre-plan alignment checkpoint to the chat, stop and let user give it's comments, so you both can align. 
-This ping-pong could take several turns, so be patient: do not rush to write the plan, wait for the explicit user approval. 
-In case assumption verification require a PoC creation, user will exit the plan mode on their own. 
+After writing pre-plan alignment checkpoint to the chat, stop and let user give it's comments, so you both can align.
+This ping-pong could take several turns, so be patient: do not rush to write the plan, wait for the explicit user approval.
+In case assumption verification require a PoC creation, user will exit the plan mode on their own.
