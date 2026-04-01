@@ -25,6 +25,8 @@ spec:
     metadata:
       name: "workloads-web-app-{{env}}"
       namespace: argocd
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
       annotations:
         kargo.akuity.io/authorized-stage: "portfolio-project:workloads-web-app-{{env}}"
     spec:

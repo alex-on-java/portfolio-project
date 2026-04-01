@@ -3,3 +3,14 @@ kind: Kustomization
 resources:
   - ../../base
   - kargo-config-appset.yaml
+patches:
+  - target:
+      kind: ApplicationSet
+    patch: |
+      - op: add
+        path: /spec/syncPolicy
+        value:
+          preserveResourcesOnDeletion: true
+      - op: add
+        path: /spec/template/metadata/finalizers
+        value: []
