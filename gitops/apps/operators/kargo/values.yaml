@@ -3,8 +3,7 @@ crds:
 
 api:
   adminAccount:
-    enabled: true
-    tokenSigningKey: "placeholder-change-me"
+    enabled: false
   resources:
     requests:
       cpu: 100m
