@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dev
+  annotations:
+    argocd.argoproj.io/sync-wave: "-100"
+    argocd.argoproj.io/sync-options: Delete=false
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: stg
+  annotations:
+    argocd.argoproj.io/sync-wave: "-100"
+    argocd.argoproj.io/sync-options: Delete=false
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: prd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-100"
+    argocd.argoproj.io/sync-options: Delete=false

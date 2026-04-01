@@ -1,0 +1,14 @@
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Warehouse
+metadata:
+  name: warehouse
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  subscriptions:
+    - image:
+        repoURL: PLACEHOLDER
+        imageSelectionStrategy: NewestBuild
+        insecureSkipTLSVerify: false
+        discoveryLimit: 5
+  interval: 60s
