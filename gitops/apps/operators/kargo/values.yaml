@@ -1,0 +1,25 @@
+crds:
+  install: true
+
+api:
+  adminAccount:
+    enabled: true
+    tokenSigningKey: "placeholder-change-me"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+controller:
+  argocd:
+    integrationEnabled: true
+    namespace: argocd
+  rollouts:
+    integrationEnabled: true
+  sharedConfigMap:
+    namespace: kargo-shared-resources
+    name: cluster-identity
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi

@@ -1,0 +1,156 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+replacements:
+  # ── Promotion vars ──
+  - source:
+      kind: ConfigMap
+      fieldPath: data.appName
+    targets:
+      - select:
+          group: kargo.akuity.io
+          version: v1alpha1
+          kind: Stage
+        fieldPaths:
+          - spec.promotionTemplate.spec.vars.[name=appName].value
+  - source:
+      kind: ConfigMap
+      fieldPath: data.appCategory
+    targets:
+      - select:
+          group: kargo.akuity.io
+          version: v1alpha1
+          kind: Stage
+        fieldPaths:
+          - spec.promotionTemplate.spec.vars.[name=appCategory].value
+  - source:
+      kind: ConfigMap
+      fieldPath: data.imageRepo
+    targets:
+      - select:
+          group: kargo.akuity.io
+          version: v1alpha1
+          kind: Stage
+        fieldPaths:
+          - spec.promotionTemplate.spec.vars.[name=imageRepo].value
+  - source:
+      kind: ConfigMap
+      fieldPath: data.warehouseImageURL
+    targets:
+      - select:
+          group: kargo.akuity.io
+          version: v1alpha1
+          kind: Stage
+        fieldPaths:
+          - spec.promotionTemplate.spec.vars.[name=warehouseImageURL].value
+  # ── Stage-level vars (for verification expressions) ──
+  - source:
+      kind: ConfigMap
+      fieldPath: data.appName
+    targets:
+      - select:
+          group: kargo.akuity.io
+          version: v1alpha1
+          kind: Stage
+        fieldPaths:
+          - spec.vars.[name=appName].value
+  - source:
+      kind: ConfigMap
+      fieldPath: data.healthPath
+    targets:
+      - select:
+          group: kargo.akuity.io
+          version: v1alpha1
+          kind: Stage
+        fieldPaths:
+          - spec.vars.[name=healthPath].value
+  # ── Warehouse image subscription ──
+  - source:
+      kind: ConfigMap
+      fieldPath: data.warehouseImageURL
+    targets:
+      - select:
+          group: kargo.akuity.io
+          version: v1alpha1
+          kind: Warehouse
+          name: warehouse
+        fieldPaths:
+          - spec.subscriptions.0.image.repoURL
+  # ── Warehouse origin name in all stages ──
+  - source:
+      kind: ConfigMap
+      fieldPath: data.warehouseName
+    targets:
+      - select:
+          group: kargo.akuity.io
+          version: v1alpha1
+          kind: Stage
+        fieldPaths:
+          - spec.requestedFreight.0.origin.name
+  # ── Upstream stage references ──
+  - source:
+      kind: ConfigMap
+      fieldPath: data.devStageName
+    targets:
+      - select:
+          group: kargo.akuity.io
+          version: v1alpha1
+          kind: Stage
+          name: stg
+        fieldPaths:
+          - spec.requestedFreight.0.sources.stages.0
+  - source:
+      kind: ConfigMap
+      fieldPath: data.stgStageName
+    targets:
+      - select:
+          group: kargo.akuity.io
+          version: v1alpha1
+          kind: Stage
+          name: prd
+        fieldPaths:
+          - spec.requestedFreight.0.sources.stages.0
+  # ── Rename resources (MUST be last — replacements are sequential) ──
+  - source:
+      kind: ConfigMap
+      fieldPath: data.warehouseName
+    targets:
+      - select:
+          group: kargo.akuity.io
+          version: v1alpha1
+          kind: Warehouse
+          name: warehouse
+        fieldPaths:
+          - metadata.name
+  - source:
+      kind: ConfigMap
+      fieldPath: data.devStageName
+    targets:
+      - select:
+          group: kargo.akuity.io
+          version: v1alpha1
+          kind: Stage
+          name: dev
+        fieldPaths:
+          - metadata.name
+  - source:
+      kind: ConfigMap
+      fieldPath: data.stgStageName
+    targets:
+      - select:
+          group: kargo.akuity.io
+          version: v1alpha1
+          kind: Stage
+          name: stg
+        fieldPaths:
+          - metadata.name
+  - source:
+      kind: ConfigMap
+      fieldPath: data.prdStageName
+    targets:
+      - select:
+          group: kargo.akuity.io
+          version: v1alpha1
+          kind: Stage
+          name: prd
+        fieldPaths:
+          - metadata.name

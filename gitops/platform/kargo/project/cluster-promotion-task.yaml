@@ -1,0 +1,59 @@
+apiVersion: kargo.akuity.io/v1alpha1
+kind: ClusterPromotionTask
+metadata:
+  name: promote-kustomize-app
+spec:
+  vars:
+    - name: env
+    - name: appName
+    - name: appCategory
+    - name: imageRepo
+    - name: warehouseImageURL
+    - name: gitRepoURL
+      value: https://github.com/alex-on-java/portfolio-project.git
+  steps:
+    - uses: git-clone
+      config:
+        repoURL: ${{ vars.gitRepoURL }}
+        checkout:
+          - branch: master
+            path: ./src
+          - branch: stage/${{ sharedConfigMap('cluster-identity').branchPrefix }}/${{ ctx.stage }}
+            create: true
+            path: ./out
+
+    - uses: git-clear
+      config:
+        path: ./out
+
+    - uses: kustomize-set-image
+      as: update-image
+      config:
+        path: ./src/gitops/apps/${{ vars.appCategory }}/${{ vars.appName }}/overlays/${{ vars.env }}
+        images:
+          - image: ${{ vars.warehouseImageURL }}
+            name: ${{ vars.appName }}
+            newName: ${{ vars.imageRepo }}
+            digest: ${{ imageFrom(vars.warehouseImageURL).Digest }}
+
+    - uses: kustomize-build
+      as: build
+      config:
+        path: ./src/gitops/apps/${{ vars.appCategory }}/${{ vars.appName }}/overlays/${{ vars.env }}
+        outPath: ./out
+
+    - uses: git-commit
+      as: commit
+      config:
+        path: ./out
+        message: "Promote ${{ sharedConfigMap('cluster-identity').branchPrefix }}/${{ ctx.stage }}: ${{ vars.appName }} ${{ imageFrom(vars.warehouseImageURL).Tag }}"
+
+    - uses: git-push
+      config:
+        path: ./out
+
+    - uses: argocd-update
+      as: sync
+      config:
+        apps:
+          - name: ${{ ctx.stage }}

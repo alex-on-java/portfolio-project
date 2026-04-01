@@ -1,0 +1,40 @@
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: dev
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+  labels:
+    kargo.showcase/env: dev
+    kargo.showcase/auto-promo: "true"
+spec:
+  vars:
+    - name: env
+      value: dev
+    - name: appName
+      value: PLACEHOLDER
+    - name: healthPath
+      value: PLACEHOLDER
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: warehouse
+      sources:
+        direct: true
+  promotionTemplate:
+    spec:
+      vars:
+        - name: env
+          value: dev
+        - name: appName
+          value: PLACEHOLDER
+        - name: appCategory
+          value: PLACEHOLDER
+        - name: imageRepo
+          value: PLACEHOLDER
+        - name: warehouseImageURL
+          value: PLACEHOLDER
+      steps:
+        - task:
+            name: promote-kustomize-app
+            kind: ClusterPromotionTask
