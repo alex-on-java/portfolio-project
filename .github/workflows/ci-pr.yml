@@ -12,8 +12,6 @@ jobs:
     permissions:
       contents: read
       packages: write
-    secrets:
-      APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
 
   dispatch-claim:
     needs: build
