@@ -22,3 +22,7 @@ controller:
     requests:
       cpu: 100m
       memory: 128Mi
+
+webhooksServer:
+  annotations:
+    argocd.argoproj.io/sync-options: Force=true,Replace=true
