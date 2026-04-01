@@ -4,10 +4,16 @@ on:
   pull_request:
     types: [opened, reopened, synchronize]
 
+permissions: {}
+
 jobs:
   build:
     uses: ./.github/workflows/reusable-build-push.yml
-    secrets: inherit
+    permissions:
+      contents: read
+      packages: write
+    secrets:
+      APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
 
   dispatch-claim:
     needs: build
@@ -17,7 +23,9 @@ jobs:
       contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
       - name: Generate App token
         id: app-token
@@ -27,7 +35,7 @@ jobs:
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
 
       - name: Dispatch cluster claim
-        uses: peter-evans/repository-dispatch@v3
+        uses: peter-evans/repository-dispatch@28959ce8df70de7be546dd1250a005dd32156697 # v4.0.1
         with:
           token: ${{ steps.app-token.outputs.token }}
           repository: alex-on-java/portfolio-project-cluster-pool
@@ -47,7 +55,9 @@ jobs:
       contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
       - name: Generate App token
         id: app-token
@@ -57,7 +67,7 @@ jobs:
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
 
       - name: Dispatch PR push
-        uses: peter-evans/repository-dispatch@v3
+        uses: peter-evans/repository-dispatch@28959ce8df70de7be546dd1250a005dd32156697 # v4.0.1
         with:
           token: ${{ steps.app-token.outputs.token }}
           repository: alex-on-java/portfolio-project-cluster-pool

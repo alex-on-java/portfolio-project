@@ -1,0 +1,9 @@
+[tools]
+kubectl = "1.33.9"
+helm = "4.1.1"
+kind = "0.31.0"
+kubeseal = "0.36.1"
+actionlint = "1.7.12"
+zizmor = "1.23.1"
+"aqua:argoproj/argo-cd" = "3.3.4"
+"github:akuity/kargo" = "1.9.5"
