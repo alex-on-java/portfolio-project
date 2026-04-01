@@ -1,0 +1,41 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: kargo
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  generators:
+    - clusters:
+        selector:
+          matchLabels:
+            argocd.argoproj.io/secret-type: cluster
+  template:
+    metadata:
+      name: kargo
+      namespace: argocd
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: default
+      sources:
+        - repoURL: ghcr.io/akuity/kargo-charts
+          chart: kargo
+          targetRevision: 1.4.4
+          helm:
+            valueFiles:
+              - $values/gitops/apps/operators/kargo/values.yaml
+        - repoURL: https://github.com/alex-on-java/portfolio-project.git
+          targetRevision: "{{metadata.annotations.target-revision}}"
+          ref: values
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: kargo
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
