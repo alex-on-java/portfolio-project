@@ -1,0 +1,53 @@
+name: Kargo Compatibility
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/kargo-compatibility.yml
+      - scripts/check-kargo-compatibility.sh
+      - gitops/platform/argocd/bootstrap/base/kargo-helm-appset.yaml
+      - gitops/apps/operators/kargo/values.yaml
+      - gitops/platform/kargo/**
+      - mise.toml
+  push:
+    paths:
+      - .github/workflows/kargo-compatibility.yml
+      - scripts/check-kargo-compatibility.sh
+      - gitops/platform/argocd/bootstrap/base/kargo-helm-appset.yaml
+      - gitops/apps/operators/kargo/values.yaml
+      - gitops/platform/kargo/**
+      - mise.toml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-kargo-compatibility:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Install yq
+        run: |
+          set -euo pipefail
+          YQ_VERSION=v4.44.3
+          mkdir -p "${HOME}/bin"
+          curl -fsSL "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64" -o "${HOME}/bin/yq"
+          chmod +x "${HOME}/bin/yq"
+          echo "${HOME}/bin" >> "${GITHUB_PATH}"
+
+      - name: Show tool versions
+        run: |
+          set -euo pipefail
+          helm version
+          yq --version
+
+      - name: Validate Kargo chart/manifests compatibility
+        run: |
+          set -euo pipefail
+          chmod +x ./scripts/check-kargo-compatibility.sh
+          ./scripts/check-kargo-compatibility.sh
