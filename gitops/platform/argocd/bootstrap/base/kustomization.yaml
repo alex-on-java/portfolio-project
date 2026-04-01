@@ -4,5 +4,6 @@ resources:
   - namespaces.yaml
   - kargo-helm-appset.yaml
   - argo-rollouts-helm-appset.yaml
+  - cert-manager-helm-appset.yaml
   - analysis-templates-appset.yaml
   - workload-appset.yaml
