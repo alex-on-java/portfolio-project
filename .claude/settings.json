@@ -34,10 +34,21 @@
     ],
     "SessionStart": [
       {
+        "matcher": "startup",
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/hook-dispatcher.sh universal/session-reminder-on-clear.sh",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/hook-dispatcher.sh universal/guidance-injection.sh",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/hook-dispatcher.sh universal/guidance-injection.sh",
             "timeout": 5
           }
         ]
