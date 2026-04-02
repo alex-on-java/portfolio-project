@@ -5,3 +5,26 @@ global:
 crds:
   enabled: true
   keep: true
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+webhook:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+cainjector:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 192Mi
+
+startupapicheck:
+  resources:
+    requests:
+      cpu: 25m
+      memory: 48Mi
