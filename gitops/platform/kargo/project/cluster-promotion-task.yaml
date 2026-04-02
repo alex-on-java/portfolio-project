@@ -32,7 +32,7 @@ spec:
         path: ./src/gitops/apps/${{ vars.appCategory }}/${{ vars.appName }}/overlays/${{ vars.env }}
         images:
           - image: ${{ vars.warehouseImageURL }}
-            name: ${{ vars.appName }}
+            name: ${{ vars.imageRepo }}
             newName: ${{ vars.imageRepo }}
             digest: ${{ imageFrom(vars.warehouseImageURL).Digest }}
 
