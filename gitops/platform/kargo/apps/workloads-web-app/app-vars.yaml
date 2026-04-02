@@ -14,3 +14,5 @@ data:
   imageRepo: ghcr.io/alex-on-java/web-app
   warehouseImageURL: ghcr.io/alex-on-java/web-app
   healthPath: /
+  gitRepoURL: https://github.com/alex-on-java/portfolio-project.git
+  gitIncludePath: gitops/apps/workloads/web-app

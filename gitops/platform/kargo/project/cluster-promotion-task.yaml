@@ -16,7 +16,7 @@ spec:
       config:
         repoURL: ${{ vars.gitRepoURL }}
         checkout:
-          - branch: ${{ sharedConfigMap('cluster-identity').sourceBranch }}
+          - commit: ${{ commitFrom(vars.gitRepoURL).ID }}
             path: ./src
           - branch: stage/${{ sharedConfigMap('cluster-identity').branchPrefix }}/${{ ctx.stage }}
             create: true

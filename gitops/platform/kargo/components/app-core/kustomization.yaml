@@ -42,6 +42,16 @@ replacements:
           kind: Stage
         fieldPaths:
           - spec.promotionTemplate.spec.vars.[name=warehouseImageURL].value
+  - source:
+      kind: ConfigMap
+      fieldPath: data.gitRepoURL
+    targets:
+      - select:
+          group: kargo.akuity.io
+          version: v1alpha1
+          kind: Stage
+        fieldPaths:
+          - spec.promotionTemplate.spec.vars.[name=gitRepoURL].value
   # ── Stage-level vars (for verification expressions) ──
   - source:
       kind: ConfigMap
@@ -75,6 +85,29 @@ replacements:
           name: warehouse
         fieldPaths:
           - spec.subscriptions.0.image.repoURL
+  # ── Warehouse git subscription ──
+  - source:
+      kind: ConfigMap
+      fieldPath: data.gitRepoURL
+    targets:
+      - select:
+          group: kargo.akuity.io
+          version: v1alpha1
+          kind: Warehouse
+          name: warehouse
+        fieldPaths:
+          - spec.subscriptions.1.git.repoURL
+  - source:
+      kind: ConfigMap
+      fieldPath: data.gitIncludePath
+    targets:
+      - select:
+          group: kargo.akuity.io
+          version: v1alpha1
+          kind: Warehouse
+          name: warehouse
+        fieldPaths:
+          - spec.subscriptions.1.git.includePaths.0
   # ── Warehouse origin name in all stages ──
   - source:
       kind: ConfigMap

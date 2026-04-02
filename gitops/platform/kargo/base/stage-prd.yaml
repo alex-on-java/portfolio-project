@@ -35,6 +35,8 @@ spec:
           value: PLACEHOLDER
         - name: warehouseImageURL
           value: PLACEHOLDER
+        - name: gitRepoURL
+          value: PLACEHOLDER
       steps:
         - task:
             name: promote-kustomize-app

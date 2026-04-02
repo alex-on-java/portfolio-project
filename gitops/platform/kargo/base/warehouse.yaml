@@ -13,4 +13,10 @@ spec:
         strictSemvers: true
         insecureSkipTLSVerify: false
         discoveryLimit: 5
+    - git:
+        repoURL: PLACEHOLDER
+        commitSelectionStrategy: NewestFromBranch
+        branch: master
+        includePaths:
+          - PLACEHOLDER
   interval: 60s
