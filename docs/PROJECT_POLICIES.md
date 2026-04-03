@@ -1,5 +1,7 @@
 # Project Policies
 
+These are the operational constraints that prevent the most common classes of mistakes in this project's infrastructure-heavy domain — non-reproducible builds, implicit state mutations, and scattered tooling.
+
 ## Pin External Dependency Versions
 Pin every external dependency to patch version. Flag violations when encountered.
 

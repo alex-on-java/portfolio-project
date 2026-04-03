@@ -30,16 +30,16 @@ one line suffices.
 
 1. **Problem statement**: what we are solving
 2. **Why it matters**: what makes this important
-3. **What we know for sure**: verified facts, confirmed assumptions
-4. **Main assumptions**: presuppositions the whole task rests on, including ones inherited from the initial request
+3. **Main assumptions**: presuppositions the whole task rests on, including ones inherited from the initial request
 
 ### Alignment Lists
+Use numbered lists in each section for easy reference.
 
 **A. Explicitly aligned on** — what agent and user have agreed on during the conversation, including the user's initial requirements.
 
 **B. Reasonably inferred** — what the user hasn't explicitly approved, but follows logically from what was said.
 
-**C. Implied defaults** — what hasn't been discussed at all,  but have reasonable defaults; this includes implementation details.
+**C. Implied details** — what hasn't been discussed at all, but is implied from general/codebase knowledge; include reasonable defaults if applicable.
 
 **D. Needs discussion** — open questions where alignment is still missing.
 
@@ -54,6 +54,6 @@ Mark **crucial assumptions** separately: those where being wrong would invalidat
 
 ## What's Next?
 
-After writing pre-plan alignment checkpoint to the chat, stop and let user give it's comments, so you both can align. 
-This ping-pong could take several turns, so be patient: do not rush to write the plan, wait for the explicit user approval. 
-In case assumption verification require a PoC creation, user will exit the plan mode on their own. 
+After writing pre-plan alignment checkpoint to the chat, stop and let user give it's comments, so you both can align.
+This ping-pong could take several turns, so be patient: do not rush to write the plan, wait for the explicit user approval.
+In case assumption verification require a PoC creation, user will exit the plan mode on their own.

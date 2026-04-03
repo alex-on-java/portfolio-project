@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: workloads-web-app-vars
+  annotations:
+    config.kubernetes.io/local-config: "true"
+data:
+  appCategory: workloads
+  appName: web-app
+  warehouseName: workloads-web-app
+  devStageName: workloads-web-app-dev
+  stgStageName: workloads-web-app-stg
+  prdStageName: workloads-web-app-prd
+  imageRepo: ghcr.io/alex-on-java/web-app
+  warehouseImageURL: ghcr.io/alex-on-java/web-app
+  healthPath: /
+  gitRepoURL: https://github.com/alex-on-java/portfolio-project.git
+  gitIncludePath: gitops/apps/workloads/web-app

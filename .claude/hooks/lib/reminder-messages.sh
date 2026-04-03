@@ -10,6 +10,6 @@
 
 reminder_north_star_principles() {
   cat <<'REMINDER'
-CLAUDE.md contains holistic principles that should be treated as a North Star across the whole session. Before making implementation decisions, revisit these principles to ensure alignment.
+Working Principles (docs/WORKING_PRINCIPLES.md) are the North Star for every decision in this project. In long sessions, context drifts and early guidance loses salience — re-read the principles before making implementation decisions to ensure alignment.
 REMINDER
 }
