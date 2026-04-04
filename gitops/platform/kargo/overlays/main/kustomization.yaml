@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: portfolio-project
+resources:
+  - ../../apps/workloads-web-app
+  - ../../project
+patches:
+  # Standard polling interval for main cluster
+  - target:
+      group: kargo.akuity.io
+      version: v1alpha1
+      kind: Warehouse
+    patch: |
+      - op: replace
+        path: /spec/interval
+        value: 180s
