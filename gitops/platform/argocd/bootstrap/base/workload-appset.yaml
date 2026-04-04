@@ -1,0 +1,44 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: workloads-web-app
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "200"
+spec:
+  generators:
+    - matrix:
+        generators:
+          - clusters:
+              selector:
+                matchLabels:
+                  argocd.argoproj.io/secret-type: cluster
+          - list:
+              elements:
+                - env: dev
+                  namespace: dev
+                - env: stg
+                  namespace: stg
+                - env: prd
+                  namespace: prd
+  template:
+    metadata:
+      name: "workloads-web-app-{{env}}"
+      namespace: argocd
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+      annotations:
+        kargo.akuity.io/authorized-stage: "portfolio-project:workloads-web-app-{{env}}"
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/alex-on-java/portfolio-project.git
+        targetRevision: "stage/{{metadata.annotations.branch-prefix}}/workloads-web-app-{{env}}"
+        path: .
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "{{namespace}}"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true

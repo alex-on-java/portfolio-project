@@ -1,0 +1,50 @@
+crds:
+  install: true
+
+api:
+  adminAccount:
+    enabled: false
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+controller:
+  argocd:
+    integrationEnabled: true
+    namespace: argocd
+  rollouts:
+    integrationEnabled: true
+  sharedConfigMap:
+    namespace: kargo-shared-resources
+    name: cluster-identity
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+externalWebhooksServer:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+managementController:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+garbageCollector:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 52Mi
+
+webhooksServer:
+  annotations:
+    argocd.argoproj.io/sync-options: Force=true,Replace=true
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi

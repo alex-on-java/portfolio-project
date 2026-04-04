@@ -1,0 +1,24 @@
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Warehouse
+metadata:
+  name: warehouse
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  freightCreationPolicy: Automatic
+  subscriptions:
+    - image:
+        repoURL: PLACEHOLDER
+        imageSelectionStrategy: NewestBuild
+        strictSemvers: true
+        insecureSkipTLSVerify: false
+        discoveryLimit: 5
+    - git:
+        repoURL: PLACEHOLDER
+        commitSelectionStrategy: NewestFromBranch
+        branch: master
+        strictSemvers: true
+        discoveryLimit: 20
+        includePaths:
+          - PLACEHOLDER
+  interval: 60s
