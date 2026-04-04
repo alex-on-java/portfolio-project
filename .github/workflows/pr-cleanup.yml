@@ -1,7 +1,8 @@
 name: PR Cleanup
 
 on:
-  pull_request:
+  # zizmor: ignore[dangerous-triggers] # this is an exceptional case (see commit message), suppressing any linter check is a last resort, and must always be explicitly allowed by a human
+  pull_request_target:
     types: [closed]
 
 permissions: {}
