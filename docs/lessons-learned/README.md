@@ -23,3 +23,5 @@ Surprising platform behaviors, invisible failure modes, misleading defaults, and
 - [Kustomize blocks file references outside the root directory, but directory references with their own kustomization.yaml are exempt](LL-0007-kustomize-security-error-referencing-files-above-root.md)
 - [cert-manager Helm chart defaults crds.keep to false — an uninstall cascade-deletes every Certificate in the cluster](LL-0008-helm-uninstall-cascade-deletes-all-crds-and-resources.md)
 - [Kargo expressions like sharedConfigMap() only resolve inside promotion steps — Warehouse specs are plain Kubernetes resources](LL-0009-kargo-expression-literal-appears-in-live-resource.md)
+- [GitHub App installation tokens scope to the current repository by default, even when the App is installed on multiple repos](LL-0010-cross-repo-dispatch-404-despite-correct-app-permissions.md)
+- [zizmor's per-rule allowlist config key exists in source but not in the released binary — parsed and silently ignored](LL-0011-zizmor-allowlist-config-parsed-but-has-no-effect.md)
