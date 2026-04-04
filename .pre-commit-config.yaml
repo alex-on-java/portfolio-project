@@ -16,6 +16,16 @@ repos:
       - id: shellcheck
         args: [-x, --source-path=SCRIPTDIR]
 
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.12
+    hooks:
+      - id: actionlint
+
+  - repo: https://github.com/zizmorcore/zizmor-pre-commit
+    rev: v1.23.1
+    hooks:
+      - id: zizmor
+
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.8
     hooks:
