@@ -11,6 +11,8 @@ input=$(cat)
 
 command_str=$(echo "$input" | jq -r '.tool_input.command // empty')
 session_id=$(echo "$input" | jq -r '.session_id // empty')
+agent_id=$(echo "$input" | jq -r '.agent_id // empty')
+scope_key="${session_id}:${agent_id}"
 
 # Already using the right entry point — nothing to nudge about
 if echo "$command_str" | grep -qi 'prek'; then
@@ -28,7 +30,7 @@ HOOKS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "${HOOKS_DIR}/lib/hook-state.sh"
 
 # Once per session
-if ! hook_gate precommit-policy-reminder "$session_id" once; then
+if ! hook_gate precommit-policy-reminder "$scope_key" once; then
   exit 0
 fi
 

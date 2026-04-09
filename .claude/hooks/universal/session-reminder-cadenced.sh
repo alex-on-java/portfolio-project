@@ -10,6 +10,8 @@ trap 'pcs=("${PIPESTATUS[@]}" "$?"); rc=${pcs[-1]}; unset "pcs[-1]"; cmd=$BASH_C
 input=$(cat)
 
 session_id=$(echo "$input" | jq -r '.session_id // empty')
+agent_id=$(echo "$input" | jq -r '.agent_id // empty')
+scope_key="${session_id}:${agent_id}"
 
 HOOKS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
@@ -17,7 +19,7 @@ HOOKS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "${HOOKS_DIR}/lib/hook-state.sh"
 
 # burst_then_every 2 2 → fires at 0-indexed positions 0, 1, 3, 5, 7, 9 …
-if ! hook_gate session-reminder "$session_id" burst_then_every 2 2; then
+if ! hook_gate session-reminder "$scope_key" burst_then_every 2 2; then
   exit 0
 fi
 

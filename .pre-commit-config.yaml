@@ -9,6 +9,15 @@ repos:
       - id: check-merge-conflict
       - id: check-added-large-files
       - id: check-json
+      - id: check-symlinks
+
+  - repo: local
+    hooks:
+      - id: no-absolute-symlinks
+        name: no absolute-path symlinks
+        language: system
+        entry: .pre-commit-scripts/check-absolute-symlinks
+        types: [symlink]
 
   - repo: https://github.com/shellcheck-py/shellcheck-py
     rev: v0.11.0.1

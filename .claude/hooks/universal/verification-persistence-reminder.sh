@@ -14,6 +14,8 @@ permission_mode=$(echo "$input" | jq -r '.permission_mode // empty')
 [[ "$permission_mode" == "acceptEdits" ]] || exit 0
 
 session_id=$(echo "$input" | jq -r '.session_id // empty')
+agent_id=$(echo "$input" | jq -r '.agent_id // empty')
+scope_key="${session_id}:${agent_id}"
 
 HOOKS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
@@ -21,7 +23,7 @@ HOOKS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "${HOOKS_DIR}/lib/hook-state.sh"
 
 # every 3rd failure AND at most once per 30 seconds
-if ! hook_gate verification-persistence "$session_id" every 3 cooldown 30; then
+if ! hook_gate verification-persistence "$scope_key" every 3 cooldown 30; then
   exit 0
 fi
 

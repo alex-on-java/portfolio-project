@@ -14,6 +14,8 @@ permission_mode=$(echo "$input" | jq -r '.permission_mode // empty')
 [[ "$permission_mode" != "plan" ]] && exit 0
 
 session_id=$(echo "$input" | jq -r '.session_id // empty')
+agent_id=$(echo "$input" | jq -r '.agent_id // empty')
+scope_key="${session_id}:${agent_id}"
 
 HOOKS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
@@ -21,7 +23,7 @@ HOOKS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "${HOOKS_DIR}/lib/hook-state.sh"
 
 # every 2 → fires at 0-indexed positions 0, 2, 4, … (1st, 3rd, 5th plan-mode prompts)
-if ! hook_gate before-writing-plan-reminder "$session_id" every 2; then
+if ! hook_gate before-writing-plan-reminder "$scope_key" every 2; then
   exit 0
 fi
 
