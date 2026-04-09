@@ -111,7 +111,6 @@ but only if the ConfigMap resource is in the same kustomization. Cross-kustomiza
 references (e.g., a base ConfigMap referenced by an overlay Deployment) require the
 ConfigMap to be listed in the overlay's `resources` for the name rewrite to apply.
 
-Deliberation: /tmp/commit-delib-abc123
 Plan: ~/.claude/plans/smooth-floating-bee.md
 ```
 
@@ -149,8 +148,6 @@ kustomize replacement infrastructure without introducing new patterns.
 In-flight freight (created before this change, containing no git commits) will
 cause promotions to fail after the new ClusterPromotionTask is deployed, because
 `commitFrom(vars.gitRepoURL)` returns nil when the freight has no commits.
-
-Deliberation: /tmp/commit-delib-def456
 ```
 
 ### Good: Fix for a previous commit
@@ -176,8 +173,6 @@ The Kargo admission webhook adds `strictSemvers: true` to git subscriptions
 using `NewestFromBranch` commit selection strategy, even though strict semver
 filtering is semantically irrelevant for branch-based selection. This appears
 to be a blanket default applied regardless of selection strategy.
-
-Deliberation: /tmp/commit-delib-ghi789
 ```
 
 ### Bad: Fabricated motivation on a trivial change
@@ -210,8 +205,6 @@ Renamed `svc` to `service` across Kargo stage templates
 ## What was done
 Renamed `svc` to `service` in 3 stage template files for consistency
 with the naming used in the rest of the codebase.
-
-Deliberation: /tmp/commit-delib-jkl012
 ```
 
 No `## Motivation` section — because none was established. No `## Problem`

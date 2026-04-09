@@ -43,9 +43,13 @@ done
 
 list=$(printf '%s\n' "${entries[@]}")
 
-ctx="Sub-agent transcripts for this session:
-Subagents folder: ${subagents_dir}
-${list}"
+ctx="Please include the text in a code fence below into the **Conducted Research and Experiments** section:
+\`\`\`
+Enclosing folder: ${subagents_dir}
+${list}
+\`\`\`
+Feel free to add any additional context for clarity
+"
 
 jq -n --arg ctx "$ctx" \
   '{

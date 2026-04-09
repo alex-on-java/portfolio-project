@@ -23,4 +23,4 @@ later; a premature squash loses the implementation timeline.
 
 ## How to proceed
 
-Read `references/commit-protocol.md` for the full protocol: subject line format, body structure, deliberation pipeline, and commit execution.
+Read `references/commit-protocol.md` for the full protocol: subject line format, body structure, and commit execution.

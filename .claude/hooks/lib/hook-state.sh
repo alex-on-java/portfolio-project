@@ -6,7 +6,7 @@
 #
 # Usage:
 #   source "$(dirname "${BASH_SOURCE[0]}")/../lib/hook-state.sh"
-#   hook_gate <hook_id> <session_id> <condition> [args...] [<condition> [args...]]...
+#   hook_gate <hook_id> <scope_key> <condition> [args...] [<condition> [args...]]...
 #
 # Conditions (all are AND-combined — all must pass for the gate to fire):
 #   once                       — fire on first invocation per session only
@@ -29,13 +29,13 @@
 
 hook_gate() {
   local hook_id="${1:?hook_gate: hook_id required}"
-  local session_id="${2:?hook_gate: session_id required}"
+  local scope_key="${2:?hook_gate: scope_key required}"
   shift 2
 
   local state_dir="${HOME}/.cache/claude-hooks/gate/${hook_id}"
-  local count_file="${state_dir}/${session_id}.count"
-  local fires_file="${state_dir}/${session_id}.fires"
-  local cooldown_file="${state_dir}/${session_id}.last_fire"
+  local count_file="${state_dir}/${scope_key}.count"
+  local fires_file="${state_dir}/${scope_key}.fires"
+  local cooldown_file="${state_dir}/${scope_key}.last_fire"
 
   # Ensure state directory exists
   mkdir -p "$state_dir"
