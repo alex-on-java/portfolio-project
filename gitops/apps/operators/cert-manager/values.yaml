@@ -28,3 +28,7 @@ startupapicheck:
     requests:
       cpu: 50m
       memory: 52Mi
+
+serviceAccount:
+  annotations:
+    iam.gke.io/gcp-service-account: cert-manager-dns@cv-driven-dev-e-commerce.iam.gserviceaccount.com

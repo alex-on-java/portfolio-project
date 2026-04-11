@@ -21,3 +21,8 @@ Decisions that shape the system's structure and are hard to reverse: technology 
 | [ADR-001](ADR-001-gitops-promotion-pipeline-with-kargo-and-argo-rollouts.md) | GitOps promotion pipeline with Kargo and Argo Rollouts | accepted |
 | [ADR-002](ADR-002-ephemeral-and-main-cluster-separation.md) | Ephemeral and main cluster separation | accepted |
 | [ADR-003](ADR-003-deterministic-commit-pinned-promotions.md) | Deterministic commit-pinned promotions | accepted |
+| [ADR-004](ADR-004-helm-for-external-charts-kustomize-for-first-party-manifests.md) | Helm for external charts, Kustomize for first-party manifests | accepted |
+| [ADR-005](ADR-005-gateway-api-exposure-with-promotion-time-hostname-injection.md) | Gateway API exposure with promotion-time hostname injection | accepted |
+| [ADR-006](ADR-006-contour-over-envoy-gateway-and-nginx-gateway-fabric.md) | Contour over Envoy Gateway and NGINX Gateway Fabric in ephemeral clusters | accepted |
+| [ADR-007](ADR-007-contour-for-ephemeral-gcp-managed-gateway-for-main.md) | Contour for ephemeral clusters, GCP managed Gateway for main cluster | accepted |
+| [ADR-008](ADR-008-edge-owned-wildcard-tls-and-stage-first-hostnames.md) | Edge-owned wildcard TLS and stage-first hostname contract | accepted |

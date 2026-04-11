@@ -1,0 +1,44 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: contour
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-40"
+spec:
+  generators:
+    - clusters:
+        selector:
+          matchLabels:
+            argocd.argoproj.io/secret-type: cluster
+            cluster-type: ephemeral
+  template:
+    metadata:
+      name: contour
+      namespace: argocd
+      annotations:
+        argocd.argoproj.io/compare-options: ServerSideDiff=true
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: default
+      sources:
+        - repoURL: https://projectcontour.github.io/helm-charts/
+          chart: contour
+          targetRevision: 0.4.0
+          helm:
+            valueFiles:
+              - $values/gitops/apps/operators/contour/values.yaml
+        - repoURL: https://github.com/alex-on-java/portfolio-project.git
+          targetRevision: "{{metadata.annotations.target-revision}}"
+          ref: values
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: projectcontour
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true

@@ -1,0 +1,46 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: edge-routing
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-35"
+spec:
+  generators:
+    - clusters:
+        selector:
+          matchLabels:
+            argocd.argoproj.io/secret-type: cluster
+  template:
+    metadata:
+      name: edge-routing
+      namespace: argocd
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/alex-on-java/portfolio-project.git
+        targetRevision: "{{metadata.annotations.target-revision}}"
+        path: gitops/edge/overlays/{{metadata.annotations.edge-target}}
+        kustomize:
+          patches:
+            - target:
+                kind: Certificate
+                name: edge-wildcard-tls
+              patch: |
+                - op: replace
+                  path: /spec/dnsNames
+                  value:
+                    - "*.dev.{{metadata.annotations.branch-prefix}}.{{metadata.annotations.base-domain}}"
+                    - "*.stg.{{metadata.annotations.branch-prefix}}.{{metadata.annotations.base-domain}}"
+                    - "*.prd.{{metadata.annotations.branch-prefix}}.{{metadata.annotations.base-domain}}"
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: edge-system
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
