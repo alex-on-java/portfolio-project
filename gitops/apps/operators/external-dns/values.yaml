@@ -1,0 +1,18 @@
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+sources:
+  - gateway-httproute
+provider:
+  name: google
+  google:
+    project: cv-driven-dev-e-commerce
+policy: sync
+registry: txt
+txtOwnerId: portfolio-project-cloud
+txtPrefix: "txt-"
+interval: 30s
+serviceAccount:
+  annotations:
+    iam.gke.io/gcp-service-account: external-dns@cv-driven-dev-e-commerce.iam.gserviceaccount.com
