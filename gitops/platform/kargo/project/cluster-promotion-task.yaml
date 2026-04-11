@@ -29,17 +29,31 @@ spec:
     - uses: kustomize-set-image
       as: update-image
       config:
-        path: ./src/gitops/apps/${{ vars.appCategory }}/${{ vars.appName }}/overlays/${{ vars.env }}
+        path: ./src/gitops/apps/${{ vars.appCategory }}/${{ vars.appName }}/overlays/${{ sharedConfigMap('cluster-identity').overlayTarget }}/${{ vars.env }}
         images:
           - image: ${{ vars.warehouseImageURL }}
             name: ${{ vars.imageRepo }}
             newName: ${{ vars.imageRepo }}
             digest: ${{ imageFrom(vars.warehouseImageURL).Digest }}
 
+    - uses: yaml-update
+      config:
+        path: ./src/gitops/apps/${{ vars.appCategory }}/${{ vars.appName }}/overlays/${{ sharedConfigMap('cluster-identity').overlayTarget }}/${{ vars.env }}/http-route-active.yaml
+        updates:
+          - key: spec.hostnames.0
+            value: ${{ vars.appName }}.${{ vars.env }}.${{ sharedConfigMap('cluster-identity').domainPrefix }}.${{ sharedConfigMap('cluster-identity').domain }}
+
+    - uses: yaml-update
+      config:
+        path: ./src/gitops/apps/${{ vars.appCategory }}/${{ vars.appName }}/overlays/${{ sharedConfigMap('cluster-identity').overlayTarget }}/${{ vars.env }}/http-route-preview.yaml
+        updates:
+          - key: spec.hostnames.0
+            value: preview-${{ vars.appName }}.${{ vars.env }}.${{ sharedConfigMap('cluster-identity').domainPrefix }}.${{ sharedConfigMap('cluster-identity').domain }}
+
     - uses: kustomize-build
       as: build
       config:
-        path: ./src/gitops/apps/${{ vars.appCategory }}/${{ vars.appName }}/overlays/${{ vars.env }}
+        path: ./src/gitops/apps/${{ vars.appCategory }}/${{ vars.appName }}/overlays/${{ sharedConfigMap('cluster-identity').overlayTarget }}/${{ vars.env }}
         outPath: ./out
 
     - uses: git-commit

@@ -5,5 +5,9 @@ resources:
   - kargo-helm-appset.yaml
   - argo-rollouts-helm-appset.yaml
   - cert-manager-helm-appset.yaml
+  - cert-manager-config-appset.yaml
+  - contour-helm-appset.yaml
+  - edge-routing-appset.yaml
+  - external-dns-helm-appset.yaml
   - analysis-templates-appset.yaml
   - workload-appset.yaml

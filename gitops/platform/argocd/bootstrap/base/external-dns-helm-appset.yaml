@@ -1,0 +1,43 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: external-dns
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-30"
+spec:
+  generators:
+    - clusters:
+        selector:
+          matchLabels:
+            argocd.argoproj.io/secret-type: cluster
+  template:
+    metadata:
+      name: external-dns
+      namespace: argocd
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: default
+      sources:
+        - repoURL: https://kubernetes-sigs.github.io/external-dns
+          chart: external-dns
+          targetRevision: v1.20.0
+          helm:
+            valueFiles:
+              - $values/gitops/apps/operators/external-dns/values.yaml
+            values: |
+              domainFilters:
+                - "{{metadata.annotations.base-domain}}"
+        - repoURL: https://github.com/alex-on-java/portfolio-project.git
+          targetRevision: "{{metadata.annotations.target-revision}}"
+          ref: values
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: external-dns
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

@@ -25,3 +25,8 @@ Surprising platform behaviors, invisible failure modes, misleading defaults, and
 - [Kargo expressions like sharedConfigMap() only resolve inside promotion steps — Warehouse specs are plain Kubernetes resources](LL-0009-kargo-expression-literal-appears-in-live-resource.md)
 - [GitHub App installation tokens scope to the current repository by default, even when the App is installed on multiple repos](LL-0010-cross-repo-dispatch-404-despite-correct-app-permissions.md)
 - [zizmor's per-rule allowlist config key exists in source but not in the released binary — parsed and silently ignored](LL-0011-zizmor-allowlist-config-parsed-but-has-no-effect.md)
+- [Helm hook Jobs can stall ArgoCD reconciliation unless hook delete policy is explicit](LL-0012-helm-hook-jobs-can-stall-argocd-without-delete-policy.md)
+- [Helm `skipCrds` is all-or-nothing and can conflict with CRD channel enforcement policy](LL-0013-helm-skipcrds-is-all-or-nothing-under-crd-policy.md)
+- [Contour startup can fail progressively on missing Gateway API kinds, requiring full feature-set disablement](LL-0014-contour-startup-fails-progressively-on-missing-gateway-kinds.md)
+- [GKE Autopilot enforces `ephemeral-storage` request/limit equality, causing drift when chart presets mismatch](LL-0015-autopilot-enforces-ephemeral-storage-request-limit-equality.md)
+- [ArgoCD ServerSideDiff must be enabled via compare-options; placing it in syncOptions is silently ineffective](LL-0016-argocd-serversidediff-must-be-enabled-via-compare-options.md)
