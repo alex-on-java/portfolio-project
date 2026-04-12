@@ -26,6 +26,8 @@ spec:
           helm:
             valueFiles:
               - $values/gitops/apps/operators/external-dns/values.yaml
+            values: |
+              txtOwnerId: "portfolio-project-{{metadata.annotations.branch-prefix}}"
         - repoURL: https://github.com/alex-on-java/portfolio-project.git
           targetRevision: "{{metadata.annotations.target-revision}}"
           ref: values

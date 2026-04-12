@@ -8,7 +8,6 @@ domainFilters:
   - portfolio-project.buyanov.de
 policy: sync
 registry: txt
-txtOwnerId: portfolio-project-cloud
 txtPrefix: "txt-"
 interval: 30s
 serviceAccount:
