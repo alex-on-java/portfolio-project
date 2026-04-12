@@ -1,0 +1,14 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: edge-wildcard-tls
+  namespace: edge-system
+spec:
+  secretName: edge-wildcard-tls
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  dnsNames:
+    - placeholder-0.example.com
+    - placeholder-1.example.com
+    - placeholder-2.example.com

@@ -17,6 +17,15 @@ spec:
                 containers:
                   - name: curl
                     image: curlimages/curl:8.11.1
+                    resources:
+                      requests:
+                        cpu: 50m
+                        memory: 52Mi
+                        ephemeral-storage: 64Mi
+                      limits:
+                        cpu: 200m
+                        memory: 128Mi
+                        ephemeral-storage: 256Mi
                     command:
                       - sh
                       - -c

@@ -1,0 +1,15 @@
+sources:
+  - gateway-httproute
+provider:
+  name: google
+  google:
+    project: cv-driven-dev-e-commerce
+domainFilters:
+  - portfolio-project.buyanov.de
+policy: sync
+registry: txt
+txtPrefix: "txt-"
+interval: 30s
+serviceAccount:
+  annotations:
+    iam.gke.io/gcp-service-account: external-dns@cv-driven-dev-e-commerce.iam.gserviceaccount.com

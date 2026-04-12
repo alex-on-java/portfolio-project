@@ -1,0 +1,63 @@
+configInline:
+  gateway:
+    gatewayRef:
+      name: portfolio-edge-gateway
+      namespace: edge-system
+
+gatewayAPI:
+  manageCRDs: false
+
+contour:
+  extraArgs:
+    - --disable-feature=backendtlspolicies
+    - --disable-feature=grpcroutes
+    - --disable-feature=tlsroutes
+    - --disable-feature=tcproutes
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+      ephemeral-storage: 128Mi
+    limits:
+      memory: 256Mi
+      ephemeral-storage: 128Mi
+  resourcesPreset: "none"
+
+envoy:
+  kind: deployment
+  replicaCount: 1
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+      ephemeral-storage: 256Mi
+    limits:
+      memory: 256Mi
+      ephemeral-storage: 256Mi
+  resourcesPreset: "none"
+  defaultInitContainers:
+    initConfig:
+      resourcesPreset: "none"
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+          ephemeral-storage: 64Mi
+        limits:
+          cpu: 150m
+          memory: 192Mi
+          ephemeral-storage: 64Mi
+  shutdownManager:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 52Mi
+        ephemeral-storage: 64Mi
+      limits:
+        memory: 128Mi
+        ephemeral-storage: 64Mi
