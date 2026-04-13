@@ -1,0 +1,3 @@
+immutable_history:
+  - modified|deleted|renamed: 'docs/architecture/decision-records/ADR-*'
+  - modified|deleted|renamed: 'docs/lessons-learned/LL-*'
