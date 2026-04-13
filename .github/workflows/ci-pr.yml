@@ -7,7 +7,33 @@ on:
 permissions: {}
 
 jobs:
+  permanent-history-artefacts:
+    name: Permanent History Artefacts
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+          sparse-checkout: .github/path-filters
+
+      - name: Check for forbidden mutations
+        id: filter
+        uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
+        with:
+          filters: .github/path-filters/permanent-history-artefacts.yml
+
+      - name: Block forbidden mutations
+        if: steps.filter.outputs.immutable_history == 'true'
+        run: |
+          echo "::error::This PR mutates permanent history artefacts. These files are immutable once committed. Capture new reasoning in a new record instead."
+          exit 1
+
   build:
+    needs: permanent-history-artefacts
     uses: ./.github/workflows/reusable-build-push.yml
     permissions:
       contents: read

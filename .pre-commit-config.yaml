@@ -19,6 +19,14 @@ repos:
         entry: .pre-commit-scripts/check-absolute-symlinks
         types: [symlink]
 
+      - id: permanent-history-artefacts
+        name: permanent history artefacts are immutable
+        language: system
+        entry: .pre-commit-scripts/check-permanent-history-artefacts
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
   - repo: https://github.com/shellcheck-py/shellcheck-py
     rev: v0.11.0.1
     hooks:

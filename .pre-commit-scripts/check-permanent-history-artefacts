@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+# shellcheck disable=SC2154  # shellcheck can't see variables in string; this is an exceptional case, suppressing any linter check is a last resort, and must always be explicitly allowed by a human
+trap 'pcs=("${PIPESTATUS[@]}" "$?"); rc=${pcs[-1]}; unset "pcs[-1]"; cmd=$BASH_COMMAND; file="${BASH_SOURCE[0]}"; ((${#BASH_SOURCE[@]} > 1)) && file="${BASH_SOURCE[1]}"; line="${BASH_LINENO[0]}"; [[ $line -eq 0 ]] && line="$LINENO"; printf "ERROR %d at %s:%s: %s  PIPESTATUS=%s\n" "$rc" "$file" "$line" "$cmd" "${pcs[*]}" >&2' ERR
+
+policy_file=".github/path-filters/permanent-history-artefacts.yml"
+
+if [[ ! -f "$policy_file" ]]; then
+    echo "FATAL: policy file not found: $policy_file" >&2
+    exit 1
+fi
+
+declare -A status_map=(
+    [modified]=M
+    [deleted]=D
+    [renamed]=R
+)
+
+forbidden_rules=()
+while IFS= read -r line; do
+    [[ "$line" =~ ^[[:space:]]*# ]] && continue
+    [[ -z "${line// /}" ]] && continue
+    [[ ! "$line" =~ ^[[:space:]]*- ]] && continue
+
+    if [[ "$line" =~ ^[[:space:]]*-[[:space:]]+([a-z|]+):[[:space:]]+[\'\"](.+)[\'\"][[:space:]]*$ ]]; then
+        raw_statuses="${BASH_REMATCH[1]}"
+        glob="${BASH_REMATCH[2]}"
+
+        IFS='|' read -ra statuses <<< "$raw_statuses"
+        git_letters=""
+        for s in "${statuses[@]}"; do
+            if [[ -z "${status_map[$s]+_}" ]]; then
+                echo "FATAL: unsupported status '$s' in policy file (supported: ${!status_map[*]})" >&2
+                exit 1
+            fi
+            git_letters+="${status_map[$s]}"
+        done
+        forbidden_rules+=("${git_letters}:${glob}")
+    else
+        echo "FATAL: unsupported line format in policy file: $line" >&2
+        exit 1
+    fi
+done < "$policy_file"
+
+if [[ ${#forbidden_rules[@]} -eq 0 ]]; then
+    echo "FATAL: no rules parsed from policy file" >&2
+    exit 1
+fi
+
+violations=()
+while IFS=$'\t' read -r status_field path _new_path; do
+    git_status="${status_field:0:1}"
+    check_path="$path"
+
+    for rule in "${forbidden_rules[@]}"; do
+        rule_letters="${rule%%:*}"
+        rule_glob="${rule#*:}"
+
+        [[ "$rule_letters" != *"$git_status"* ]] && continue
+
+        # shellcheck disable=SC2254  # this is an exceptional case (see commit message), suppressing any linter check is a last resort, and must always be explicitly allowed by a human
+        case "$check_path" in
+            $rule_glob)
+                violations+=("  $status_field  $check_path")
+                ;;
+        esac
+    done
+done < <(git diff --cached --name-status)
+
+if [[ ${#violations[@]} -gt 0 ]]; then
+    echo "Forbidden mutation of permanent history artefacts:" >&2
+    for v in "${violations[@]}"; do
+        echo "$v" >&2
+    done
+    echo "" >&2
+    echo "These files are permanent history — they are part of the commit" >&2
+    echo "record and must not be modified, deleted, or renamed after creation." >&2
+    echo "Capture new reasoning in a new record instead." >&2
+    exit 1
+fi
