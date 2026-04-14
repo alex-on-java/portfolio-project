@@ -49,7 +49,25 @@ For items you decide to sync:
 
 If the task requires fresh dependencies, run the appropriate install command in the worktree directory (e.g., `npm install`, `pip install -e .`, `go mod download`).
 
+### 5. Enter the worktree
+
+Switch the session into the worktree using the absolute path from step 1:
+
+```
+EnterWorktree(path=<absolute-worktree-path>)
+```
+
+This gives Claude Code session awareness — CWD-dependent caches (memory, plans, system prompt) reload for the worktree context, and `ExitWorktree` provides a clean return path.
+
 ## Removal Workflow
+
+If the session is inside the worktree (entered via `EnterWorktree`), exit first:
+
+```
+ExitWorktree(action="keep")
+```
+
+Then remove from the main repo:
 
 ```bash
 ${CLAUDE_SKILL_DIR}/scripts/create-worktree.sh remove <branch>
