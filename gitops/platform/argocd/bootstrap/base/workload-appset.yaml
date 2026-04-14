@@ -6,6 +6,8 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "200"
 spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
   generators:
     - matrix:
         generators:
@@ -23,21 +25,21 @@ spec:
                   namespace: prd
   template:
     metadata:
-      name: "workloads-web-app-{{env}}"
+      name: "workloads-web-app-{{.env}}"
       namespace: argocd
       finalizers:
         - resources-finalizer.argocd.argoproj.io
       annotations:
-        kargo.akuity.io/authorized-stage: "portfolio-project:workloads-web-app-{{env}}"
+        kargo.akuity.io/authorized-stage: "portfolio-project:workloads-web-app-{{.env}}"
     spec:
       project: default
       source:
         repoURL: https://github.com/alex-on-java/portfolio-project.git
-        targetRevision: "stage/{{metadata.annotations.branch-prefix}}/workloads-web-app-{{env}}"
+        targetRevision: 'stage/{{index .metadata.annotations "branch-prefix"}}/workloads-web-app-{{.env}}'
         path: .
       destination:
         server: https://kubernetes.default.svc
-        namespace: "{{namespace}}"
+        namespace: "{{.namespace}}"
       syncPolicy:
         automated:
           prune: true

@@ -6,6 +6,8 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "-50"
 spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
   generators:
     - clusters:
         selector:
@@ -27,7 +29,7 @@ spec:
             valueFiles:
               - $values/gitops/apps/operators/cert-manager/values.yaml
         - repoURL: https://github.com/alex-on-java/portfolio-project.git
-          targetRevision: "{{metadata.annotations.target-revision}}"
+          targetRevision: '{{index .metadata.annotations "target-revision"}}'
           ref: values
       destination:
         server: https://kubernetes.default.svc

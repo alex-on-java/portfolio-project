@@ -6,6 +6,8 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "-45"
 spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
   generators:
     - clusters:
         selector:
@@ -21,7 +23,7 @@ spec:
       project: default
       source:
         repoURL: https://github.com/alex-on-java/portfolio-project.git
-        targetRevision: "{{metadata.annotations.target-revision}}"
+        targetRevision: '{{index .metadata.annotations "target-revision"}}'
         path: gitops/apps/operators/cert-manager-config
         kustomize:
           patches:
@@ -31,7 +33,7 @@ spec:
               patch: |
                 - op: add
                   path: /spec/acme/solvers/0/dns01/cloudDNS/hostedZoneName
-                  value: "{{metadata.annotations.dns-zone-name}}"
+                  value: "{{index .metadata.annotations "dns-zone-name"}}"
       destination:
         server: https://kubernetes.default.svc
       syncPolicy:

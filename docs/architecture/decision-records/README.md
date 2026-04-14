@@ -28,3 +28,4 @@ Decisions that shape the system's structure and are hard to reverse: technology 
 | [ADR-008](ADR-008-edge-owned-wildcard-tls-and-stage-first-hostnames.md) | Edge-owned wildcard TLS and stage-first hostname contract | accepted |
 | [ADR-009](ADR-009-prefer-source-fixes-and-ssd-over-respectignoredifferences.md) | Prefer source fixes and SSD over RespectIgnoreDifferences | accepted |
 | [ADR-010](ADR-010-per-pr-delegated-dns-zones-for-ephemeral-cluster-isolation.md) | Per-PR delegated DNS zones for ephemeral cluster isolation | accepted |
+| [ADR-011](ADR-011-go-templates-with-missingkey-error-for-applicationsets.md) | Go templates with missingkey=error for all ApplicationSets | accepted |

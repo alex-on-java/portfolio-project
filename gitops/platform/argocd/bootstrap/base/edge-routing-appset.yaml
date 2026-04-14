@@ -6,6 +6,8 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "-35"
 spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
   generators:
     - clusters:
         selector:
@@ -21,8 +23,8 @@ spec:
       project: default
       source:
         repoURL: https://github.com/alex-on-java/portfolio-project.git
-        targetRevision: "{{metadata.annotations.target-revision}}"
-        path: gitops/edge/overlays/{{metadata.annotations.edge-target}}
+        targetRevision: '{{index .metadata.annotations "target-revision"}}'
+        path: 'gitops/edge/overlays/{{index .metadata.annotations "edge-target"}}'
         kustomize:
           patches:
             - target:
@@ -32,9 +34,9 @@ spec:
                 - op: replace
                   path: /spec/dnsNames
                   value:
-                    - "*.dev.{{metadata.annotations.branch-prefix}}.{{metadata.annotations.base-domain}}"
-                    - "*.stg.{{metadata.annotations.branch-prefix}}.{{metadata.annotations.base-domain}}"
-                    - "*.prd.{{metadata.annotations.branch-prefix}}.{{metadata.annotations.base-domain}}"
+                    - "*.dev.{{index .metadata.annotations "branch-prefix"}}.{{index .metadata.annotations "base-domain"}}"
+                    - "*.stg.{{index .metadata.annotations "branch-prefix"}}.{{index .metadata.annotations "base-domain"}}"
+                    - "*.prd.{{index .metadata.annotations "branch-prefix"}}.{{index .metadata.annotations "base-domain"}}"
       destination:
         server: https://kubernetes.default.svc
         namespace: edge-system
