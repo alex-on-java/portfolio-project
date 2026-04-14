@@ -26,3 +26,5 @@ Decisions that shape the system's structure and are hard to reverse: technology 
 | [ADR-006](ADR-006-contour-over-envoy-gateway-and-nginx-gateway-fabric.md) | Contour over Envoy Gateway and NGINX Gateway Fabric in ephemeral clusters | accepted |
 | [ADR-007](ADR-007-contour-for-ephemeral-gcp-managed-gateway-for-main.md) | Contour for ephemeral clusters, GCP managed Gateway for main cluster | accepted |
 | [ADR-008](ADR-008-edge-owned-wildcard-tls-and-stage-first-hostnames.md) | Edge-owned wildcard TLS and stage-first hostname contract | accepted |
+| [ADR-009](ADR-009-prefer-source-fixes-and-ssd-over-respectignoredifferences.md) | Prefer source fixes and SSD over RespectIgnoreDifferences | accepted |
+| [ADR-010](ADR-010-per-pr-delegated-dns-zones-for-ephemeral-cluster-isolation.md) | Per-PR delegated DNS zones for ephemeral cluster isolation | accepted |

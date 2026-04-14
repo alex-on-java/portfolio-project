@@ -23,6 +23,15 @@ spec:
         repoURL: https://github.com/alex-on-java/portfolio-project.git
         targetRevision: "{{metadata.annotations.target-revision}}"
         path: gitops/apps/operators/cert-manager-config
+        kustomize:
+          patches:
+            - target:
+                kind: ClusterIssuer
+                name: letsencrypt-prod
+              patch: |
+                - op: add
+                  path: /spec/acme/solvers/0/dns01/cloudDNS/hostedZoneName
+                  value: "{{metadata.annotations.dns-zone-name}}"
       destination:
         server: https://kubernetes.default.svc
       syncPolicy:
