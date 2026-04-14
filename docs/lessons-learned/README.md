@@ -30,3 +30,6 @@ Surprising platform behaviors, invisible failure modes, misleading defaults, and
 - [Contour startup can fail progressively on missing Gateway API kinds, requiring full feature-set disablement](LL-0014-contour-startup-fails-progressively-on-missing-gateway-kinds.md)
 - [GKE Autopilot enforces `ephemeral-storage` request/limit equality, causing drift when chart presets mismatch](LL-0015-autopilot-enforces-ephemeral-storage-request-limit-equality.md)
 - [ArgoCD ServerSideDiff must be enabled via compare-options; placing it in syncOptions is silently ineffective](LL-0016-argocd-serversidediff-must-be-enabled-via-compare-options.md)
+- [DNS symptoms can mask promotion blockage and Gateway/dataplane readiness failures](LL-0017-dns-symptoms-can-mask-promotion-and-gateway-readiness-failures.md)
+- [HTTP-to-HTTPS redirect can be shadowed unless workload routes are pinned to the HTTPS listener](LL-0018-http-to-https-redirect-can-be-shadowed-without-listener-section-pinning.md)
+- [ArgoCD fasttemplate preserves missing keys as literal text — accidental safety from an unmaintained library](LL-0019-fasttemplate-preserves-missing-keys-as-literal-text.md)
