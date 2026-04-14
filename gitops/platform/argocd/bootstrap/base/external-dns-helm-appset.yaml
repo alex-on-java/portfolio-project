@@ -28,7 +28,10 @@ spec:
               - $values/gitops/apps/operators/external-dns/values.yaml
             values: |
               domainFilters:
-                - "{{metadata.annotations.base-domain}}"
+                - "{{metadata.annotations.branch-prefix}}.{{metadata.annotations.base-domain}}"
+              txtOwnerId: "{{metadata.annotations.branch-prefix}}"
+              extraArgs:
+                - "--zone-id-filter={{metadata.annotations.dns-zone-name}}"
         - repoURL: https://github.com/alex-on-java/portfolio-project.git
           targetRevision: "{{metadata.annotations.target-revision}}"
           ref: values
