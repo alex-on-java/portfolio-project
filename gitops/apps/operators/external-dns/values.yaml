@@ -10,7 +10,7 @@ provider:
     project: cv-driven-dev-e-commerce
 policy: sync
 registry: txt
-txtOwnerId: portfolio-project-cloud
+txtOwnerId: default-owner
 txtPrefix: "txt-"
 interval: 30s
 serviceAccount:
