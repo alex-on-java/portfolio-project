@@ -59,3 +59,32 @@ repos:
     rev: v4.0.5
     hooks:
       - id: pylint
+
+  - repo: https://github.com/open-policy-agent/conftest
+    rev: v0.68.0
+    hooks:
+      - id: conftest-test
+        alias: conftest-yaml
+        name: conftest (YAML version pinning)
+        files: (^gitops/|^\.pre-commit-config\.yaml$)
+        types: [yaml]
+        args: [--policy, policies/conftest]
+
+      - id: conftest-test
+        alias: conftest-toml
+        name: conftest (TOML version pinning)
+        files: ^mise\.toml$
+        args: [--policy, policies/conftest, --parser, toml]
+
+      - id: conftest-test
+        alias: conftest-dockerfile
+        name: conftest (Dockerfile version pinning)
+        files: Dockerfile
+        args: [--policy, policies/conftest, --parser, dockerfile]
+
+      - id: conftest-verify
+        alias: conftest-verify
+        name: conftest verify (Rego unit tests)
+        pass_filenames: false
+        always_run: true
+        args: [--policy, policies/conftest]
