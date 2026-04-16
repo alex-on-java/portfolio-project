@@ -1,0 +1,27 @@
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: convergence-checker
+  namespace: observability
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: convergence-checker
+      sources:
+        direct: true
+  promotionTemplate:
+    spec:
+      vars:
+        - name: appName
+          value: convergence-checker
+        - name: imageRepo
+          value: ghcr.io/alex-on-java/convergence-checker
+        - name: warehouseImageURL
+          value: ghcr.io/alex-on-java/convergence-checker
+      steps:
+        - task:
+            name: promote-platform-app
+            kind: ClusterPromotionTask

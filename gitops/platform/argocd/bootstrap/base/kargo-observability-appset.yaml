@@ -1,0 +1,38 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: kargo-observability
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "300"
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - clusters:
+        selector:
+          matchLabels:
+            argocd.argoproj.io/secret-type: cluster
+  template:
+    metadata:
+      name: kargo-observability
+      namespace: argocd
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/alex-on-java/portfolio-project.git
+        targetRevision: '{{index .metadata.annotations "target-revision"}}'
+        path: gitops/platform/kargo-observability/overlays/ephemeral
+      destination:
+        server: https://kubernetes.default.svc
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        retry:
+          limit: -1
+        syncOptions:
+          - SkipDryRunOnMissingResource=true
+          - ServerSideApply=true
