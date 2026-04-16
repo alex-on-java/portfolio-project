@@ -1,0 +1,12 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: gitops-convergence-checker
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: gitops-convergence-checker
+subjects:
+  - kind: ServiceAccount
+    name: gitops-convergence-checker
+    namespace: observability

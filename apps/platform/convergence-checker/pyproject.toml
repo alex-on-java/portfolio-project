@@ -1,0 +1,67 @@
+[project]
+name = "convergence-checker"
+version = "0.1.0"
+description = "GitOps convergence gate — polls ArgoCD and Kargo status, reports to GitHub"
+requires-python = ">=3.13"
+dependencies = [
+    "click==8.1.8",
+    "dynaconf==3.2.11",
+    "kubernetes==35.0.0",
+    "pydantic==2.11.3",
+    "PyJWT[crypto]==2.9.0",
+    "requests==2.32.3",
+    "structlog==25.4.0",
+]
+
+[project.scripts]
+convergence-checker = "convergence_checker.cli:cli"
+
+[dependency-groups]
+dev = [
+    "mypy==1.19.1",
+    "pytest==8.3.5",
+    "pytest-cov==6.1.1",
+    "ruff==0.15.8",
+    "types-requests==2.32.0.20250515",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/convergence_checker"]
+
+[tool.ruff]
+src = ["src"]
+target-version = "py313"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "COM812",   # trailing-comma — conflicts with ruff format
+    "D",        # pydocstyle — commit messages carry the "why"
+    "ISC001",   # single-line-implicit-string-concatenation — conflicts with ruff format
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = [
+    "S101",     # assert — expected in tests
+    "PLR2004",  # magic-value-comparison — test constants are self-evident
+]
+
+[tool.mypy]
+strict = true
+python_version = "3.13"
+mypy_path = "src"
+packages = ["convergence_checker"]
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["kubernetes", "kubernetes.*", "dynaconf"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--strict-markers -ra"
