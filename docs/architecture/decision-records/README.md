@@ -29,3 +29,4 @@ Decisions that shape the system's structure and are hard to reverse: technology 
 | [ADR-009](ADR-009-prefer-source-fixes-and-ssd-over-respectignoredifferences.md) | Prefer source fixes and SSD over RespectIgnoreDifferences | accepted |
 | [ADR-010](ADR-010-per-pr-delegated-dns-zones-for-ephemeral-cluster-isolation.md) | Per-PR delegated DNS zones for ephemeral cluster isolation | accepted |
 | [ADR-011](ADR-011-go-templates-with-missingkey-error-for-applicationsets.md) | Go templates with missingkey=error for all ApplicationSets | accepted |
+| [ADR-012](ADR-012-strict-semvers-false-for-warehouse-subscriptions.md) | Strict semvers false for Warehouse subscriptions | accepted |
