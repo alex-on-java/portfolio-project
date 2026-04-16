@@ -29,9 +29,21 @@ if ! hook_gate stale-kubectl-contexts-reminder "$scope_key" once; then
   exit 0
 fi
 
-jq -n --arg ctx 'Heads up: `kubectl config get-contexts` reads locally cached kubeconfig entries that may be stale (deleted clusters, expired credentials, leftover contexts from old projects). This output is not authoritative for GKE access.
+CLUSTER_SUPPLEMENT=""
+if CLUSTER_LIST=$(gcloud container clusters list --format='table(name,location,status)' 2>/dev/null) && [ -n "$CLUSTER_LIST" ]; then
+  CLUSTER_SUPPLEMENT="
 
-If you need to reach a GKE cluster, use `gcloud container clusters get-credentials` to establish a fresh, valid context.' \
+Currently running clusters:
+${CLUSTER_LIST}"
+elif GCP_PROJECT=$(gcloud config get-value project 2>/dev/null); then
+  CLUSTER_SUPPLEMENT="
+
+No running clusters found. Active GCP project: ${GCP_PROJECT}"
+fi
+
+jq -n --arg ctx "Heads up: \`kubectl config get-contexts\` reads locally cached kubeconfig entries that may be stale (deleted clusters, expired credentials, leftover contexts from old projects). This output is not authoritative for GKE access.
+
+If you need to reach a GKE cluster, use \`gcloud container clusters get-credentials\` to establish a fresh, valid context.${CLUSTER_SUPPLEMENT}" \
   '{
     "hookSpecificOutput": {
       "hookEventName": "PreToolUse",
