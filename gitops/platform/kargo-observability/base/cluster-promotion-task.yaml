@@ -5,6 +5,7 @@ metadata:
 spec:
   vars:
     - name: appName
+    - name: argoAppName
     - name: imageRepo
     - name: warehouseImageURL
     - name: gitRepoURL
@@ -54,4 +55,4 @@ spec:
       as: sync
       config:
         apps:
-          - name: ${{ ctx.stage }}
+          - name: ${{ vars.argoAppName }}
