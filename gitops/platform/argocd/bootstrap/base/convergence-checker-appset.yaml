@@ -20,7 +20,7 @@ spec:
       finalizers:
         - resources-finalizer.argocd.argoproj.io
       annotations:
-        kargo.akuity.io/authorized-stage: "observability:convergence-checker"
+        kargo.akuity.io/authorized-stage: "observability-project:convergence-checker"
     spec:
       project: default
       source:
