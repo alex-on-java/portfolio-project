@@ -19,6 +19,8 @@ spec:
       namespace: argocd
       finalizers:
         - resources-finalizer.argocd.argoproj.io
+      annotations:
+        kargo.akuity.io/authorized-stage: "observability:convergence-checker"
     spec:
       project: default
       source:

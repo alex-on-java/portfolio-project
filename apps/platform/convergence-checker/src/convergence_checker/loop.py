@@ -173,8 +173,6 @@ def run(*, dry_run: bool = False) -> None:
         dry_run=dry_run,
     )
 
-    terminal_reported = False
-
     while not shutdown:
         identity = _read_cluster_identity(core_api)
         new_sha = identity.get("prCommitSha")
@@ -183,7 +181,6 @@ def run(*, dry_run: bool = False) -> None:
             log.info("sha_changed", old=state.last_commit_sha, new=new_sha)
             state = ConvergenceState(last_commit_sha=new_sha)
             commit_sha = new_sha
-            terminal_reported = False
 
         kargo_namespaces = _discover_kargo_namespaces(custom_api)
 
@@ -204,9 +201,7 @@ def run(*, dry_run: bool = False) -> None:
             resources=len(results),
         )
 
-        is_terminal = result.verdict in (EvaluationVerdict.HEALTHY, EvaluationVerdict.FAILURE)
-
-        if commit_sha and gh_client and not dry_run and not terminal_reported:
+        if commit_sha and gh_client and not dry_run:
             gh_state = _github_state_from_verdict(result.verdict)
             try:
                 gh_client.create_commit_status(
@@ -220,13 +215,14 @@ def run(*, dry_run: bool = False) -> None:
             except Exception:
                 log.exception("github_status_failed")
 
-        if is_terminal:
-            terminal_reported = True
-
         try:
             _write_heartbeat(core_api, own_namespace)
-            _write_state(core_api, own_namespace, state)
         except Exception:
             log.exception("heartbeat_write_failed")
+
+        try:
+            _write_state(core_api, own_namespace, state)
+        except Exception:
+            log.exception("state_write_failed")
 
         time.sleep(settings.check_interval_seconds)

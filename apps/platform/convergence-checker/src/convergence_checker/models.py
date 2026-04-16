@@ -80,7 +80,7 @@ class StageStatus(BaseModel):
                 if isinstance(cond, dict):
                     ctype = cond.get("type")
                     cstatus = cond.get("status")
-                    if isinstance(ctype, str) and isinstance(cstatus, str):
+                    if isinstance(ctype, str) and isinstance(cstatus, str) and cstatus in ("True", "False"):
                         conditions[ctype] = cstatus == "True"
 
         return cls(

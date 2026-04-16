@@ -94,6 +94,20 @@ class TestStageStatusFromResource:
         stage = StageStatus.from_resource(resource)
         assert stage.conditions == {}
 
+    def test_unknown_condition_excluded(self) -> None:
+        resource: dict[str, object] = {
+            "metadata": {"name": "test", "namespace": "ns"},
+            "status": {
+                "conditions": [
+                    {"type": "Ready", "status": "True"},
+                    {"type": "Healthy", "status": "Unknown"},
+                ],
+            },
+        }
+        stage = StageStatus.from_resource(resource)
+        assert stage.conditions == {"Ready": True}
+        assert "Healthy" not in stage.conditions
+
     def test_malformed_condition_skipped(self) -> None:
         resource: dict[str, object] = {
             "metadata": {"name": "test", "namespace": "ns"},
