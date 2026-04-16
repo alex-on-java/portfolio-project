@@ -10,14 +10,14 @@ spec:
     - image:
         repoURL: PLACEHOLDER
         imageSelectionStrategy: NewestBuild
-        strictSemvers: true
+        strictSemvers: false
         insecureSkipTLSVerify: false
         discoveryLimit: 5
     - git:
         repoURL: PLACEHOLDER
         commitSelectionStrategy: NewestFromBranch
         branch: master
-        strictSemvers: true
+        strictSemvers: false
         discoveryLimit: 20
         includePaths:
           - PLACEHOLDER
