@@ -1,0 +1,7 @@
+[
+  {
+    "pattern": "worktree",
+    "trigger": "git work tree",
+    "skill": "worktree-create"
+  }
+]
