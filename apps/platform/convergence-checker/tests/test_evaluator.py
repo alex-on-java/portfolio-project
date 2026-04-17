@@ -6,7 +6,6 @@ from convergence_checker.evaluator import (
     aggregate,
     evaluate_app,
     evaluate_stage,
-    is_self_application,
 )
 from convergence_checker.models import (
     ApplicationStatus,
@@ -168,16 +167,6 @@ class TestEvaluateStage:
         assert "Unhealthy" in result.description
 
 
-class TestIsSelfApplication:
-    def test_matches_prefix(self) -> None:
-        assert is_self_application("gitops-convergence-checker") is True
-        assert is_self_application("gitops-convergence-checker-abc") is True
-
-    def test_does_not_match(self) -> None:
-        assert is_self_application("web-app-dev") is False
-        assert is_self_application("kargo-config") is False
-
-
 class TestAggregate:
     def _healthy(self, name: str = "ok") -> EvaluationResult:
         return EvaluationResult(verdict=EvaluationVerdict.HEALTHY, description=name)
@@ -259,3 +248,15 @@ class TestAggregate:
         state = ConvergenceState(last_commit_sha="abc123")
         _, new_state = aggregate([self._healthy()], state, stability_threshold=5, safety_timeout_seconds=900)
         assert new_state.last_commit_sha == "abc123"
+
+    def test_consecutive_healthy_caps_at_threshold_times_two(self) -> None:
+        state = ConvergenceState(consecutive_healthy=10)
+        _, new_state = aggregate([self._healthy()], state, stability_threshold=5, safety_timeout_seconds=900)
+        assert new_state.consecutive_healthy == 10
+
+    def test_consecutive_healthy_reaches_cap_then_stops(self) -> None:
+        state = ConvergenceState(consecutive_healthy=9)
+        _, mid_state = aggregate([self._healthy()], state, stability_threshold=5, safety_timeout_seconds=900)
+        assert mid_state.consecutive_healthy == 10
+        _, capped_state = aggregate([self._healthy()], mid_state, stability_threshold=5, safety_timeout_seconds=900)
+        assert capped_state.consecutive_healthy == 10
