@@ -46,6 +46,19 @@ def _read_cluster_identity(
     )
 
 
+def _reconcile_startup_state(
+    loaded: ConvergenceState,
+    current_sha: str | None,
+) -> ConvergenceState:
+    if loaded.last_commit_sha == current_sha:
+        return ConvergenceState(
+            consecutive_healthy=loaded.consecutive_healthy,
+            first_pending_at=loaded.first_pending_at,
+            last_commit_sha=current_sha,
+        )
+    return ConvergenceState(last_commit_sha=current_sha)
+
+
 def _build_github_client() -> github_client.GitHubAppClient | None:
     app_id = os.environ.get("GITHUB_APP_ID")
     private_key = os.environ.get("GITHUB_APP_PRIVATE_KEY")
@@ -155,12 +168,7 @@ def run(*, dry_run: bool = False) -> None:
     commit_sha = identity.get("prCommitSha")
     argocd_namespace = identity.get("argocdNamespace", "argocd")
 
-    state = _load_state(core_api, own_namespace)
-    state = ConvergenceState(
-        consecutive_healthy=state.consecutive_healthy,
-        first_pending_at=state.first_pending_at,
-        last_commit_sha=commit_sha,
-    )
+    state = _reconcile_startup_state(_load_state(core_api, own_namespace), commit_sha)
 
     if not commit_sha:
         log.info("no_pr_context", msg="running in log-only mode")
@@ -174,55 +182,58 @@ def run(*, dry_run: bool = False) -> None:
     )
 
     while not shutdown:
-        identity = _read_cluster_identity(core_api)
-        new_sha = identity.get("prCommitSha")
+        try:
+            identity = _read_cluster_identity(core_api)
+            new_sha = identity.get("prCommitSha")
 
-        if new_sha and new_sha != state.last_commit_sha:
-            log.info("sha_changed", old=state.last_commit_sha, new=new_sha)
-            state = ConvergenceState(last_commit_sha=new_sha)
-            commit_sha = new_sha
+            if new_sha and new_sha != state.last_commit_sha:
+                log.info("sha_changed", old=state.last_commit_sha, new=new_sha)
+                state = ConvergenceState(last_commit_sha=new_sha)
+                commit_sha = new_sha
 
-        kargo_namespaces = _discover_kargo_namespaces(custom_api)
+            kargo_namespaces = _discover_kargo_namespaces(custom_api)
 
-        results = _collect_evaluations(custom_api, argocd_namespace, kargo_namespaces)
+            results = _collect_evaluations(custom_api, argocd_namespace, kargo_namespaces)
 
-        result, state = evaluator.aggregate(
-            results,
-            state,
-            stability_threshold=settings.stability_threshold,
-            safety_timeout_seconds=settings.safety_timeout_seconds,
-        )
+            result, state = evaluator.aggregate(
+                results,
+                state,
+                stability_threshold=settings.stability_threshold,
+                safety_timeout_seconds=settings.safety_timeout_seconds,
+            )
 
-        log.info(
-            "evaluation",
-            verdict=result.verdict.value,
-            description=result.description,
-            consecutive_healthy=state.consecutive_healthy,
-            resources=len(results),
-        )
+            log.info(
+                "evaluation",
+                verdict=result.verdict.value,
+                description=result.description,
+                consecutive_healthy=state.consecutive_healthy,
+                resources=len(results),
+            )
 
-        if commit_sha and gh_client and not dry_run:
-            gh_state = _github_state_from_verdict(result.verdict)
+            if commit_sha and gh_client and not dry_run:
+                gh_state = _github_state_from_verdict(result.verdict)
+                try:
+                    gh_client.create_commit_status(
+                        owner_repo=owner_repo,
+                        sha=commit_sha,
+                        state=gh_state,
+                        context=status_context,
+                        description=result.description,
+                    )
+                    log.info("github_status_reported", state=gh_state)
+                except Exception:
+                    log.exception("github_status_failed")
+
             try:
-                gh_client.create_commit_status(
-                    owner_repo=owner_repo,
-                    sha=commit_sha,
-                    state=gh_state,
-                    context=status_context,
-                    description=result.description,
-                )
-                log.info("github_status_reported", state=gh_state)
+                _write_heartbeat(core_api, own_namespace)
             except Exception:
-                log.exception("github_status_failed")
+                log.exception("heartbeat_write_failed")
 
-        try:
-            _write_heartbeat(core_api, own_namespace)
+            try:
+                _write_state(core_api, own_namespace, state)
+            except Exception:
+                log.exception("state_write_failed")
         except Exception:
-            log.exception("heartbeat_write_failed")
-
-        try:
-            _write_state(core_api, own_namespace, state)
-        except Exception:
-            log.exception("state_write_failed")
+            log.exception("evaluation_cycle_failed")
 
         time.sleep(settings.check_interval_seconds)
