@@ -21,6 +21,6 @@ spec:
         strictSemvers: false
         discoveryLimit: 20
         includePaths:
-          - apps/platform/convergence-checker/**
-          - gitops/apps/platform/convergence-checker/**
+          - "glob:apps/platform/convergence-checker/**"
+          - "glob:gitops/apps/platform/convergence-checker/**"
   interval: 60s
