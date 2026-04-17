@@ -23,7 +23,7 @@ spec:
         app: web-app
     spec:
       containers:
-      - image: ghcr.io/alex-on-java/web-app@sha256:c4f0b7d9e7107fd8717753f6358f05cfad284ebaa9925a558cc1314c7a3eb7c7
+      - image: ghcr.io/alex-on-java/web-app@sha256:f420616bd143834d80979dc7eaddf05f00576ea25e44b0ae05db854534c2d4bb
         imagePullPolicy: IfNotPresent
         name: web-app
         ports:
