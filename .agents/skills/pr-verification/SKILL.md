@@ -6,50 +6,92 @@ description: |
 user-invocable: false
 ---
 
-The deployment pipeline runs in sequential layers. Check each in order — stop and report
-if a layer fails, since downstream checks are meaningless without the upstream layer being green.
+## Architecture Context
 
-## Layer 1 — CI
+A PR push produces pre-gate CI checks and then, once an ephemeral cluster is live, a single
+aggregated commit status — `GitOps Convergence Gate` — that reflects the health of every ArgoCD
+Application and every Kargo Stage in the cluster. The gate is the source of truth for deployment
+health; drop into a per-layer skill only when the gate is `pending` past its normal window or
+reports `failure`.
 
-Use `gh run list` to find the latest run for this PR's branch. Both jobs must succeed:
-- `build` — Docker image built and pushed to GHCR
-- `dispatch-pr-push` — cluster-pool notified
+**Three lifecycle owners share the gate-status context, in sequence:**
 
-If either job failed, report which one and stop. Do not proceed to cluster checks.
+1. **Cluster-pool workflow** posts `pending` at PR push; posts terminal status if provisioning is
+   skipped by policy or fails outright.
+2. **In-cluster reporter** (a Deployment whose job is to evaluate cluster state and post commit
+   status) takes over once the cluster is live and its pod is Ready; posts `pending`/`success`/
+   `failure` per evaluation cycle.
+3. **Watchdog CronJob** posts `failure` if the reporter goes silent past its staleness threshold —
+   otherwise a crashed reporter would silently convert the gate from "blocking" to "confusing."
 
-## Layer 2 — Cluster
+The status **description** is the primary signal — read it first; it names the offending resource
+or the silent reporter.
 
-Check the `Ephemeral Cluster` commit status using:
-`gh api repos/alex-on-java/portfolio-project/commits/$(git rev-parse HEAD)/status --jq '.statuses[] | select(.context == "Ephemeral Cluster") | .description'`
+## Diagnostic Approach
 
-If the status won't become "Cluster provisioned" within a minute:
-- Use `/loop 15m` to wait for cluster to be provisioned from scratch. Use `date` to detect, how many minutes actually passed.
-- **Always cancel the loop cron after these 15 minutes.** A forgotten loop wakes up periodically and reports stale status while you are already working on a fix.
-- If cluster is not provisioned, invoke `cluster-troubleshooting`.
+Check each in order — stop and report if a layer fails; downstream checks are meaningless without
+the upstream layer being green.
 
-## Layer 3 — Platform (ArgoCD)
+**1. Pre-gate layer — CI**
+`gh run list` for the latest run on this branch. If any required job failed, report which one and
+stop.
 
-Read `references/platform-checks.md` for what to check and what green looks like.
+**2. Pre-gate layer — Ephemeral Cluster**
+The `Ephemeral Cluster` commit status confirms Terraform provisioned and pool-ctl activated:
 
-If any ArgoCD application is degraded → invoke `argocd-troubleshooting`.
+```
+gh api repos/<owner>/<repo>/commits/$(git rev-parse HEAD)/status \
+  --jq '.statuses[] | select(.context == "Ephemeral Cluster")'
+```
 
-## Layer 4 — Delivery (Kargo)
+If not green within a minute, provisioning may be in flight — a cluster from scratch takes ~10+
+minutes. Wait with `/loop 15m`, using `date` to track elapsed time. **Always cancel the loop**
+once the status resolves — a forgotten loop keeps reporting stale state while you're already
+debugging.
 
-Read `references/delivery-checks.md` for what to check and what green looks like.
+Not green after the wait → `cluster-troubleshooting`.
 
-If the promotion pipeline is stuck or stages are not verified → invoke `kargo-troubleshooting`.
+**3. Gate layer — GitOps Convergence Gate**
+The aggregated status:
 
-## Layer 5 — Application
+```
+gh api repos/<owner>/<repo>/commits/$(git rev-parse HEAD)/statuses \
+  --jq '.[] | select(.context == "GitOps Convergence Gate")'
+```
 
-Read `references/app-checks.md` for what to check and what green looks like.
+(Note: list form `.../statuses` is GET-only; `.../statuses/{sha}` is POST-only.)
 
-If any Rollout is degraded or pods are failing → invoke `app-troubleshooting`.
+`state` tells you the outcome. `description` tells you *why*.
 
-## Final Consistency Check
+## Dispatch
 
-When all layers are individually green, confirm end-to-end consistency:
-- The freight ID reported by all Kargo stages must be the same
-- The image digest in running pods must match the freight's image digest
-- The git commit recorded in the freight must be from the PR branch
+When the gate is `pending` past its normal window or `failure`, use the status description to
+pick the next skill:
 
-All green and consistent → report success with a brief summary of what was verified.
+- Description mentioning "watchdog" or the reporter being unresponsive → `app-troubleshooting`
+  (reporter pod) *and* `cluster-troubleshooting` (watchdog infra). Both are in play.
+- Description naming an ArgoCD Application (Degraded / OutOfSync / sync failure) →
+  `argocd-troubleshooting`.
+- Description naming a Kargo Stage (promotion failure, stage unhealthy) →
+  `kargo-troubleshooting`.
+- Gate stuck `pending` with an empty or vague description, or no description movement at all →
+  `cluster-troubleshooting` (activation keys in `cluster-identity` may be missing or still at
+  placeholder values — the reporter has no PR context to report against).
+
+**Correlation key.** The reporter posts statuses against the commit SHA held in
+`cluster-identity.prCommitSha` — *not* the PR's current HEAD. If statuses arrive on an
+unexpected SHA, a Terraform re-apply or a stale activation may have left the reporter posting
+against a previous commit. See `cluster-troubleshooting` for the re-apply hazard.
+
+Unsure where the symptom lives? Inspect the reporter's logs directly. Discover the in-cluster
+reporter by name — today, one reporter Deployment runs in the cluster:
+
+```
+kubectl --context <ctx> get deploy -A -o name | grep -i -E 'checker|reporter|gate'
+kubectl --context <ctx> logs -n <reporter-ns> deployment/<reporter-name>
+```
+
+## Final Consistency
+
+All pre-gate + gate statuses green → report success. No deeper ritual is needed; the gate
+aggregates Application and Stage health across the cluster by design.
