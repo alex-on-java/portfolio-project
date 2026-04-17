@@ -30,6 +30,17 @@ spec:
       destination:
         server: https://kubernetes.default.svc
         namespace: observability
+      ignoreDifferences:
+        - group: ""
+          kind: ConfigMap
+          name: gitops-convergence-heartbeat
+          jsonPointers:
+            - /data
+        - group: ""
+          kind: ConfigMap
+          name: gitops-convergence-state
+          jsonPointers:
+            - /data
       syncPolicy:
         automated:
           prune: true
