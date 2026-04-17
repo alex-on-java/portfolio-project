@@ -81,8 +81,6 @@ def _collect_evaluations(
     apps = k8s.list_applications(custom_api, argocd_namespace)
     for raw_app in apps:
         app = ApplicationStatus.from_resource(raw_app)
-        if evaluator.is_self_application(app.name):
-            continue
         results.append(evaluator.evaluate_app(app))
 
     for ns in kargo_namespaces:
@@ -133,6 +131,31 @@ def _github_state_from_verdict(verdict: EvaluationVerdict) -> str:
     return mapping[verdict]
 
 
+def _post_status_if_changed(
+    gh_client: github_client.GitHubAppClient,
+    commit_sha: str,
+    result: EvaluationResult,
+    last_sent: tuple[str, str] | None,
+) -> tuple[str, str] | None:
+    gh_state = _github_state_from_verdict(result.verdict)
+    candidate = (gh_state, result.description)
+    if candidate == last_sent:
+        return last_sent
+    try:
+        gh_client.create_commit_status(
+            owner_repo=settings.owner_repo,
+            sha=commit_sha,
+            state=gh_state,
+            context=settings.github_status_context,
+            description=result.description,
+        )
+    except Exception:
+        log.exception("github_status_failed")
+        return last_sent
+    log.info("github_status_reported", state=gh_state)
+    return candidate
+
+
 def _discover_kargo_namespaces(custom_api: k8s_client.CustomObjectsApi) -> list[str]:
     projects = k8s.list_projects(custom_api)
     namespaces: list[str] = []
@@ -161,8 +184,6 @@ def run(*, dry_run: bool = False) -> None:
 
     own_namespace = _read_own_namespace()
     gh_client = _build_github_client()
-    owner_repo: str = settings.owner_repo
-    status_context: str = settings.github_status_context
 
     identity = _read_cluster_identity(core_api)
     commit_sha = identity.get("prCommitSha")
@@ -181,6 +202,8 @@ def run(*, dry_run: bool = False) -> None:
         dry_run=dry_run,
     )
 
+    last_sent: tuple[str, str] | None = None
+
     while not shutdown:
         try:
             identity = _read_cluster_identity(core_api)
@@ -190,6 +213,7 @@ def run(*, dry_run: bool = False) -> None:
                 log.info("sha_changed", old=state.last_commit_sha, new=new_sha)
                 state = ConvergenceState(last_commit_sha=new_sha)
                 commit_sha = new_sha
+                last_sent = None
 
             kargo_namespaces = _discover_kargo_namespaces(custom_api)
 
@@ -211,18 +235,7 @@ def run(*, dry_run: bool = False) -> None:
             )
 
             if commit_sha and gh_client and not dry_run:
-                gh_state = _github_state_from_verdict(result.verdict)
-                try:
-                    gh_client.create_commit_status(
-                        owner_repo=owner_repo,
-                        sha=commit_sha,
-                        state=gh_state,
-                        context=status_context,
-                        description=result.description,
-                    )
-                    log.info("github_status_reported", state=gh_state)
-                except Exception:
-                    log.exception("github_status_failed")
+                last_sent = _post_status_if_changed(gh_client, commit_sha, result, last_sent)
 
             try:
                 _write_heartbeat(core_api, own_namespace)

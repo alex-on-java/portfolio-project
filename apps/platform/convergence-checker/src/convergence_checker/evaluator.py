@@ -10,8 +10,6 @@ from convergence_checker.models import (
     StageStatus,
 )
 
-_SELF_NAME_PREFIX = "gitops-convergence-checker"
-
 
 def evaluate_app(app: ApplicationStatus) -> EvaluationResult:
     if app.health_status == "Degraded":
@@ -72,10 +70,6 @@ def evaluate_stage(stage: StageStatus) -> EvaluationResult:
     )
 
 
-def is_self_application(app_name: str) -> bool:
-    return app_name.startswith(_SELF_NAME_PREFIX)
-
-
 def aggregate(
     results: list[EvaluationResult],
     state: ConvergenceState,
@@ -101,7 +95,7 @@ def aggregate(
 
     all_healthy = all(r.verdict == EvaluationVerdict.HEALTHY for r in results)
     if all_healthy and results:
-        new_count = state.consecutive_healthy + 1
+        new_count = min(state.consecutive_healthy + 1, stability_threshold * 2)
         if new_count >= stability_threshold:
             return (
                 EvaluationResult(
