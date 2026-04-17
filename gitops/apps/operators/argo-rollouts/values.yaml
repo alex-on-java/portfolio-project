@@ -3,6 +3,11 @@ controller:
     requests:
       cpu: 100m
       memory: 128Mi
+      ephemeral-storage: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+      ephemeral-storage: 64Mi
 
 dashboard:
   enabled: false

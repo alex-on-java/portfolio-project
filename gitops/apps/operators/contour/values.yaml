@@ -19,6 +19,7 @@ contour:
       memory: 128Mi
       ephemeral-storage: 128Mi
     limits:
+      cpu: 200m
       memory: 256Mi
       ephemeral-storage: 128Mi
   resourcesPreset: "none"
@@ -37,6 +38,7 @@ envoy:
       memory: 128Mi
       ephemeral-storage: 256Mi
     limits:
+      cpu: 300m
       memory: 256Mi
       ephemeral-storage: 256Mi
   resourcesPreset: "none"
@@ -59,5 +61,6 @@ envoy:
         memory: 52Mi
         ephemeral-storage: 64Mi
       limits:
+        cpu: 100m
         memory: 128Mi
         ephemeral-storage: 64Mi
