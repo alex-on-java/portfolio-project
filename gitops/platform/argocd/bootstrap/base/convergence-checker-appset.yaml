@@ -1,0 +1,47 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: gitops-convergence-checker
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "100"
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - clusters:
+        selector:
+          matchLabels:
+            argocd.argoproj.io/secret-type: cluster
+  template:
+    metadata:
+      name: gitops-convergence-checker
+      namespace: argocd
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+      annotations:
+        kargo.akuity.io/authorized-stage: "observability-project:convergence-checker"
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/alex-on-java/portfolio-project.git
+        targetRevision: 'stage/{{index .metadata.annotations "branch-prefix"}}/convergence-checker'
+        path: .
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: observability
+      ignoreDifferences:
+        - group: ""
+          kind: ConfigMap
+          name: gitops-convergence-heartbeat
+          jsonPointers:
+            - /data
+        - group: ""
+          kind: ConfigMap
+          name: gitops-convergence-state
+          jsonPointers:
+            - /data
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
