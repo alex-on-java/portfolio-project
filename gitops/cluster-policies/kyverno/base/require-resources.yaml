@@ -1,0 +1,209 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-all-resource-fields
+spec:
+  validationFailureAction: Audit
+  rules:
+    - name: require-resource-fields
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      validate:
+        message: >-
+          All containers must specify requests and limits for cpu, memory,
+          and ephemeral-storage.
+        pattern:
+          spec:
+            containers:
+              - resources:
+                  requests:
+                    cpu: "?*"
+                    memory: "?*"
+                    ephemeral-storage: "?*"
+                  limits:
+                    cpu: "?*"
+                    memory: "?*"
+                    ephemeral-storage: "?*"
+            =(initContainers):
+              - resources:
+                  requests:
+                    cpu: "?*"
+                    memory: "?*"
+                    ephemeral-storage: "?*"
+                  limits:
+                    cpu: "?*"
+                    memory: "?*"
+                    ephemeral-storage: "?*"
+            =(ephemeralContainers):
+              - resources:
+                  requests:
+                    cpu: "?*"
+                    memory: "?*"
+                    ephemeral-storage: "?*"
+                  limits:
+                    cpu: "?*"
+                    memory: "?*"
+                    ephemeral-storage: "?*"
+    - name: require-resource-fields-rollout
+      match:
+        any:
+          - resources:
+              kinds:
+                - argoproj.io/v1alpha1/Rollout
+      validate:
+        message: >-
+          All containers in Rollout must specify requests and limits for cpu,
+          memory, and ephemeral-storage.
+        pattern:
+          spec:
+            template:
+              spec:
+                containers:
+                  - resources:
+                      requests:
+                        cpu: "?*"
+                        memory: "?*"
+                        ephemeral-storage: "?*"
+                      limits:
+                        cpu: "?*"
+                        memory: "?*"
+                        ephemeral-storage: "?*"
+                =(initContainers):
+                  - resources:
+                      requests:
+                        cpu: "?*"
+                        memory: "?*"
+                        ephemeral-storage: "?*"
+                      limits:
+                        cpu: "?*"
+                        memory: "?*"
+                        ephemeral-storage: "?*"
+                =(ephemeralContainers):
+                  - resources:
+                      requests:
+                        cpu: "?*"
+                        memory: "?*"
+                        ephemeral-storage: "?*"
+                      limits:
+                        cpu: "?*"
+                        memory: "?*"
+                        ephemeral-storage: "?*"
+    - name: require-resource-fields-analysis-template
+      match:
+        any:
+          - resources:
+              kinds:
+                - argoproj.io/v1alpha1/ClusterAnalysisTemplate
+      validate:
+        message: >-
+          All containers in ClusterAnalysisTemplate job metrics must specify
+          requests and limits for cpu, memory, and ephemeral-storage.
+        foreach:
+          - list: request.object.spec.metrics
+            foreach:
+              - list: "element.provider.job.spec.template.spec.[containers, initContainers || `[]`, ephemeralContainers || `[]`][]"
+                deny:
+                  conditions:
+                    any:
+                      - key: "{{ element.resources.requests.cpu || '' }}"
+                        operator: Equals
+                        value: ""
+                      - key: "{{ element.resources.requests.memory || '' }}"
+                        operator: Equals
+                        value: ""
+                      - key: "{{ element.resources.requests.\"ephemeral-storage\" || '' }}"
+                        operator: Equals
+                        value: ""
+                      - key: "{{ element.resources.limits.cpu || '' }}"
+                        operator: Equals
+                        value: ""
+                      - key: "{{ element.resources.limits.memory || '' }}"
+                        operator: Equals
+                        value: ""
+                      - key: "{{ element.resources.limits.\"ephemeral-storage\" || '' }}"
+                        operator: Equals
+                        value: ""
+    - name: require-ephemeral-storage-limit-equals-request
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      validate:
+        message: >-
+          ephemeral-storage limits must equal requests.
+        foreach:
+          - list: "request.object.spec.containers"
+            deny:
+              conditions:
+                any:
+                  - key: "{{ element.resources.limits.\"ephemeral-storage\" }}"
+                    operator: NotEquals
+                    value: "{{ element.resources.requests.\"ephemeral-storage\" }}"
+          - list: "request.object.spec.initContainers || `[]`"
+            deny:
+              conditions:
+                any:
+                  - key: "{{ element.resources.limits.\"ephemeral-storage\" }}"
+                    operator: NotEquals
+                    value: "{{ element.resources.requests.\"ephemeral-storage\" }}"
+          - list: "request.object.spec.ephemeralContainers || `[]`"
+            deny:
+              conditions:
+                any:
+                  - key: "{{ element.resources.limits.\"ephemeral-storage\" }}"
+                    operator: NotEquals
+                    value: "{{ element.resources.requests.\"ephemeral-storage\" }}"
+    - name: require-ephemeral-storage-limit-equals-request-rollout
+      match:
+        any:
+          - resources:
+              kinds:
+                - argoproj.io/v1alpha1/Rollout
+      validate:
+        message: >-
+          ephemeral-storage limits must equal requests in Rollout.
+        foreach:
+          - list: "request.object.spec.template.spec.containers"
+            deny:
+              conditions:
+                any:
+                  - key: "{{ element.resources.limits.\"ephemeral-storage\" }}"
+                    operator: NotEquals
+                    value: "{{ element.resources.requests.\"ephemeral-storage\" }}"
+          - list: "request.object.spec.template.spec.initContainers || `[]`"
+            deny:
+              conditions:
+                any:
+                  - key: "{{ element.resources.limits.\"ephemeral-storage\" }}"
+                    operator: NotEquals
+                    value: "{{ element.resources.requests.\"ephemeral-storage\" }}"
+          - list: "request.object.spec.template.spec.ephemeralContainers || `[]`"
+            deny:
+              conditions:
+                any:
+                  - key: "{{ element.resources.limits.\"ephemeral-storage\" }}"
+                    operator: NotEquals
+                    value: "{{ element.resources.requests.\"ephemeral-storage\" }}"
+    - name: ephemeral-storage-limit-eq-request-analysis
+      match:
+        any:
+          - resources:
+              kinds:
+                - argoproj.io/v1alpha1/ClusterAnalysisTemplate
+      validate:
+        message: >-
+          ephemeral-storage limits must equal requests in ClusterAnalysisTemplate.
+        foreach:
+          - list: request.object.spec.metrics
+            foreach:
+              - list: "element.provider.job.spec.template.spec.[containers, initContainers || `[]`, ephemeralContainers || `[]`][]"
+                deny:
+                  conditions:
+                    any:
+                      - key: "{{ element.resources.limits.\"ephemeral-storage\" }}"
+                        operator: NotEquals
+                        value: "{{ element.resources.requests.\"ephemeral-storage\" }}"

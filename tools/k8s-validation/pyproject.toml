@@ -1,0 +1,49 @@
+[project]
+name = "k8s-validator"
+version = "0.0.1"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "pyyaml==6.0.3",
+    "dynaconf==3.2.13",
+    "pytest==8.4.2",
+]
+
+[dependency-groups]
+dev = [
+    "poethepoet==0.44.0",
+    "mypy==1.20.1",
+    "pylint==4.0.5",
+    "ruff==0.15.11",
+    "types-PyYAML==6.0.12.20260408",
+]
+
+[build-system]
+requires = ["setuptools>=75.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths        = ["validators"]
+python_files     = ["*_validator.py"]
+python_functions = ["validate_*"]
+
+[tool.poe.tasks]
+ruff   = "ruff check src validators"
+fmt    = "ruff format --check src validators"
+mypy   = "mypy src validators"
+pylint = "pylint src validators"
+lint   = { sequence = ["ruff", "fmt", "mypy", "pylint"], ignore_fail = "return_non_zero", help = "Run every linter; aggregate all failures" }
+
+[[tool.mypy.overrides]]
+module = "dynaconf"
+ignore_missing_imports = true
+
+[tool.pylint.messages_control]
+disable = [
+    "missing-module-docstring",
+    "missing-class-docstring",
+    "missing-function-docstring",
+    "redefined-outer-name",
+]

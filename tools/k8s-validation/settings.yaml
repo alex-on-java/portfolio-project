@@ -1,0 +1,37 @@
+rendering:
+  gitops_root: gitops
+  helm_cache_dir: .cache/helm-charts
+  appsets_dir: gitops/platform/argocd/bootstrap/base
+
+kyverno:
+  policies_dir: gitops/cluster-policies/kyverno/base
+
+kubeconform:
+  skip_kinds:
+    - CustomResourceDefinition
+
+schemas:
+  output_dir: .cache/generated-crd-schemas
+  k8s_schemas_dir: .cache/k8s-schemas
+  k8s_schema_repo_url: "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/50b79917c7f9c60d528e5ba6d113aa845a4b6fbf"
+  from_charts:
+    - chart: cert-manager
+      crd_helm_sets:
+        crds.enabled: "true"
+    - chart: argo-rollouts
+      crd_helm_sets:
+        installCRDs: "true"
+    - chart: kargo
+      crd_helm_sets:
+        api.adminAccount.enabled: "false"
+  from_releases:
+    - name: gateway-api
+      repo: kubernetes-sigs/gateway-api
+      version: v1.2.1
+      asset: standard-install.yaml
+    - name: argo-cd
+      version: v3.3.4
+      url: https://raw.githubusercontent.com/argoproj/argo-cd/v3.3.4/manifests/crds/applicationset-crd.yaml
+    - name: kyverno
+      version: v1.17.1
+      url: https://raw.githubusercontent.com/kyverno/kyverno/v1.17.1/config/crds/kyverno/kyverno.io_clusterpolicies.yaml

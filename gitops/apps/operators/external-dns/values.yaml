@@ -2,6 +2,11 @@ resources:
   requests:
     cpu: 50m
     memory: 64Mi
+    ephemeral-storage: 64Mi
+  limits:
+    cpu: 100m
+    memory: 128Mi
+    ephemeral-storage: 64Mi
 sources:
   - gateway-httproute
 provider:
