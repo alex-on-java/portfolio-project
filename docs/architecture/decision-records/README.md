@@ -30,3 +30,9 @@ Decisions that shape the system's structure and are hard to reverse: technology 
 | [ADR-010](ADR-010-per-pr-delegated-dns-zones-for-ephemeral-cluster-isolation.md) | Per-PR delegated DNS zones for ephemeral cluster isolation | accepted |
 | [ADR-011](ADR-011-go-templates-with-missingkey-error-for-applicationsets.md) | Go templates with missingkey=error for all ApplicationSets | accepted |
 | [ADR-012](ADR-012-strict-semvers-false-for-warehouse-subscriptions.md) | Strict semvers false for Warehouse subscriptions | accepted |
+| [ADR-013](ADR-013-policy-location-architecture.md) | Separate policy locations by enforcement plane | accepted |
+| [ADR-014](ADR-014-crd-handling-in-validation-pipeline.md) | Exclude CRDs from rendering, include for schema extraction | accepted |
+| [ADR-015](ADR-015-schema-lifecycle.md) | Clean generated CRD schemas before each generation run | accepted |
+| [ADR-016](ADR-016-pytest-as-orchestration-for-k8s-validation.md) | pytest as orchestration layer for K8s manifest validation | accepted |
+| [ADR-017](ADR-017-python-project-linting-via-poe-router.md) | Python project linting via poe tasks dispatched by a pre-commit router | accepted |
+| [ADR-018](ADR-018-no-deployment-from-base-kustomize-directories.md) | No deployment from base Kustomize directories (interim) | accepted |

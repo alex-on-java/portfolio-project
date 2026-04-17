@@ -3,9 +3,9 @@
 These are the operational constraints that prevent the most common classes of mistakes in this project's infrastructure-heavy domain — non-reproducible builds, implicit state mutations, and scattered tooling.
 
 ## Pin External Dependency Versions
-Pin every external dependency to patch version. Flag violations when encountered.
+Pin every external dependency to an exact patch version — exact equality, not ranges, lower-bounds, or compatible-release operators. Flag violations when encountered.
 
-Unpinned dependencies make builds non-reproducible and upgrades invisible.
+Unpinned or range-pinned dependencies make builds non-reproducible and upgrades invisible. All upgrades must be deliberate.
 
 
 ## Static Checks Run via Pre-commit

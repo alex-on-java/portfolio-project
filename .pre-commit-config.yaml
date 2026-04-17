@@ -43,22 +43,21 @@ repos:
     hooks:
       - id: zizmor
 
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.8
+  - repo: local
     hooks:
-      - id: ruff
-        args: [--fix]
-      - id: ruff-format
+      - id: lint-python-projects
+        name: Lint Python projects (poe per project, parallel)
+        language: system
+        entry: .pre-commit-scripts/lint-python-projects
+        files: \.py$|(^|/)pyproject\.toml$
+        pass_filenames: true
 
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.19.1
-    hooks:
-      - id: mypy
-
-  - repo: https://github.com/pylint-dev/pylint
-    rev: v4.0.5
-    hooks:
-      - id: pylint
+      - id: validate-k8s-manifests
+        name: K8s manifest validation (Kyverno + Kubeconform)
+        language: system
+        entry: uv run --project tools/k8s-validation pytest tools/k8s-validation/tests/ -q
+        files: ^(gitops/|tools/k8s-validation/|mise\.toml$)
+        pass_filenames: false
 
   - repo: https://github.com/open-policy-agent/conftest
     rev: v0.68.0
@@ -73,7 +72,7 @@ repos:
       - id: conftest-test
         alias: conftest-toml
         name: conftest (TOML version pinning)
-        files: ^mise\.toml$
+        files: (^mise\.toml$|(^|/)pyproject\.toml$)
         args: [--policy, policies/conftest, --parser, toml]
 
       - id: conftest-test
