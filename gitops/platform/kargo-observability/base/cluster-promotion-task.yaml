@@ -28,7 +28,7 @@ spec:
     - uses: kustomize-set-image
       as: update-image
       config:
-        path: ./src/gitops/apps/platform/${{ vars.appName }}/overlays/${{ sharedConfigMap('cluster-identity').overlayTarget }}
+        path: ./src/gitops/apps/platform/${{ vars.appName }}/overlays/${{ sharedConfigMap('cluster-identity').overlayTarget }}/${{ sharedConfigMap('cluster-identity').clusterLifecycle }}
         images:
           - image: ${{ vars.warehouseImageURL }}
             name: ${{ vars.imageRepo }}
@@ -38,7 +38,7 @@ spec:
     - uses: kustomize-build
       as: build
       config:
-        path: ./src/gitops/apps/platform/${{ vars.appName }}/overlays/${{ sharedConfigMap('cluster-identity').overlayTarget }}
+        path: ./src/gitops/apps/platform/${{ vars.appName }}/overlays/${{ sharedConfigMap('cluster-identity').overlayTarget }}/${{ sharedConfigMap('cluster-identity').clusterLifecycle }}
         outPath: ./out
 
     - uses: git-commit
