@@ -8,6 +8,11 @@ api:
     requests:
       cpu: 100m
       memory: 128Mi
+      ephemeral-storage: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+      ephemeral-storage: 64Mi
 
 controller:
   argocd:
@@ -22,24 +27,44 @@ controller:
     requests:
       cpu: 100m
       memory: 128Mi
+      ephemeral-storage: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+      ephemeral-storage: 64Mi
 
 externalWebhooksServer:
   resources:
     requests:
       cpu: 50m
       memory: 64Mi
+      ephemeral-storage: 64Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+      ephemeral-storage: 64Mi
 
 managementController:
   resources:
     requests:
       cpu: 100m
       memory: 128Mi
+      ephemeral-storage: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+      ephemeral-storage: 64Mi
 
 garbageCollector:
   resources:
     requests:
       cpu: 50m
       memory: 52Mi
+      ephemeral-storage: 64Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+      ephemeral-storage: 64Mi
 
 webhooksServer:
   annotations:
@@ -48,3 +73,8 @@ webhooksServer:
     requests:
       cpu: 50m
       memory: 64Mi
+      ephemeral-storage: 64Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+      ephemeral-storage: 64Mi

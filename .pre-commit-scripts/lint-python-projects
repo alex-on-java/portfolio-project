@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+# shellcheck disable=SC2154  # shellcheck can't see variables in string; this is an exceptional case, suppressing any linter check is a last resort, and must always be explicitly allowed by a human
+trap 'pcs=("${PIPESTATUS[@]}" "$?"); rc=${pcs[-1]}; unset "pcs[-1]"; cmd=$BASH_COMMAND; file="${BASH_SOURCE[0]}"; ((${#BASH_SOURCE[@]} > 1)) && file="${BASH_SOURCE[1]}"; line="${BASH_LINENO[0]}"; [[ $line -eq 0 ]] && line="$LINENO"; printf "ERROR %d at %s:%s: %s  PIPESTATUS=%s\n" "$rc" "$file" "$line" "$cmd" "${pcs[*]}" >&2' ERR
+
+if (( BASH_VERSINFO[0] < 5 )) || { (( BASH_VERSINFO[0] == 5 )) && (( BASH_VERSINFO[1] < 1 )); }; then
+    echo "ERROR: lint-python-projects requires bash >= 5.1 (got ${BASH_VERSION}). 'wait -n -p' is load-bearing for per-child exit attribution." >&2
+    exit 1
+fi
+
+MAX_PARALLEL=10
+
+declare -A projects=()
+project_order=()
+
+for f in "$@"; do
+    dir=$(cd "$(dirname "$f")" 2>/dev/null && pwd) || continue
+    while [[ "$dir" != "/" && ! -f "$dir/pyproject.toml" ]]; do
+        dir="$(dirname "$dir")"
+    done
+    [[ -f "$dir/pyproject.toml" ]] || continue
+    if [[ -z "${projects[$dir]+_}" ]]; then
+        projects[$dir]=1
+        project_order+=("$dir")
+    fi
+done
+
+(( ${#project_order[@]} == 0 )) && exit 0
+
+tmpdir=$(mktemp -d)
+trap 'trash "$tmpdir" 2>/dev/null || true' EXIT
+
+declare -A pid_to_idx=()
+declare -a results=()
+for ((i=0; i<${#project_order[@]}; i++)); do
+    results[i]=0
+done
+
+inflight=0
+launched=0
+
+start_worker() {
+    local idx=$1
+    local project="${project_order[$idx]}"
+    local logfile="$tmpdir/$idx.log"
+    (trap - ERR; cd "$project" && exec uv run --frozen poe lint) >"$logfile" 2>&1 &
+    local pid=$!
+    pid_to_idx[$pid]=$idx
+    inflight=$((inflight + 1))
+}
+
+while (( launched < ${#project_order[@]} && inflight < MAX_PARALLEL )); do
+    start_worker "$launched"
+    launched=$((launched + 1))
+done
+
+while (( inflight > 0 )); do
+    finished=0
+    if wait -n -p finished; then
+        rc=0
+    else
+        rc=$?
+    fi
+    inflight=$((inflight - 1))
+    idx="${pid_to_idx[$finished]}"
+    results[idx]=$rc
+    unset "pid_to_idx[$finished]"
+
+    if (( launched < ${#project_order[@]} )); then
+        start_worker "$launched"
+        launched=$((launched + 1))
+    fi
+done
+
+overall_rc=0
+for ((i=0; i<${#project_order[@]}; i++)); do
+    project="${project_order[$i]}"
+    rc="${results[$i]}"
+    if (( rc == 0 )); then
+        printf "=== %s: OK ===\n" "$project"
+    else
+        printf "=== %s: FAILED (exit %d) ===\n" "$project" "$rc"
+    fi
+    cat "$tmpdir/$i.log"
+
+    if (( rc >= 128 )); then
+        overall_rc=$rc
+    elif (( rc != 0 && overall_rc < 128 )); then
+        overall_rc=1
+    fi
+done
+
+exit "$overall_rc"
