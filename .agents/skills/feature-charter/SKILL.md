@@ -31,6 +31,18 @@ Align with the user through dialogue on the charter's content. Focus on areas wh
 
 Compose the charter following the structure defined in `references/charter-structure.md`. Read that file before writing — it is the single source of truth for what each section contains.
 
+#### Size budget
+
+Keep charter content **≤ 8000 UTF-16 code units** (guideline). The `charter-injection.sh` hook appends a `## Session History` section — up to ~10 transcript paths — and, for main agents, a short nudge block. Everything together must fit under Claude Code's 10,000-unit `additionalContext` cap; beyond it, the payload is saved to a file and only a ~2KB preview is inlined, and agents often skip the re-read.
+
+Verify with:
+
+```bash
+python3 -c "import sys; print(len(sys.stdin.read().encode('utf-16-le'))//2)" < .claude/charters/<sanitized-branch>.md
+```
+
+Byte-based tools (`wc -c`) misreport multi-byte content — use the Python one-liner. If the count approaches 8000, tighten prose; do not rely on truncation.
+
 ### 4. Save
 
 Resolve the current branch and save the charter:

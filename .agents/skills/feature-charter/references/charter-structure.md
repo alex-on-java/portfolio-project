@@ -47,3 +47,7 @@ Which working principles are most relevant to this feature and how they apply sp
 ## Out of Scope
 
 What this feature deliberately does not cover. For each exclusion, state why it's excluded — otherwise a future agent may interpret the omission as an oversight and "fix" it.
+
+## Session History
+
+**Auto-managed.** The `charter-injection.sh` hook appends this section with each main-agent session's transcript path. The hook matches this exact heading; do not alter or annotate it, and do not author entries under it manually. Do not add any section after it — it must remain the last section of the file, or the sub-agent stripping logic will drop whatever follows.
