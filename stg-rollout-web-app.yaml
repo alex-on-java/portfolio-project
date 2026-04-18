@@ -1,0 +1,42 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  labels:
+    app: web-app
+  name: web-app
+  namespace: stg
+spec:
+  progressDeadlineSeconds: 120
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web-app
+  strategy:
+    blueGreen:
+      activeService: web-app-active
+      autoPromotionEnabled: true
+      previewService: web-app-preview
+      scaleDownDelaySeconds: 35
+  template:
+    metadata:
+      labels:
+        app: web-app
+    spec:
+      containers:
+      - image: ghcr.io/alex-on-java/web-app@sha256:ce0abb34d4a0b88da600c5ebf3185dd13be5330b43217791b488d88172a52c8c
+        imagePullPolicy: IfNotPresent
+        name: web-app
+        ports:
+        - containerPort: 3000
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        resources:
+          limits:
+            memory: 64Mi
+          requests:
+            cpu: 50m
+            memory: 32Mi
