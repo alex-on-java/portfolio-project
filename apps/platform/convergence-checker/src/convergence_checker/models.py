@@ -95,3 +95,18 @@ class ConvergenceState(BaseModel):
     consecutive_healthy: int = 0
     first_pending_at: datetime | None = None
     last_commit_sha: str | None = None
+
+
+class CycleInputs(BaseModel):
+    previous_state: ConvergenceState
+    previous_commit_sha: str | None = None
+    previous_sent_status: tuple[str, str] | None = None
+    dry_run: bool = False
+
+
+class CycleOutputs(BaseModel):
+    new_state: ConvergenceState
+    new_commit_sha: str | None = None
+    new_sent_status: tuple[str, str] | None = None
+    result: EvaluationResult
+    resource_count: int

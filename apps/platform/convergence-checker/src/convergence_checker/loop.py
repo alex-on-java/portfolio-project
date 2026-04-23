@@ -9,21 +9,27 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     import types
+    from collections.abc import Callable
 
 import structlog
 from kubernetes import client as k8s_client
 from kubernetes import config as k8s_config
 
-from convergence_checker import evaluator, github_client
-from convergence_checker import k8s_client as k8s
+from convergence_checker import cycle, github_client
 from convergence_checker.config import settings
-from convergence_checker.models import (
-    ApplicationStatus,
-    ConvergenceState,
-    EvaluationResult,
-    EvaluationVerdict,
-    StageStatus,
+from convergence_checker.cycle import (
+    CycleConfig,
 )
+from convergence_checker.cycle import (
+    reconcile_startup_state as _reconcile_startup_state,
+)
+from convergence_checker.io_adapters import (
+    GitHubStatusReporter,
+    K8sClusterReader,
+    NullStatusReporter,
+    StatusReporter,
+)
+from convergence_checker.models import CycleInputs
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
 
@@ -36,139 +42,7 @@ def _read_own_namespace() -> str:
     return "observability"
 
 
-def _read_cluster_identity(
-    core_api: k8s_client.CoreV1Api,
-) -> dict[str, str]:
-    return k8s.read_configmap(
-        core_api,
-        name=settings.cluster_identity_configmap_name,
-        namespace=settings.cluster_identity_namespace,
-    )
-
-
-def _reconcile_startup_state(
-    loaded: ConvergenceState,
-    current_sha: str | None,
-) -> ConvergenceState:
-    if loaded.last_commit_sha == current_sha:
-        return ConvergenceState(
-            consecutive_healthy=loaded.consecutive_healthy,
-            first_pending_at=loaded.first_pending_at,
-            last_commit_sha=current_sha,
-        )
-    return ConvergenceState(last_commit_sha=current_sha)
-
-
-def _build_github_client() -> github_client.GitHubAppClient | None:
-    app_id = os.environ.get("GITHUB_APP_ID")
-    private_key = os.environ.get("GITHUB_APP_PRIVATE_KEY")
-    installation_id = os.environ.get("GITHUB_APP_INSTALLATION_ID")
-
-    if not app_id or not private_key or not installation_id:
-        log.warning("github_credentials_missing")
-        return None
-
-    return github_client.GitHubAppClient(app_id, private_key, installation_id)
-
-
-def _collect_evaluations(
-    custom_api: k8s_client.CustomObjectsApi,
-    argocd_namespace: str,
-    kargo_namespaces: list[str],
-) -> list[EvaluationResult]:
-    results: list[EvaluationResult] = []
-
-    apps = k8s.list_applications(custom_api, argocd_namespace)
-    for raw_app in apps:
-        app = ApplicationStatus.from_resource(raw_app)
-        results.append(evaluator.evaluate_app(app))
-
-    for ns in kargo_namespaces:
-        stages = k8s.list_stages(custom_api, ns)
-        for raw_stage in stages:
-            stage = StageStatus.from_resource(raw_stage)
-            results.append(evaluator.evaluate_stage(stage))
-
-    return results
-
-
-def _write_heartbeat(core_api: k8s_client.CoreV1Api, namespace: str) -> None:
-    now = datetime.now(tz=UTC).isoformat()
-    k8s.patch_configmap(
-        core_api,
-        name=settings.heartbeat_configmap_name,
-        namespace=namespace,
-        data={"last-success": now},
-    )
-
-
-def _write_state(core_api: k8s_client.CoreV1Api, namespace: str, state: ConvergenceState) -> None:
-    k8s.patch_configmap(
-        core_api,
-        name=settings.state_configmap_name,
-        namespace=namespace,
-        data={"state": state.model_dump_json()},
-    )
-
-
-def _load_state(core_api: k8s_client.CoreV1Api, namespace: str) -> ConvergenceState:
-    try:
-        data = k8s.read_configmap(core_api, name=settings.state_configmap_name, namespace=namespace)
-        raw = data.get("state")
-        if raw:
-            return ConvergenceState.model_validate_json(raw)
-    except (KeyError, ValueError, k8s_client.ApiException):
-        log.debug("state_configmap_not_found_or_invalid")
-    return ConvergenceState()
-
-
-def _github_state_from_verdict(verdict: EvaluationVerdict) -> str:
-    mapping: dict[EvaluationVerdict, str] = {
-        EvaluationVerdict.HEALTHY: "success",
-        EvaluationVerdict.PENDING: "pending",
-        EvaluationVerdict.FAILURE: "failure",
-    }
-    return mapping[verdict]
-
-
-def _post_status_if_changed(
-    gh_client: github_client.GitHubAppClient,
-    commit_sha: str,
-    result: EvaluationResult,
-    last_sent: tuple[str, str] | None,
-) -> tuple[str, str] | None:
-    gh_state = _github_state_from_verdict(result.verdict)
-    candidate = (gh_state, result.description)
-    if candidate == last_sent:
-        return last_sent
-    try:
-        gh_client.create_commit_status(
-            owner_repo=settings.owner_repo,
-            sha=commit_sha,
-            state=gh_state,
-            context=settings.github_status_context,
-            description=result.description,
-        )
-    except Exception:
-        log.exception("github_status_failed")
-        return last_sent
-    log.info("github_status_reported", state=gh_state)
-    return candidate
-
-
-def _discover_kargo_namespaces(custom_api: k8s_client.CustomObjectsApi) -> list[str]:
-    projects = k8s.list_projects(custom_api)
-    namespaces: list[str] = []
-    for project in projects:
-        metadata = project.get("metadata", {})
-        if isinstance(metadata, dict):
-            name = metadata.get("name")
-            if isinstance(name, str):
-                namespaces.append(name)
-    return namespaces
-
-
-def run(*, dry_run: bool = False) -> None:
+def _install_sigterm_handler() -> Callable[[], bool]:
     shutdown = False
 
     def _handle_sigterm(_signum: int, _frame: types.FrameType | None) -> None:
@@ -178,75 +52,103 @@ def run(*, dry_run: bool = False) -> None:
 
     signal.signal(signal.SIGTERM, _handle_sigterm)
 
+    def is_shutting_down() -> bool:
+        return shutdown
+
+    return is_shutting_down
+
+
+def _load_k8s_clients() -> tuple[k8s_client.CoreV1Api, k8s_client.CustomObjectsApi]:
     k8s_config.load_incluster_config()
-    core_api = k8s_client.CoreV1Api()
-    custom_api = k8s_client.CustomObjectsApi()
+    return k8s_client.CoreV1Api(), k8s_client.CustomObjectsApi()
+
+
+def _select_reporter(*, dry_run: bool) -> StatusReporter:
+    if dry_run:
+        return NullStatusReporter()
+
+    app_id = os.environ.get("GITHUB_APP_ID")
+    private_key = os.environ.get("GITHUB_APP_PRIVATE_KEY")
+    installation_id = os.environ.get("GITHUB_APP_INSTALLATION_ID")
+
+    if not app_id or not private_key or not installation_id:
+        log.warning("github_credentials_missing")
+        return NullStatusReporter()
+
+    return GitHubStatusReporter(github_client.GitHubAppClient(app_id, private_key, installation_id))
+
+
+def run(*, dry_run: bool = False) -> None:
+    shutdown = _install_sigterm_handler()
+    core_api, custom_api = _load_k8s_clients()
 
     own_namespace = _read_own_namespace()
-    gh_client = _build_github_client()
+    reader = K8sClusterReader(
+        core_api=core_api,
+        custom_api=custom_api,
+        own_namespace=own_namespace,
+        cluster_identity_namespace=settings.cluster_identity_namespace,
+        cluster_identity_configmap_name=settings.cluster_identity_configmap_name,
+        state_configmap_name=settings.state_configmap_name,
+        heartbeat_configmap_name=settings.heartbeat_configmap_name,
+    )
+    reporter = _select_reporter(dry_run=dry_run)
 
-    identity = _read_cluster_identity(core_api)
-    commit_sha = identity.get("prCommitSha")
+    identity = reader.read_cluster_identity()
+    initial_sha = identity.get("prCommitSha")
     argocd_namespace = identity.get("argocdNamespace", "argocd")
 
-    state = _reconcile_startup_state(_load_state(core_api, own_namespace), commit_sha)
+    state = _reconcile_startup_state(reader.read_state(), initial_sha)
 
-    if not commit_sha:
+    if not initial_sha:
         log.info("no_pr_context", msg="running in log-only mode")
 
     log.info(
         "checker_started",
         namespace=own_namespace,
         argocd_namespace=argocd_namespace,
-        commit_sha=commit_sha,
+        commit_sha=initial_sha,
         dry_run=dry_run,
     )
 
-    last_sent: tuple[str, str] | None = None
+    reader_for_cycle = reader.with_argocd_namespace(argocd_namespace)
+    config = CycleConfig(
+        stability_threshold=settings.stability_threshold,
+        safety_timeout_seconds=settings.safety_timeout_seconds,
+        owner_repo=settings.owner_repo,
+        github_status_context=settings.github_status_context,
+    )
+    inputs = CycleInputs(
+        previous_state=state,
+        previous_commit_sha=initial_sha,
+        previous_sent_status=None,
+        dry_run=dry_run,
+    )
 
-    while not shutdown:
+    while not shutdown():
         try:
-            identity = _read_cluster_identity(core_api)
-            new_sha = identity.get("prCommitSha")
-
-            if new_sha and new_sha != state.last_commit_sha:
-                log.info("sha_changed", old=state.last_commit_sha, new=new_sha)
-                state = ConvergenceState(last_commit_sha=new_sha)
-                commit_sha = new_sha
-                last_sent = None
-
-            kargo_namespaces = _discover_kargo_namespaces(custom_api)
-
-            results = _collect_evaluations(custom_api, argocd_namespace, kargo_namespaces)
-
-            result, state = evaluator.aggregate(
-                results,
-                state,
-                stability_threshold=settings.stability_threshold,
-                safety_timeout_seconds=settings.safety_timeout_seconds,
+            outputs = cycle.run_cycle(
+                inputs,
+                reader_for_cycle,
+                reporter,
+                config,
+                now=datetime.now(tz=UTC),
             )
-
-            log.info(
-                "evaluation",
-                verdict=result.verdict.value,
-                description=result.description,
-                consecutive_healthy=state.consecutive_healthy,
-                resources=len(results),
-            )
-
-            if commit_sha and gh_client and not dry_run:
-                last_sent = _post_status_if_changed(gh_client, commit_sha, result, last_sent)
-
-            try:
-                _write_heartbeat(core_api, own_namespace)
-            except Exception:
-                log.exception("heartbeat_write_failed")
-
-            try:
-                _write_state(core_api, own_namespace, state)
-            except Exception:
-                log.exception("state_write_failed")
         except Exception:
             log.exception("evaluation_cycle_failed")
+        else:
+            log.info(
+                "evaluation",
+                verdict=outputs.result.verdict.value,
+                description=outputs.result.description,
+                consecutive_healthy=outputs.new_state.consecutive_healthy,
+                resources=outputs.resource_count,
+            )
+            inputs = CycleInputs(
+                previous_state=outputs.new_state,
+                previous_commit_sha=outputs.new_commit_sha,
+                previous_sent_status=outputs.new_sent_status,
+                dry_run=dry_run,
+            )
 
         time.sleep(settings.check_interval_seconds)
