@@ -17,12 +17,7 @@ from kubernetes import config as k8s_config
 
 from convergence_checker import cycle, github_client
 from convergence_checker.config import settings
-from convergence_checker.cycle import (
-    CycleConfig,
-)
-from convergence_checker.cycle import (
-    reconcile_startup_state as _reconcile_startup_state,
-)
+from convergence_checker.cycle import CycleConfig, reconcile_startup_state
 from convergence_checker.io_adapters import (
     GitHubStatusReporter,
     K8sClusterReader,
@@ -98,7 +93,7 @@ def run(*, dry_run: bool = False) -> None:
     initial_sha = identity.get("prCommitSha")
     argocd_namespace = identity.get("argocdNamespace", "argocd")
 
-    state = _reconcile_startup_state(reader.read_state(), initial_sha)
+    state = reconcile_startup_state(reader.read_state(), initial_sha)
 
     if not initial_sha:
         log.info("no_pr_context", msg="running in log-only mode")
