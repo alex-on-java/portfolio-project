@@ -33,7 +33,7 @@ _SA_NAMESPACE_PATH = Path("/var/run/secrets/kubernetes.io/serviceaccount/namespa
 
 def _read_own_namespace() -> str:
     if _SA_NAMESPACE_PATH.exists():
-        return _SA_NAMESPACE_PATH.read_text().strip()
+        return _SA_NAMESPACE_PATH.read_text(encoding="utf-8").strip()
     return "observability"
 
 

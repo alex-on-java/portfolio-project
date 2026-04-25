@@ -19,6 +19,8 @@ convergence-checker = "convergence_checker.cli:cli"
 [dependency-groups]
 dev = [
     "mypy==1.19.1",
+    "poethepoet==0.44.0",
+    "pylint==4.0.5",
     "pytest==8.3.5",
     "pytest-cov==6.1.1",
     "ruff==0.15.8",
@@ -65,3 +67,33 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "--strict-markers -ra"
+
+[tool.poe.tasks]
+ruff   = "ruff check src tests"
+fmt    = "ruff format --check src tests"
+mypy   = "mypy"
+pylint = "pylint src tests"
+lint   = { sequence = ["ruff", "fmt", "mypy", "pylint"], ignore_fail = "return_non_zero", help = "Run every linter; aggregate all failures" }
+
+[tool.pylint.format]
+max-line-length = 120
+
+[tool.pylint.messages_control]
+disable = [
+    "missing-module-docstring",
+    "missing-class-docstring",
+    "missing-function-docstring",
+    "redefined-outer-name",
+    "missing-kwoa",
+    "no-value-for-parameter",
+    "wrong-import-position",
+    "too-many-arguments",
+    "too-many-positional-arguments",
+    "too-many-locals",
+    "too-many-instance-attributes",
+    "too-few-public-methods",
+    "broad-exception-caught",
+    "unused-argument",
+    "protected-access",
+    "use-implicit-booleaness-not-comparison",
+]
