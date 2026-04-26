@@ -1,0 +1,7 @@
+check_interval_seconds = 12
+stability_threshold = 5
+safety_timeout_seconds = 900
+github_status_context = "GitOps Convergence Gate"
+heartbeat_configmap_name = "gitops-convergence-heartbeat"
+cluster_identity_configmap_name = "cluster-identity"
+cluster_identity_namespace = "kargo-shared-resources"
