@@ -1,13 +1,16 @@
 # pylint: disable=duplicate-code
 from __future__ import annotations
 
-import asyncio
+from contextlib import ExitStack
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
+import pytest
 import responses
+from anyio.from_thread import start_blocking_portal
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
+from kmock import KubernetesEmulator, Server
 from kubernetes import client as k8s_client
 
 from convergence_checker import cycle
@@ -21,7 +24,7 @@ from convergence_checker.models import (
 )
 
 if TYPE_CHECKING:
-    from kmock import KubernetesEmulator
+    from collections.abc import Iterator
 
 
 def _generate_rsa_pem() -> str:
@@ -31,6 +34,16 @@ def _generate_rsa_pem() -> str:
         serialization.PrivateFormat.PKCS8,
         serialization.NoEncryption(),
     ).decode()
+
+
+@pytest.fixture
+def served_kmock() -> Iterator[KubernetesEmulator]:
+    with ExitStack() as stack:
+        portal = stack.enter_context(start_blocking_portal(backend="asyncio"))
+        kmock = portal.call(KubernetesEmulator)
+        stack.enter_context(portal.wrap_async_context_manager(kmock))
+        stack.enter_context(portal.wrap_async_context_manager(Server(kmock)))
+        yield kmock
 
 
 def _seed(kmock: KubernetesEmulator) -> None:
@@ -120,10 +133,10 @@ def _build_reader(host: str) -> K8sClusterReader:
     )
 
 
-async def test_run_cycle_failure_verdict(kmock: KubernetesEmulator) -> None:
-    _seed(kmock)
+def test_run_cycle_failure_verdict(served_kmock: KubernetesEmulator) -> None:
+    _seed(served_kmock)
 
-    reader = _build_reader(str(kmock.url).rstrip("/"))
+    reader = _build_reader(str(served_kmock.url).rstrip("/"))
     reporter = GitHubStatusReporter(GitHubAppClient("1", _generate_rsa_pem(), "99"))
     config = CycleConfig(
         stability_threshold=3,
@@ -150,8 +163,7 @@ async def test_run_cycle_failure_verdict(kmock: KubernetesEmulator) -> None:
             json={},
             status=201,
         )
-        outputs = await asyncio.to_thread(
-            cycle.run_cycle,
+        outputs = cycle.run_cycle(
             inputs,
             reader,
             reporter,
