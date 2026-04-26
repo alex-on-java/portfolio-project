@@ -84,6 +84,9 @@ lint   = { sequence = ["ruff", "fmt", "mypy", "pylint"], ignore_fail = "return_n
 [tool.pylint.format]
 max-line-length = 120
 
+[tool.pylint.similarities]
+min-similarity-lines = 12
+
 [tool.pylint.messages_control]
 disable = [
     "missing-module-docstring",
