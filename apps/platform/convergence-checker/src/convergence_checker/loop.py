@@ -67,10 +67,20 @@ def _select_reporter(*, dry_run: bool) -> StatusReporter:
     installation_id = os.environ.get("GITHUB_APP_INSTALLATION_ID")
 
     if not app_id or not private_key or not installation_id:
-        log.warning("github_credentials_missing")
+        missing = [
+            name
+            for name, value in (
+                ("GITHUB_APP_ID", app_id),
+                ("GITHUB_APP_PRIVATE_KEY", private_key),
+                ("GITHUB_APP_INSTALLATION_ID", installation_id),
+            )
+            if not value
+        ]
+        log.warning("github_credentials_missing", missing=missing)
         return NullStatusReporter()
 
-    return GitHubStatusReporter(github_client.GitHubAppClient(app_id, private_key, installation_id))
+    token_provider = github_client.GitHubAppTokenProvider(app_id, private_key, installation_id)
+    return GitHubStatusReporter(github_client.GitHubAppClient(token_provider))
 
 
 def run(*, dry_run: bool = False) -> None:

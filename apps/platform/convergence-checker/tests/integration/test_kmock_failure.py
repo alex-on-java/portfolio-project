@@ -8,15 +8,17 @@ from typing import TYPE_CHECKING
 import pytest
 import responses
 from anyio.from_thread import start_blocking_portal
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
 from kmock import KubernetesEmulator, Server
 from kubernetes import client as k8s_client
 
 from convergence_checker import cycle
 from convergence_checker.cycle import CycleConfig
 from convergence_checker.github_client import GitHubAppClient
-from convergence_checker.io_adapters import GitHubStatusReporter, K8sClusterReader
+from convergence_checker.io_adapters import (
+    GitHubStatusReporter,
+    K8sClusterReader,
+    StaticTokenProvider,
+)
 from convergence_checker.models import (
     ConvergenceState,
     CycleInputs,
@@ -25,15 +27,6 @@ from convergence_checker.models import (
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
-
-
-def _generate_rsa_pem() -> str:
-    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-    return key.private_bytes(
-        serialization.Encoding.PEM,
-        serialization.PrivateFormat.PKCS8,
-        serialization.NoEncryption(),
-    ).decode()
 
 
 @pytest.fixture
@@ -137,7 +130,7 @@ def test_run_cycle_failure_verdict(served_kmock: KubernetesEmulator) -> None:
     _seed(served_kmock)
 
     reader = _build_reader(str(served_kmock.url).rstrip("/"))
-    reporter = GitHubStatusReporter(GitHubAppClient("1", _generate_rsa_pem(), "99"))
+    reporter = GitHubStatusReporter(GitHubAppClient(StaticTokenProvider("ghs_test")))
     config = CycleConfig(
         stability_threshold=3,
         safety_timeout_seconds=600,
@@ -151,12 +144,6 @@ def test_run_cycle_failure_verdict(served_kmock: KubernetesEmulator) -> None:
     )
 
     with responses.RequestsMock() as rsps:
-        rsps.add(
-            responses.POST,
-            "https://api.github.com/app/installations/99/access_tokens",
-            json={"token": "ghs_test"},
-            status=201,
-        )
         rsps.add(
             responses.POST,
             "https://api.github.com/repos/acme/repo/statuses/sha-test",

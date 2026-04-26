@@ -43,6 +43,10 @@ class StatusReporter(Protocol):
     ) -> None: ...
 
 
+class TokenProvider(Protocol):
+    def get(self) -> str: ...
+
+
 @dataclass(frozen=True)
 class K8sClusterReader:
     core_api: k8s_client.CoreV1Api
@@ -150,3 +154,11 @@ class NullStatusReporter:
         description: str,  # noqa: ARG002
     ) -> None:
         return
+
+
+@dataclass(frozen=True)
+class StaticTokenProvider:
+    token: str
+
+    def get(self) -> str:
+        return self.token

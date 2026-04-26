@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 import time
+from typing import TYPE_CHECKING
 
 import jwt
 import requests
+
+if TYPE_CHECKING:
+    from convergence_checker.io_adapters import TokenProvider
 
 _API_VERSION = "2026-03-10"
 _TIMEOUT = 30
@@ -19,7 +23,7 @@ def _headers(token: str, *, bearer: bool = False) -> dict[str, str]:
     }
 
 
-class GitHubAppClient:
+class GitHubAppTokenProvider:
     def __init__(self, app_id: str, private_key: str, installation_id: str) -> None:
         self._app_id = app_id
         self._private_key = private_key
@@ -27,7 +31,7 @@ class GitHubAppClient:
         self._token: str | None = None
         self._token_expires_at: float = 0
 
-    def _ensure_token(self) -> str:
+    def get(self) -> str:
         now = time.time()
         if self._token and now < self._token_expires_at:
             return self._token
@@ -49,6 +53,11 @@ class GitHubAppClient:
         self._token_expires_at = now + _TOKEN_REFRESH_AFTER_SECONDS
         return self._token
 
+
+class GitHubAppClient:
+    def __init__(self, token_provider: TokenProvider) -> None:
+        self._tokens = token_provider
+
     def create_commit_status(
         self,
         owner_repo: str,
@@ -57,7 +66,7 @@ class GitHubAppClient:
         context: str,
         description: str,
     ) -> None:
-        token = self._ensure_token()
+        token = self._tokens.get()
         response = requests.post(
             f"https://api.github.com/repos/{owner_repo}/statuses/{sha}",
             headers=_headers(token),
