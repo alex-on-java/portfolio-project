@@ -6,7 +6,7 @@ from typing import Any
 
 import pytest
 
-from convergence_checker.cycle import CycleConfig, reconcile_startup_state, run_cycle
+from convergence_checker.cycle import CycleConfig, run_cycle
 from convergence_checker.io_adapters import NullStatusReporter
 from convergence_checker.models import (
     ApplicationStatus,
@@ -16,44 +16,6 @@ from convergence_checker.models import (
     EvaluationVerdict,
     StageStatus,
 )
-
-
-class TestStartupStateReconciliation:
-    def test_startup_resets_state_on_sha_mismatch(self) -> None:
-        loaded = ConvergenceState(
-            consecutive_healthy=4,
-            first_pending_at=datetime.now(tz=UTC),
-            last_commit_sha="old_sha",
-        )
-        result = reconcile_startup_state(loaded, "new_sha")
-        assert result.last_commit_sha == "new_sha"
-        assert result.consecutive_healthy == 0
-        assert result.first_pending_at is None
-
-    def test_startup_preserves_state_on_matching_sha(self) -> None:
-        now = datetime.now(tz=UTC)
-        loaded = ConvergenceState(
-            consecutive_healthy=3,
-            first_pending_at=now,
-            last_commit_sha="same_sha",
-        )
-        result = reconcile_startup_state(loaded, "same_sha")
-        assert result.last_commit_sha == "same_sha"
-        assert result.consecutive_healthy == 3
-        assert result.first_pending_at == now
-
-    def test_startup_resets_when_loaded_sha_is_none_and_current_is_set(self) -> None:
-        loaded = ConvergenceState(consecutive_healthy=2, last_commit_sha=None)
-        result = reconcile_startup_state(loaded, "new_sha")
-        assert result.last_commit_sha == "new_sha"
-        assert result.consecutive_healthy == 0
-
-    def test_startup_resets_when_loaded_sha_is_set_and_current_is_none(self) -> None:
-        loaded = ConvergenceState(consecutive_healthy=2, last_commit_sha="old_sha")
-        result = reconcile_startup_state(loaded, None)
-        assert result.last_commit_sha is None
-        assert result.consecutive_healthy == 0
-
 
 # ---------------------------------------------------------------------------
 # Fakes for run_cycle tests
@@ -67,11 +29,9 @@ class FakeClusterReader:
     stage_namespaces: list[str] = field(default_factory=list)
     stages_by_namespace: dict[str, list[StageStatus]] = field(default_factory=dict)
 
-    state_writes: list[ConvergenceState] = field(default_factory=list)
     heartbeat_writes: list[datetime] = field(default_factory=list)
     list_stages_calls: list[str] = field(default_factory=list)
 
-    raise_on_write_state: Exception | None = None
     raise_on_write_heartbeat: Exception | None = None
 
     def read_cluster_identity(self) -> dict[str, str]:
@@ -86,14 +46,6 @@ class FakeClusterReader:
     def list_stages(self, namespace: str) -> list[StageStatus]:
         self.list_stages_calls.append(namespace)
         return list(self.stages_by_namespace.get(namespace, []))
-
-    def read_state(self) -> ConvergenceState:
-        return ConvergenceState()
-
-    def write_state(self, state: ConvergenceState) -> None:
-        if self.raise_on_write_state is not None:
-            raise self.raise_on_write_state
-        self.state_writes.append(state)
 
     def write_heartbeat(self, now: datetime) -> None:
         if self.raise_on_write_heartbeat is not None:
@@ -204,7 +156,7 @@ def reporter() -> RecordingReporter:
 @pytest.fixture
 def base_inputs() -> CycleInputs:
     return CycleInputs(
-        previous_state=ConvergenceState(last_commit_sha="sha-A"),
+        previous_state=ConvergenceState(),
         previous_commit_sha="sha-A",
         previous_sent_status=None,
     )
@@ -215,7 +167,7 @@ def stub_evaluator(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
     handle: dict[str, Any] = {
         "verdict": EvaluationVerdict.HEALTHY,
         "description": "stub-healthy",
-        "new_state": ConvergenceState(consecutive_healthy=3, last_commit_sha="sha-A"),
+        "new_state": ConvergenceState(consecutive_healthy=3),
         "evaluate_app_calls": [],
         "evaluate_stage_calls": [],
         "aggregate_calls": [],
@@ -288,7 +240,6 @@ class TestRunCycle:
         assert outputs.new_sent_status == ("success", "stub-healthy")
 
         assert reader.heartbeat_writes == [NOW]
-        assert reader.state_writes == [stub_evaluator["new_state"]]
 
         assert len(stub_evaluator["aggregate_calls"]) == 1
         assert stub_evaluator["aggregate_calls"][0]["stability_threshold"] == config.stability_threshold
@@ -350,7 +301,7 @@ class TestRunCycle:
     ) -> None:
         reader.identity = {"prCommitSha": "sha-B"}
         inputs = CycleInputs(
-            previous_state=ConvergenceState(consecutive_healthy=4, last_commit_sha="sha-A"),
+            previous_state=ConvergenceState(consecutive_healthy=4),
             previous_commit_sha="sha-A",
             previous_sent_status=("success", "stub-healthy"),
         )
@@ -361,7 +312,6 @@ class TestRunCycle:
 
         passed_state = stub_evaluator["aggregate_calls"][0]["state"]
         assert passed_state.consecutive_healthy == 0
-        assert passed_state.last_commit_sha == "sha-B"
 
         assert len(reporter.posts) == 1
         assert reporter.posts[0]["sha"] == "sha-B"
@@ -376,7 +326,7 @@ class TestRunCycle:
         stub_evaluator["verdict"] = EvaluationVerdict.HEALTHY
         stub_evaluator["description"] = "All healthy"
         inputs = CycleInputs(
-            previous_state=ConvergenceState(last_commit_sha="sha-A"),
+            previous_state=ConvergenceState(),
             previous_commit_sha="sha-A",
             previous_sent_status=("success", "All healthy"),
         )
@@ -399,7 +349,7 @@ class TestRunCycle:
         assert null_reporter.posts == []
         assert outputs.new_sent_status is None
 
-    def test_missing_pr_sha_skips_post_but_still_writes(
+    def test_missing_pr_sha_skips_post_but_still_writes_heartbeat(
         self,
         config: CycleConfig,
         reader: FakeClusterReader,
@@ -417,18 +367,16 @@ class TestRunCycle:
         assert reporter.posts == []
         assert outputs.new_commit_sha is None
         assert len(reader.heartbeat_writes) == 1
-        assert len(reader.state_writes) == 1
 
     def test_reporter_post_exception_is_swallowed_and_dedup_memory_unchanged(
         self,
         config: CycleConfig,
         reader: FakeClusterReader,
         reporter: RecordingReporter,
-        stub_evaluator: dict[str, Any],
     ) -> None:
         reporter.raise_on_post = RuntimeError("github 500")
         inputs = CycleInputs(
-            previous_state=ConvergenceState(last_commit_sha="sha-A"),
+            previous_state=ConvergenceState(),
             previous_commit_sha="sha-A",
             previous_sent_status=("pending", "earlier"),
         )
@@ -437,25 +385,8 @@ class TestRunCycle:
 
         assert outputs.new_sent_status == ("pending", "earlier")
         assert reader.heartbeat_writes == [NOW]
-        assert reader.state_writes == [stub_evaluator["new_state"]]
 
-    def test_state_write_failure_is_swallowed_and_does_not_block_heartbeat(
-        self,
-        config: CycleConfig,
-        reader: FakeClusterReader,
-        reporter: RecordingReporter,
-        base_inputs: CycleInputs,
-        stub_evaluator: dict[str, Any],
-    ) -> None:
-        reader.raise_on_write_state = RuntimeError("k8s state write failed")
-
-        outputs = run_cycle(base_inputs, reader, reporter, config, now=NOW)
-
-        assert reader.state_writes == []
-        assert reader.heartbeat_writes == [NOW]
-        assert outputs.new_state is stub_evaluator["new_state"]
-
-    def test_heartbeat_failure_is_swallowed_and_does_not_block_state_write(
+    def test_heartbeat_failure_is_swallowed_and_returns_outputs(
         self,
         config: CycleConfig,
         reader: FakeClusterReader,
@@ -468,5 +399,4 @@ class TestRunCycle:
         outputs = run_cycle(base_inputs, reader, reporter, config, now=NOW)
 
         assert reader.heartbeat_writes == []
-        assert reader.state_writes == [stub_evaluator["new_state"]]
         assert outputs.new_state is stub_evaluator["new_state"]

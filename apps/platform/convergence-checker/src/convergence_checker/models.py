@@ -94,7 +94,6 @@ class StageStatus(BaseModel):
 class ConvergenceState(BaseModel):
     consecutive_healthy: int = 0
     first_pending_at: datetime | None = None
-    last_commit_sha: str | None = None
 
 
 class CycleInputs(BaseModel):

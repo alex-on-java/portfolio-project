@@ -36,11 +36,6 @@ spec:
           name: gitops-convergence-heartbeat
           jsonPointers:
             - /data
-        - group: ""
-          kind: ConfigMap
-          name: gitops-convergence-state
-          jsonPointers:
-            - /data
       syncPolicy:
         automated:
           prune: true

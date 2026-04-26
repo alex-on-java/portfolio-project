@@ -63,10 +63,6 @@ def _seed(kmock: KubernetesEmulator) -> None:
         "metadata": {"name": "cluster-identity", "namespace": "kargo-shared-resources"},
         "data": {"prCommitSha": "sha-test", "argocdNamespace": "argocd"},
     }
-    kmock.objects["v1/configmaps", "observability", "gitops-convergence-state"] = {
-        "metadata": {"name": "gitops-convergence-state", "namespace": "observability"},
-        "data": {},
-    }
     kmock.objects["v1/configmaps", "observability", "gitops-convergence-heartbeat"] = {
         "metadata": {"name": "gitops-convergence-heartbeat", "namespace": "observability"},
         "data": {},
@@ -120,7 +116,6 @@ def _build_reader(host: str) -> K8sClusterReader:
         own_namespace="observability",
         cluster_identity_namespace="kargo-shared-resources",
         cluster_identity_configmap_name="cluster-identity",
-        state_configmap_name="gitops-convergence-state",
         heartbeat_configmap_name="gitops-convergence-heartbeat",
         argocd_namespace="argocd",
     )
@@ -138,7 +133,7 @@ def test_run_cycle_failure_verdict(served_kmock: KubernetesEmulator) -> None:
         github_status_context="convergence",
     )
     inputs = CycleInputs(
-        previous_state=ConvergenceState(last_commit_sha="sha-test"),
+        previous_state=ConvergenceState(),
         previous_commit_sha="sha-test",
         previous_sent_status=None,
     )

@@ -89,7 +89,6 @@ def aggregate(
             ConvergenceState(
                 consecutive_healthy=0,
                 first_pending_at=None,
-                last_commit_sha=state.last_commit_sha,
             ),
         )
 
@@ -105,7 +104,6 @@ def aggregate(
                 ConvergenceState(
                     consecutive_healthy=new_count,
                     first_pending_at=None,
-                    last_commit_sha=state.last_commit_sha,
                 ),
             )
         return (
@@ -116,7 +114,6 @@ def aggregate(
             ConvergenceState(
                 consecutive_healthy=new_count,
                 first_pending_at=None,
-                last_commit_sha=state.last_commit_sha,
             ),
         )
 
@@ -133,7 +130,6 @@ def aggregate(
             ConvergenceState(
                 consecutive_healthy=0,
                 first_pending_at=first_pending,
-                last_commit_sha=state.last_commit_sha,
             ),
         )
 
@@ -145,6 +141,5 @@ def aggregate(
         ConvergenceState(
             consecutive_healthy=0,
             first_pending_at=first_pending,
-            last_commit_sha=state.last_commit_sha,
         ),
     )

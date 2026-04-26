@@ -31,19 +31,6 @@ class CycleConfig:
     github_status_context: str
 
 
-def reconcile_startup_state(
-    loaded: ConvergenceState,
-    current_sha: str | None,
-) -> ConvergenceState:
-    if loaded.last_commit_sha == current_sha:
-        return ConvergenceState(
-            consecutive_healthy=loaded.consecutive_healthy,
-            first_pending_at=loaded.first_pending_at,
-            last_commit_sha=current_sha,
-        )
-    return ConvergenceState(last_commit_sha=current_sha)
-
-
 def _github_state_from_verdict(verdict: EvaluationVerdict) -> str:
     mapping: dict[EvaluationVerdict, str] = {
         EvaluationVerdict.HEALTHY: "success",
@@ -61,7 +48,7 @@ def _apply_sha_change(
 ) -> tuple[str | None, ConvergenceState, tuple[str, str] | None]:
     if current_sha and current_sha != prev_sha:
         log.info("sha_changed", old=prev_sha, new=current_sha)
-        return (current_sha, ConvergenceState(last_commit_sha=current_sha), None)
+        return (current_sha, ConvergenceState(), None)
     return (prev_sha, prev_state, prev_sent)
 
 
@@ -128,11 +115,6 @@ def run_cycle(
         reader.write_heartbeat(now)
     except Exception:
         log.exception("heartbeat_write_failed")
-
-    try:
-        reader.write_state(new_state)
-    except Exception:
-        log.exception("state_write_failed")
 
     return CycleOutputs(
         new_state=new_state,

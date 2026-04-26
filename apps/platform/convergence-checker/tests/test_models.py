@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from convergence_checker.models import ApplicationStatus, ConvergenceState, StageStatus
+from convergence_checker.models import ApplicationStatus, StageStatus
 
 
 class TestApplicationStatusFromResource:
@@ -121,16 +121,3 @@ class TestStageStatusFromResource:
         }
         stage = StageStatus.from_resource(resource)
         assert stage.conditions == {"Ready": True}
-
-
-class TestConvergenceStateRoundTrip:
-    def test_json_roundtrip(self) -> None:
-        state = ConvergenceState(
-            consecutive_healthy=3,
-            last_commit_sha="abc123",
-        )
-        json_str = state.model_dump_json()
-        restored = ConvergenceState.model_validate_json(json_str)
-        assert restored.consecutive_healthy == state.consecutive_healthy
-        assert restored.last_commit_sha == state.last_commit_sha
-        assert restored.first_pending_at == state.first_pending_at

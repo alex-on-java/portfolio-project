@@ -4,17 +4,17 @@ from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING, Protocol
 
 import structlog
-from kubernetes import client as k8s_client
 
 from convergence_checker import k8s_client as k8s
 from convergence_checker.models import (
     ApplicationStatus,
-    ConvergenceState,
     StageStatus,
 )
 
 if TYPE_CHECKING:
     from datetime import datetime
+
+    from kubernetes import client as k8s_client
 
     from convergence_checker.github_client import GitHubAppClient
 
@@ -26,8 +26,6 @@ class ClusterReader(Protocol):
     def list_applications(self) -> list[ApplicationStatus]: ...
     def list_stage_namespaces(self) -> list[str]: ...
     def list_stages(self, namespace: str) -> list[StageStatus]: ...
-    def read_state(self) -> ConvergenceState: ...
-    def write_state(self, state: ConvergenceState) -> None: ...
     def write_heartbeat(self, now: datetime) -> None: ...
 
 
@@ -54,7 +52,6 @@ class K8sClusterReader:
     own_namespace: str
     cluster_identity_namespace: str
     cluster_identity_configmap_name: str
-    state_configmap_name: str
     heartbeat_configmap_name: str
     argocd_namespace: str | None = None
 
@@ -89,28 +86,6 @@ class K8sClusterReader:
     def list_stages(self, namespace: str) -> list[StageStatus]:
         raw_items = k8s.list_stages(self.custom_api, namespace)
         return [StageStatus.from_resource(r) for r in raw_items]
-
-    def read_state(self) -> ConvergenceState:
-        try:
-            data = k8s.read_configmap(
-                self.core_api,
-                name=self.state_configmap_name,
-                namespace=self.own_namespace,
-            )
-            raw = data.get("state")
-            if raw:
-                return ConvergenceState.model_validate_json(raw)
-        except (KeyError, ValueError, k8s_client.ApiException):
-            log.debug("state_configmap_not_found_or_invalid")
-        return ConvergenceState()
-
-    def write_state(self, state: ConvergenceState) -> None:
-        k8s.patch_configmap(
-            self.core_api,
-            name=self.state_configmap_name,
-            namespace=self.own_namespace,
-            data={"state": state.model_dump_json()},
-        )
 
     def write_heartbeat(self, now: datetime) -> None:
         k8s.patch_configmap(

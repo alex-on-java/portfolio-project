@@ -244,11 +244,6 @@ class TestAggregate:
         assert "a" in result.description
         assert "b" in result.description
 
-    def test_preserves_last_commit_sha(self) -> None:
-        state = ConvergenceState(last_commit_sha="abc123")
-        _, new_state = aggregate([self._healthy()], state, stability_threshold=5, safety_timeout_seconds=900)
-        assert new_state.last_commit_sha == "abc123"
-
     def test_consecutive_healthy_caps_at_threshold_times_two(self) -> None:
         state = ConvergenceState(consecutive_healthy=10)
         _, new_state = aggregate([self._healthy()], state, stability_threshold=5, safety_timeout_seconds=900)

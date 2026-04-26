@@ -17,14 +17,14 @@ from kubernetes import config as k8s_config
 
 from convergence_checker import cycle, github_client
 from convergence_checker.config import settings
-from convergence_checker.cycle import CycleConfig, reconcile_startup_state
+from convergence_checker.cycle import CycleConfig
 from convergence_checker.io_adapters import (
     GitHubStatusReporter,
     K8sClusterReader,
     NullStatusReporter,
     StatusReporter,
 )
-from convergence_checker.models import CycleInputs
+from convergence_checker.models import ConvergenceState, CycleInputs
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
 
@@ -94,7 +94,6 @@ def run(*, dry_run: bool = False) -> None:
         own_namespace=own_namespace,
         cluster_identity_namespace=settings.cluster_identity_namespace,
         cluster_identity_configmap_name=settings.cluster_identity_configmap_name,
-        state_configmap_name=settings.state_configmap_name,
         heartbeat_configmap_name=settings.heartbeat_configmap_name,
     )
     reporter = _select_reporter(dry_run=dry_run)
@@ -103,7 +102,7 @@ def run(*, dry_run: bool = False) -> None:
     initial_sha = identity.get("prCommitSha")
     argocd_namespace = identity.get("argocdNamespace", "argocd")
 
-    state = reconcile_startup_state(reader.read_state(), initial_sha)
+    state = ConvergenceState()
 
     if not initial_sha:
         log.info("no_pr_context", msg="running in log-only mode")
