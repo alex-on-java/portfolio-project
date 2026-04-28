@@ -19,20 +19,43 @@ PROJECT_ROOT="$(cd "${HOOKS_DIR}/../.." && pwd)"
 # Guidance documents to inject, in order.
 GUIDANCE_FILES=(
   "${PROJECT_ROOT}/docs/WORKING_PRINCIPLES.md"
-  "${PROJECT_ROOT}/docs/PROJECT_POLICIES.md"
+  "${PROJECT_ROOT}/docs/AGENT_OPERATING_POLICIES.md"
+  "${PROJECT_ROOT}/docs/code-quality-policies/README.md|## Entries"
+  "${PROJECT_ROOT}/docs/architecture/decision-records/README.md|## Decision Records"
 )
 
-combined=""
-for file in "${GUIDANCE_FILES[@]}"; do
-  if [[ -f "$file" ]]; then
-    content=$(<"$file")
-    if [[ -n "$combined" ]]; then
-      combined+=$'\n\n---\n\n'
-    fi
-    combined+="$content"
-  else
-    echo "guidance-injection: file not found, skipping: $file" >&2
+slice_file() {
+  local file="$1" anchor="$2" title rest
+  title=$(head -n 1 "$file")
+  rest=$(awk -v a="$anchor" 'found { print; next } $0 == a { found = 1 }' "$file")
+  if [[ -z "$rest" ]]; then
+    echo "guidance-injection: anchor not found in $file: $anchor" >&2
+    return 1
   fi
+  printf '%s\n\n%s' "$title" "$rest"
+}
+
+combined=""
+for entry in "${GUIDANCE_FILES[@]}"; do
+  file="${entry%%|*}"
+  anchor=""
+  [[ "$entry" == *"|"* ]] && anchor="${entry#*|}"
+
+  if [[ ! -f "$file" ]]; then
+    echo "guidance-injection: file not found, skipping: $file" >&2
+    continue
+  fi
+
+  if [[ -n "$anchor" ]]; then
+    content=$(slice_file "$file" "$anchor") || continue
+  else
+    content=$(<"$file")
+  fi
+
+  if [[ -n "$combined" ]]; then
+    combined+=$'\n\n---\n\n'
+  fi
+  combined+="$content"
 done
 
 # If no documents were found, exit silently — nothing to inject

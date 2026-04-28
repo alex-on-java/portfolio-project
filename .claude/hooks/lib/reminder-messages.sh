@@ -23,6 +23,8 @@ Fine to keep:
 - Version number for sha: digests
 
 If the comments were already here — "Leave The Code Better Than You Found It" still applies.
+
+If you are not sure whether this comment belongs, either drop it, or read docs/code-quality-policies/CQP-002-no-fossilized-comments.md.
 REMINDER
 }
 

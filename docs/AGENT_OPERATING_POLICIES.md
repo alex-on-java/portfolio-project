@@ -1,11 +1,6 @@
-# Project Policies
+# Agent Operating Policies
 
-These are the operational constraints that prevent the most common classes of mistakes in this project's infrastructure-heavy domain — non-reproducible builds, implicit state mutations, and scattered tooling.
-
-## Pin External Dependency Versions
-Pin every external dependency to an exact patch version — exact equality, not ranges, lower-bounds, or compatible-release operators. Flag violations when encountered.
-
-Unpinned or range-pinned dependencies make builds non-reproducible and upgrades invisible. All upgrades must be deliberate.
+How the agent acts when working in this project: tooling discipline and explicit-context rules that prevent silent cross-environment side effects. Rules about how committed code should look live in [Code Quality Policies](code-quality-policies/README.md).
 
 
 ## Static Checks Run via Pre-commit
