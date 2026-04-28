@@ -28,6 +28,23 @@ If you are not sure whether this comment belongs, either drop it, or read docs/c
 REMINDER
 }
 
+reminder_linter_silencers() {
+  cat <<'REMINDER'
+You're adding a linter silencer (e.g. # noqa, # type: ignore, // eslint-disable, // @ts-ignore, @SuppressWarnings); do not forget about the code-quality policy "Linter silencers are a last resort".
+
+A silencer is rarely the right move. Walk the decision framework first:
+- Refactor: bundle, split, or delete the code the rule is objecting to
+- Named symbol: replace the bare form with an explicit, structured one (e.g. except (Exception,) via a named ABSORBED_FAULTS tuple)
+- Configured before inline: file-wide or rule-wide silencers belong in pyproject.toml / .eslintrc, not next to one occurrence
+- Tool disagreement: align config across overlapping tools instead of pragma-ing the source
+- Framework-aware escape hatch: many rules have purpose-built knobs (e.g. runtime-evaluated base classes) that exempt only the legitimate shape
+
+If a silencer is genuinely the only honest answer, it requires explicit human authorization recorded in the commit message, plus a breadcrumb comment pointing to the rationale. Agents must not add silencers unilaterally.
+
+If you are not sure whether this silencer belongs, either fix the code, or read docs/code-quality-policies/CQP-001-no-linter-silencers.md.
+REMINDER
+}
+
 reminder_north_star_principles() {
   cat <<'REMINDER'
 Working Principles (docs/WORKING_PRINCIPLES.md) are the North Star for every decision in this project. In long sessions, context drifts and early guidance loses salience — re-read the principles before making implementation decisions to ensure alignment.

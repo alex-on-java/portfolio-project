@@ -67,4 +67,8 @@ Any new exception added to this list requires the same shape: an explicit decisi
 
 ## Sibling enforcement
 
-No real-time hook for this policy yet. A pre-commit pattern detector that flags new inline silencers and requires either a breadcrumb pointer or membership in the accepted-exceptions list could be added to `.pre-commit-config.yaml` if the rate of regressions justifies it. Until then, this policy is checked at review time only.
+A `PreToolUse` hook nudges in real time: `.claude/hooks/universal/linter-silencers-reminder.sh` fires on Edit/Write when an inline silencer pattern appears in the new content. The reminder text lives in `.claude/hooks/lib/reminder-messages.sh` (function `reminder_linter_silencers`), and the silencer pattern set is shared with the fossilized-comments hook via `.claude/hooks/lib/silencer-patterns.sh` so the two hooks cannot drift on what counts as a silencer.
+
+The reminder is intentionally minimal: it forces a binary decision (fix the code, or open this file), and walks a condensed form of the decision framework above. A focused agent at write time will not switch context to read another file unless redirected unambiguously, so the reminder cannot delegate the rules to this document — it must drive the decision itself. The full framework, examples, and accepted-exceptions list live here.
+
+There is no allowlist in the hook. Encoding "this silencer is fine" in a regex would normalize the very pattern the policy warns against; the gate for new silencers is human review at commit time, including for the single accepted-exception above.

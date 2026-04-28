@@ -31,11 +31,17 @@ check_content=$(echo "$input" | jq -r '.tool_input.new_string // .tool_input.con
 HASH_PAT='(^|[[:space:]])#[[:space:]]'
 SLASH_PAT='(^|[[:space:]])//'
 
-# Pragma / directive exclusions — tool annotations that look like comments.
-# Shebangs (#!) are already excluded by HASH_PAT (no space after #).
-HASH_PRAGMA='#[[:space:]]*(shellcheck|noqa|pylint:|type:|coding[=:]|fmt:|pragma:|yamllint)'
-SLASH_PRAGMA='(//[[:space:]]*(eslint-|biome-ignore|prettier-ignore|@ts-(expect-error|nocheck|ignore)|noinspection|NOPMD|NOSONAR)|///[[:space:]]*<reference)'
-BLOCK_PRAGMA='\*[[:space:]]*(eslint-|istanbul|c8|webpack|prettier)'
+HOOKS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=../lib/silencer-patterns.sh
+source "${HOOKS_DIR}/lib/silencer-patterns.sh"
+
+HASH_DIRECTIVE='#[[:space:]]*(coding[=:]|shellcheck[[:space:]]+(source|shell|enable)=)'
+SLASH_DIRECTIVE='///[[:space:]]*<reference'
+BLOCK_DIRECTIVE='\*[[:space:]]*webpack'
+
+HASH_PRAGMA="$(silencer_hash_pattern)|${HASH_DIRECTIVE}"
+SLASH_PRAGMA="$(silencer_slash_pattern)|${SLASH_DIRECTIVE}"
+BLOCK_PRAGMA="$(silencer_block_pattern)|${BLOCK_DIRECTIVE}"
 
 found_comment=false
 
