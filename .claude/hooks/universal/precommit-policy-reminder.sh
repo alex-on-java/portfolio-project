@@ -34,7 +34,7 @@ if ! hook_gate precommit-policy-reminder "$scope_key" once; then
   exit 0
 fi
 
-jq -n --arg ctx 'Heads up: this project uses `prek` as the single entry point for static analysis (see docs/PROJECT_POLICIES.md).
+jq -n --arg ctx 'Heads up: this project uses `prek` as the single entry point for static analysis (see docs/AGENT_OPERATING_POLICIES.md).
 
 Before running linters directly, check .pre-commit-config.yaml — if the check is already configured there, `prek run --all-files` covers it. If a useful check is missing from the config, consider proposing to add it rather than running it ad-hoc.
 
