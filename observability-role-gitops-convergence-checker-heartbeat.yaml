@@ -1,0 +1,14 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: gitops-convergence-checker-heartbeat
+  namespace: observability
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - gitops-convergence-heartbeat
+  resources:
+  - configmaps
+  verbs:
+  - patch

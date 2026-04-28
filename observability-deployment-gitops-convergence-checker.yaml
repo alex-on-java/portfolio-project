@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: gitops-convergence-checker
+  name: gitops-convergence-checker
+  namespace: observability
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gitops-convergence-checker
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: gitops-convergence-checker
+    spec:
+      containers:
+      - env:
+        - name: GITHUB_APP_ID
+          valueFrom:
+            secretKeyRef:
+              key: app-id
+              name: gitops-convergence-credentials
+        - name: GITHUB_APP_PRIVATE_KEY
+          valueFrom:
+            secretKeyRef:
+              key: private-key
+              name: gitops-convergence-credentials
+        - name: GITHUB_APP_INSTALLATION_ID
+          valueFrom:
+            secretKeyRef:
+              key: installation-id
+              name: gitops-convergence-credentials
+        - name: CONVERGENCE_CHECKER_OWNER_REPO
+          value: alex-on-java/portfolio-project
+        image: ghcr.io/alex-on-java/convergence-checker@sha256:636f53ace830214351c60cb78f79d3e7bde263f6713d772ef829422648dc0f4c
+        imagePullPolicy: IfNotPresent
+        name: checker
+        resources:
+          limits:
+            cpu: 100m
+            ephemeral-storage: 64Mi
+            memory: 128Mi
+          requests:
+            cpu: 50m
+            ephemeral-storage: 64Mi
+            memory: 64Mi
+      serviceAccountName: gitops-convergence-checker
