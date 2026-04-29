@@ -36,7 +36,7 @@ spec:
               name: gitops-convergence-credentials
         - name: CONVERGENCE_CHECKER_OWNER_REPO
           value: alex-on-java/portfolio-project
-        image: ghcr.io/alex-on-java/convergence-checker@sha256:636f53ace830214351c60cb78f79d3e7bde263f6713d772ef829422648dc0f4c
+        image: ghcr.io/alex-on-java/convergence-checker@sha256:859d2a06bc6ecb236f5bfd93fa882adfd05c335aaf8c920782a17d2137226971
         imagePullPolicy: IfNotPresent
         name: checker
         resources:
