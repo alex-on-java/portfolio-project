@@ -38,7 +38,13 @@ spec:
           value: alex-on-java/portfolio-project
         - name: CONVERGENCE_CHECKER_FIELD_MANAGER_NAME
           value: convergence-checker
-        image: ghcr.io/alex-on-java/convergence-checker@sha256:728711f8f40edfd89cd928d3f15b9e540630cd03a6dc178fa92630a9e38a5ae5
+        - name: CONVERGENCE_CHECKER_HEARTBEAT_CONFIGMAP_NAME
+          value: gitops-convergence-heartbeat
+        - name: CONVERGENCE_CHECKER_CLUSTER_IDENTITY_CONFIGMAP_NAME
+          value: cluster-identity
+        - name: CONVERGENCE_CHECKER_CLUSTER_IDENTITY_NAMESPACE
+          value: kargo-shared-resources
+        image: ghcr.io/alex-on-java/convergence-checker@sha256:092caa86f678af28128dd1d3757695bb1e3bc797779f3e5788ff9c8240dd5858
         imagePullPolicy: IfNotPresent
         name: checker
         resources:
