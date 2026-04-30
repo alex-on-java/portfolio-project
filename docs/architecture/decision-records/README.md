@@ -36,3 +36,8 @@ Decisions that shape the system's structure and are hard to reverse: technology 
 | [ADR-016](ADR-016-pytest-as-orchestration-for-k8s-validation.md) | pytest as orchestration layer for K8s manifest validation | accepted |
 | [ADR-017](ADR-017-python-project-linting-via-poe-router.md) | Python project linting via poe tasks dispatched by a pre-commit router | accepted |
 | [ADR-018](ADR-018-no-deployment-from-base-kustomize-directories.md) | No deployment from base Kustomize directories (interim) | accepted |
+| [ADR-019](ADR-019-gitops-convergence-gate.md) | GitOps convergence gate — in-cluster health aggregation as a required merge check | accepted |
+| [ADR-020](ADR-020-kmock-for-k8s-api-integration-tests.md) | kmock for K8s API integration tests in convergence-checker | accepted |
+| [ADR-021](ADR-021-persistence-boundaries-and-recovery-model.md) | Persistence boundaries and recovery model for the convergence gate | accepted |
+| [ADR-022](ADR-022-workload-scoped-overlay-segmentation-via-kargo-vars.md) | Workload-scoped overlay segmentation via Kargo `vars.targetSegment` with PLACEHOLDER sentinel | accepted |
+| [ADR-023](ADR-023-managedfieldsmanagers-for-cooperative-configmap-writes.md) | `managedFieldsManagers` for cooperative ConfigMap writes | accepted |

@@ -11,3 +11,5 @@ resources:
   - external-dns-helm-appset.yaml
   - analysis-templates-appset.yaml
   - workload-appset.yaml
+  - convergence-checker-appset.yaml
+  - kargo-observability-appset.yaml

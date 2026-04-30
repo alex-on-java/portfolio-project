@@ -1,0 +1,26 @@
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Warehouse
+metadata:
+  name: convergence-checker
+  namespace: observability
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  freightCreationPolicy: Automatic
+  subscriptions:
+    - image:
+        repoURL: ghcr.io/alex-on-java/convergence-checker
+        imageSelectionStrategy: NewestBuild
+        strictSemvers: false
+        insecureSkipTLSVerify: false
+        discoveryLimit: 5
+    - git:
+        repoURL: https://github.com/alex-on-java/portfolio-project.git
+        commitSelectionStrategy: NewestFromBranch
+        branch: master
+        strictSemvers: false
+        discoveryLimit: 20
+        includePaths:
+          - "glob:apps/platform/convergence-checker/**"
+          - "glob:gitops/apps/platform/convergence-checker/**"
+  interval: 60s

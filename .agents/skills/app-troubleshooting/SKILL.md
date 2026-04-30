@@ -9,51 +9,109 @@ user-invocable: false
 
 ## Architecture Context
 
-Each environment (dev, stg, prd) is an independent namespace with identical structure.
-The web-app runs as an Argo Rollout using Blue-Green strategy with two services:
-`web-app-active` (stable traffic) and `web-app-preview` (new version during rollout).
-Auto-promotion is enabled — manual intervention is not expected during normal operation.
+Every workload in the cluster is a set of pods under a controller (Deployment, StatefulSet,
+Rollout, ...). The diagnostic playbook is mostly shared across controller types — the question is
+always "why isn't the desired state the actual state?" Two workload classes deserve named
+patterns in this cluster:
+
+- **Rollouts (Argo Rollouts)** — blue-green or canary controller with verification gates.
+  Phase enum: `Healthy` / `Progressing` / `Degraded` / `Paused`. Controller-specific diagnosis is
+  `status.conditions` on the Rollout and any linked `AnalysisRun` (Kargo verification gate).
+- **In-cluster gate reporters** — a Deployment whose job is to evaluate cluster state and post a
+  GitHub commit status. Its failure modes differ from a generic workload because it participates
+  in the PR merge gate (see `pr-verification` for the three-owner lifecycle). Today one instance
+  runs (convergence-checker in `observability`); the pattern generalizes.
+
+Discover workloads at runtime; don't assume names:
+
+```
+kubectl --context <ctx> get rollouts -A
+kubectl --context <ctx> get deploy,statefulset -A
+```
 
 ## Diagnostic Approach
 
-**1. What phase is the Rollout in?**
-- `Healthy` — stable, no action needed
-- `Progressing` — update in flight, normal, wait for it to settle
-- `Degraded` — something failed; check conditions and events on the Rollout resource
-- `Paused` — unexpected unless a manual pause was set
+**1. Which controller? What does its status say?**
+Start with the top-level resource and read `status`:
 
-Check `status.conditions` for the specific failure reason before looking elsewhere.
+```
+kubectl --context <ctx> describe rollout -n <ns> <name>       # Rollout class
+kubectl --context <ctx> get deploy -n <ns> <name> -o yaml     # Deployment class
+```
 
-**2. Are the pods running?**
-A new ReplicaSet is created for each rollout update. If the new pod is not starting:
-- `ImagePullBackOff` / `ErrImagePull`: the image digest does not exist in GHCR, or the
-  imagePullSecret is missing or invalid
-- `CrashLoopBackOff`: the container starts but crashes — check pod logs
-- `Pending`: insufficient node resources or scheduling constraint
+`status.conditions` + `status.phase` (Rollout) or `status.conditions` (Deployment) answer: is
+the controller itself blocked, or waiting on pods?
 
-Check events on both the pod and the ReplicaSet.
+**2. Are pods running?**
+Common blockers:
+- `ImagePullBackOff` / `ErrImagePull` — image digest missing from registry, or `imagePullSecret`
+  missing/invalid.
+- `CrashLoopBackOff` — container crashes after start. `kubectl logs --previous` is the first move.
+- `Pending` — node resources or scheduling constraint. `kubectl describe pod` + events on pod and
+  controller.
 
 **3. Is the readiness probe passing?**
-The readiness probe is HTTP GET on port 3000 at `/`. If the pod starts but does not become ready:
-- The nginx container serves static content and should respond immediately — a failing probe
-  usually means the container crashed after starting or the port is wrong
-- Check actual container logs for startup errors
+The probe is the handoff from "started" to "receives traffic." A pod that runs but never becomes
+Ready usually has an app-config or port mismatch — check the probe spec against the container's
+actual listening address and compare container logs for startup errors.
 
-**4. Is the Kargo health check failing?**
-After dev or stg promotion, Kargo runs a Job in the `portfolio-project` namespace that curls
-the active service URL (`http://{app}-active.{env}.svc.cluster.local/`):
-- Job running: verification in progress, wait (up to 150 seconds total)
-- Job failed: the curl could not reach the service — the pod may not be ready yet, DNS not
-  propagated, or the service selector is wrong
-- The health check runs via in-cluster DNS; no ingress or network policy is involved
+**4. (Rollout class) Is verification blocking?**
+Rollouts integrate with Kargo verification. A failed `AnalysisRun` pauses the Rollout. Discover
+active runs, then inspect per-metric status:
 
-**5. Are the services correct?**
-Both `web-app-active` and `web-app-preview` must exist in each env namespace. During steady
-state both point to the same ReplicaSet. During a rollout, `web-app-preview` temporarily points
-to the new ReplicaSet. Check that selector labels match the current pod hash.
+```
+kubectl --context <ctx> get analysisrun -A
+kubectl --context <ctx> describe analysisrun -n <ns> <name>
+```
+
+The failing metric's status explains what the check observed (curl timeout, non-2xx, etc.).
+
+### Gate-reporter-specific steps
+
+**5. Silence diagnosis**
+A reporter's job is to *report* — a silent reporter = a stuck gate. Silence causes:
+- Pod not yet Ready (image pull, readiness probe, RBAC binding for the cluster-state reads the
+  reporter performs).
+- Pod crashing (Secret import errors, ConfigMap read errors). `CrashLoopBackOff` is visible;
+  an outer `try/except` that swallows per-iteration exceptions is not — look at the structured
+  log stream for an iteration-error event.
+- GitHub auth failing (401 / 404 / 422 on status POST). The reporter's Secret (GitHub App
+  credentials) has specific key names and a PEM-format private key — check that all expected keys
+  exist before inspecting values.
+- RBAC shortfall for dynamic discovery. Reporters that list cluster-wide resources (Applications,
+  Stages, Projects) need ClusterRole-level read; a restrictive RoleBinding produces silent
+  undercount rather than an error.
+
+**6. Own-ConfigMap reconcile fight**
+Reporters commonly write heartbeat and state into ConfigMaps that the same ArgoCD Application
+also declares. Without `ignoreDifferences` on the written field (typically `/data`), ArgoCD
+reverts the writes every sync — heartbeats thrash, the watchdog sees stale heartbeat, gate goes
+`failure`. Cross-reference: `argocd-troubleshooting` for the pattern; fix is always an
+`ignoreDifferences` block on the Application.
+
+**7. Structured logs are the primary signal**
+Reporters emit JSON via a structured-logging library. The event key is reporter-specific —
+discover the schema first:
+
+```
+kubectl --context <ctx> logs -n <ns> deploy/<reporter> | head -1 | jq 'keys'
+```
+
+Then distribute events by name to find anomalies:
+
+```
+kubectl --context <ctx> logs -n <ns> deploy/<reporter> \
+  | jq -r '.<event-key>' | sort | uniq -c | sort -rn
+```
+
+**8. Watchdog cross-check**
+If the reporter is silent and you're trying to decide whether the reporter or its infrastructure
+is at fault, see `cluster-troubleshooting` for the watchdog's liveness role. Reporter silent +
+watchdog silent = infra gap (backstop unarmed). Reporter silent + watchdog firing = expected
+behavior, focus on the reporter.
 
 ## Escape
 
-`kubectl describe rollout web-app -n {env}` shows the full event history.
-`kubectl get analysisrun -n portfolio-project` shows health check state and metrics.
-Check pod logs directly for application-level errors.
+`kubectl --context <ctx> describe <resource>` for full event history. Pod logs directly for
+application-level errors. For reporter-class workloads,
+`kubectl --context <ctx> get events -n <ns>` scoped to the reporter's pod.

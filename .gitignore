@@ -4,3 +4,5 @@ _build/
 .claude/settings.local.json
 /.idea/
 *.egg-info/
+.coverage
+.coverage.*
