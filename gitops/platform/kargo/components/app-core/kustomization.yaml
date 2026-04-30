@@ -52,6 +52,16 @@ replacements:
           kind: Stage
         fieldPaths:
           - spec.promotionTemplate.spec.vars.[name=gitRepoURL].value
+  - source:
+      kind: ConfigMap
+      fieldPath: data.targetSegment
+    targets:
+      - select:
+          group: kargo.akuity.io
+          version: v1alpha1
+          kind: Stage
+        fieldPaths:
+          - spec.promotionTemplate.spec.vars.[name=targetSegment].value
   # ── Stage-level vars (for verification expressions) ──
   - source:
       kind: ConfigMap

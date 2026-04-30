@@ -37,6 +37,8 @@ spec:
           value: PLACEHOLDER
         - name: gitRepoURL
           value: PLACEHOLDER
+        - name: targetSegment
+          value: PLACEHOLDER
       steps:
         - task:
             name: promote-kustomize-app
