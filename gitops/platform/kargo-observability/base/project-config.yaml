@@ -1,0 +1,12 @@
+apiVersion: kargo.akuity.io/v1alpha1
+kind: ProjectConfig
+metadata:
+  name: observability-project
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  promotionPolicies:
+    - stageSelector:
+        matchLabels:
+          kargo.showcase/auto-promo: "true"
+      autoPromotionEnabled: true
