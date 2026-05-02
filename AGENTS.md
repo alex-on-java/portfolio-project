@@ -6,3 +6,4 @@ Important files to read:
 	- [Working principles that guide every decision in this project](docs/WORKING_PRINCIPLES.md)
 	- [Operating policies the agent should always follow](docs/AGENT_OPERATING_POLICIES.md)
 	- [Code-quality policies applied during code review](docs/code-quality-policies/README.md)
+	- [Code design principles that shape the code itself](docs/CODE_DESIGN_PRINCIPLES.md)
