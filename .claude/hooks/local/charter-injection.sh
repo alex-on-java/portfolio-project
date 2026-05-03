@@ -8,7 +8,6 @@ hook_event=$(echo "$input" | jq -r '.hook_event_name // "SessionStart"')
 session_id=$(echo "$input" | jq -r '.session_id // empty')
 agent_id=$(echo "$input" | jq -r '.agent_id // empty')
 cwd=$(echo "$input" | jq -r '.cwd // empty')
-transcript_path=$(echo "$input" | jq -r '.transcript_path // empty')
 
 HOOKS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PROJECT_ROOT="$(cd "${HOOKS_DIR}/../.." && pwd)"
@@ -28,29 +27,7 @@ if ! hook_gate charter-injection "$scope_key" once; then
   exit 0
 fi
 
-if [[ -z "$agent_id" ]] && [[ -n "$transcript_path" ]]; then
-  if ! grep -qxF -- "- ${transcript_path}" "$charter_file"; then
-    if ! grep -qxF -- "## Session History" "$charter_file"; then
-      printf '\n\n## Session History\n\n' >> "$charter_file"
-    fi
-    printf -- '- %s\n' "$transcript_path" >> "$charter_file"
-  fi
-fi
-
-if [[ -z "$agent_id" ]]; then
-  content=$(<"$charter_file")
-  emphasis=$(cat <<'EOF'
----
-
-**Context breadcrumbs.** Paths above point to transcripts of prior sessions on this feature. When you need context the charter does not carry, reach for them via an Explore sub-agent rather than re-asking the user. **NB: the last path is the current session.**
-EOF
-)
-  payload="${content}
-
-${emphasis}"
-else
-  payload=$(awk '/^## Session History[[:space:]]*$/{exit} {print}' "$charter_file")
-fi
+payload=$(<"$charter_file")
 
 [[ -n "$payload" ]] || exit 0
 
