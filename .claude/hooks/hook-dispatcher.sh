@@ -63,5 +63,18 @@ case "$ENV_PREFIX" in
     ;;
 esac
 
+HOOK_BASENAME="$(basename "$HOOK_REL_PATH" .sh)"
+HOOK_VAR_SUFFIX="$(printf '%s' "$HOOK_BASENAME" | tr '[:lower:]-' '[:upper:]_')"
+HOOK_DEFAULT_VAR="HOOK_DEFAULT_${HOOK_VAR_SUFFIX}"
+HOOK_INVOCATION_VAR="HOOK_INVOCATION_${HOOK_VAR_SUFFIX}"
+
+hook_default="${!HOOK_DEFAULT_VAR:-enabled}"
+hook_override="${!HOOK_INVOCATION_VAR:-}"
+hook_state="${hook_override:-$hook_default}"
+
+if [[ "$hook_state" == "disabled" ]]; then
+  exit 0
+fi
+
 # Execute the target hook, passing through stdin, all remaining args, and preserving exit code
 exec "$TARGET" "$@"

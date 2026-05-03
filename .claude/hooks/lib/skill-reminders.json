@@ -1,6 +1,6 @@
 [
   {
-    "pattern": "worktree",
+    "pattern": "(create.*worktree|worktree.*create)",
     "trigger": "git work tree",
     "skill": "worktree-create"
   }

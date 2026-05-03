@@ -45,21 +45,27 @@ get_worktrees_parent() {
     echo "$parent_dir/$WORKTREES_DIR"
 }
 
-get_exclude_paths() {
-    local main_repo="$1"
-    local exclude_file="$main_repo/.git/info/exclude"
+read_exclude_file() {
+    local file="$1"
+    [[ -f "$file" ]] || return 0
 
-    [[ -f "$exclude_file" ]] || return 0
-
+    local label
+    label=$(basename "$file")
     while IFS= read -r line; do
         [[ -z "$line" || "$line" == \#* ]] && continue
         line="${line%/}"
         if [[ "$line" == *[\*\?\[]* ]]; then
-            warn "Skipping glob pattern in exclude: $line"
+            warn "Skipping glob pattern in $label: $line"
             continue
         fi
         printf '%s\n' "$line"
-    done < "$exclude_file"
+    done < "$file"
+}
+
+get_exclude_paths() {
+    local main_repo="$1"
+    read_exclude_file "$main_repo/.gitignore"
+    read_exclude_file "$main_repo/.git/info/exclude"
 }
 
 sync_excluded() {
@@ -138,6 +144,9 @@ cmd_add() {
     fi
 
     sync_excluded "$main_repo" "$worktree_path"
+
+    mise trust "$worktree_path" >/dev/null
+    info "mise: trusted $worktree_path" >&2
 
     echo "$worktree_path"
 }
