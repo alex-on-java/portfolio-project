@@ -12,23 +12,29 @@ import structlog
 from kubernetes import client as k8s_client
 from kubernetes import config as k8s_config
 
-from convergence_checker import cycle, github_repository
-from convergence_checker.config import settings
-from convergence_checker.cycle import CycleConfig
-from convergence_checker.io_adapters import (
-    ClusterReader,
+from convergence_checker.core.cycle import CycleConfig
+from convergence_checker.core.models import ConvergenceState, CycleInputs
+from convergence_checker.infrastructure.config import settings
+from convergence_checker.infrastructure.github.adapters import (
     GitHubStatusReporter,
+    NullStatusReporter,
+)
+from convergence_checker.infrastructure.github.repository import (
+    GitHubAppTokenProvider,
+    GitHubRepository,
+)
+from convergence_checker.infrastructure.kubernetes.adapters import (
     K8sClusterIdentityReader,
     K8sClusterReader,
-    NullStatusReporter,
-    StatusReporter,
 )
-from convergence_checker.k8s_repository import K8sRepository
-from convergence_checker.models import ConvergenceState, CycleInputs
+from convergence_checker.infrastructure.kubernetes.repository import K8sRepository
+from convergence_checker.infrastructure.runner import LoopPacing, run_until
 
 if TYPE_CHECKING:
     import types
     from collections.abc import Callable, Mapping
+
+    from convergence_checker.core.ports import StatusReporter
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
 
@@ -96,16 +102,8 @@ def select_reporter(*, dry_run: bool) -> StatusReporter:
         log.warning("github_credentials_missing", missing=missing)
         return NullStatusReporter()
 
-    token_provider = github_repository.GitHubAppTokenProvider(app_id, private_key, installation_id)
-    return GitHubStatusReporter(github_repository.GitHubRepository(token_provider))
-
-
-@dataclass(frozen=True)
-class LoopPacing:
-    sleep: Callable[[float], None]
-    clock: Callable[[], datetime]
-    should_continue: Callable[[], bool]
-    interval_seconds: float
+    token_provider = GitHubAppTokenProvider(app_id, private_key, installation_id)
+    return GitHubStatusReporter(GitHubRepository(token_provider))
 
 
 @dataclass(frozen=True)
@@ -121,45 +119,12 @@ def parse_cluster_identity(identity: Mapping[str, str]) -> ClusterContext:
     )
 
 
-def build_initial_inputs(context: ClusterContext, *, dry_run: bool) -> CycleInputs:
+def build_initial_inputs(context: ClusterContext) -> CycleInputs:
     return CycleInputs(
         previous_state=ConvergenceState(),
         previous_commit_sha=context.pr_commit_sha,
         previous_sent_status=None,
-        dry_run=dry_run,
     )
-
-
-def run_until(
-    *,
-    initial_inputs: CycleInputs,
-    reader: ClusterReader,
-    reporter: StatusReporter,
-    config: CycleConfig,
-    pacing: LoopPacing,
-) -> None:
-    inputs = initial_inputs
-    while pacing.should_continue():
-        try:
-            outputs = cycle.run_cycle(inputs, reader, reporter, config, now=pacing.clock())
-        except cycle.ABSORBED_FAULTS:
-            log.exception("evaluation_cycle_failed")
-        else:
-            log.info(
-                "evaluation",
-                verdict=outputs.result.verdict.value,
-                description=outputs.result.description,
-                consecutive_healthy=outputs.new_state.consecutive_healthy,
-                resources=outputs.resource_count,
-            )
-            inputs = CycleInputs(
-                previous_state=outputs.new_state,
-                previous_commit_sha=outputs.new_commit_sha,
-                previous_sent_status=outputs.new_sent_status,
-                dry_run=inputs.dry_run,
-            )
-
-        pacing.sleep(pacing.interval_seconds)
 
 
 def boot_and_run(*, dry_run: bool = False) -> None:
@@ -202,7 +167,7 @@ def boot_and_run(*, dry_run: bool = False) -> None:
         heartbeat_configmap_name=settings.heartbeat_configmap_name,
         field_manager_name=settings.field_manager_name,
     )
-    initial_inputs = build_initial_inputs(cluster_context, dry_run=dry_run)
+    initial_inputs = build_initial_inputs(cluster_context)
     pacing = LoopPacing(
         sleep=time.sleep,
         clock=lambda: datetime.now(tz=UTC),

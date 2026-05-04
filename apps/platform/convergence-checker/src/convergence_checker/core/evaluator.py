@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from convergence_checker.models import (
+from convergence_checker.core.models import (
     ApplicationStatus,
     ConvergenceState,
     EvaluationResult,

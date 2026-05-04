@@ -2,15 +2,15 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-from convergence_checker.github_repository import GitHubRepository
-from convergence_checker.io_adapters import StaticTokenProvider
+from convergence_checker.infrastructure.github.adapters import StaticTokenProvider
+from convergence_checker.infrastructure.github.repository import GitHubRepository
 
 
 class TestGitHubRepository:
     def test_create_commit_status(self) -> None:
         client = GitHubRepository(StaticTokenProvider("ghs_test"))
 
-        with patch("convergence_checker.github_repository.requests.post") as mock_post:
+        with patch("convergence_checker.infrastructure.github.repository.requests.post") as mock_post:
             mock_response = MagicMock()
             mock_response.raise_for_status = MagicMock()
             mock_post.return_value = mock_response

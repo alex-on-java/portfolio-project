@@ -9,7 +9,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from pydantic import ValidationError
 
-from convergence_checker.github_repository import GitHubAppTokenProvider, _token_cache
+from convergence_checker.infrastructure.github.repository import GitHubAppTokenProvider, _token_cache
 
 _TEST_PRIVATE_KEY = """-----BEGIN RSA PRIVATE KEY-----
 MIIEowIBAAKCAQEAy+/lO89A/DJ9MVgeViYovrp0mjtXhN31qEy92Upn3T8iGmUu
@@ -54,7 +54,7 @@ class TestGitHubAppTokenProvider:
         )
         now = int(time.time())
 
-        with patch("convergence_checker.github_repository.requests.post") as mock_post:
+        with patch("convergence_checker.infrastructure.github.repository.requests.post") as mock_post:
             mock_response = MagicMock()
             mock_response.json.return_value = {"token": "ghs_test_token"}
             mock_response.raise_for_status = MagicMock()
@@ -85,7 +85,7 @@ class TestGitHubAppTokenProvider:
             installation_id="67890",
         )
 
-        with patch("convergence_checker.github_repository.requests.post") as mock_post:
+        with patch("convergence_checker.infrastructure.github.repository.requests.post") as mock_post:
             mock_response = MagicMock()
             mock_response.json.return_value = {"token": "ghs_cached"}
             mock_response.raise_for_status = MagicMock()
@@ -104,7 +104,7 @@ class TestGitHubAppTokenProvider:
             installation_id="67890",
         )
 
-        with patch("convergence_checker.github_repository.requests.post") as mock_post:
+        with patch("convergence_checker.infrastructure.github.repository.requests.post") as mock_post:
             mock_response = MagicMock()
             mock_response.json.return_value = {"token": ""}
             mock_response.raise_for_status = MagicMock()

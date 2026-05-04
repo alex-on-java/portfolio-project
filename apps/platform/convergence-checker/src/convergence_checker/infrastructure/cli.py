@@ -3,7 +3,7 @@ from __future__ import annotations
 import click
 import structlog
 
-from convergence_checker.loop import boot_and_run
+from convergence_checker.infrastructure.bootstrap import boot_and_run
 
 
 @click.command()

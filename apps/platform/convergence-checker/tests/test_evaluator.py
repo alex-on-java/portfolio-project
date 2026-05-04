@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
-from convergence_checker.evaluator import (
+from convergence_checker.core.evaluator import (
     aggregate,
     evaluate_app,
     evaluate_stage,
 )
-from convergence_checker.models import (
+from convergence_checker.core.models import (
     ApplicationStatus,
     ConvergenceState,
     EvaluationResult,

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from convergence_checker.models import ApplicationStatus, StageStatus
+from convergence_checker.core.models import ApplicationStatus, StageStatus
 
 
 @pytest.fixture

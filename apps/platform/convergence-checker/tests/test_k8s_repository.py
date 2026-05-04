@@ -6,7 +6,7 @@ import pytest
 from kubernetes import client as k8s_client
 from pydantic import ValidationError
 
-from convergence_checker.k8s_repository import (
+from convergence_checker.infrastructure.kubernetes.repository import (
     K8sApplication,
     K8sProject,
     K8sRepository,

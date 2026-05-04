@@ -8,10 +8,10 @@ import jwt
 import requests
 from cachetools import TTLCache, cached
 
-from convergence_checker.io_adapters import TokenResponse
+from convergence_checker.core.ports import TokenResponse
 
 if TYPE_CHECKING:
-    from convergence_checker.io_adapters import TokenProvider
+    from convergence_checker.core.ports import TokenProvider
 
 _API_VERSION = "2026-03-10"
 _TIMEOUT = 30

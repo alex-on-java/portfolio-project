@@ -40,7 +40,6 @@ class CycleInputs(BaseModel):
     previous_state: ConvergenceState
     previous_commit_sha: str | None = None
     previous_sent_status: tuple[str, str] | None = None
-    dry_run: bool = False
 
 
 class CycleOutputs(BaseModel):

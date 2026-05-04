@@ -3,8 +3,10 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from unittest.mock import MagicMock
 
-from convergence_checker.io_adapters import CommitStatus, K8sClusterIdentityReader, K8sClusterReader, NullStatusReporter
-from convergence_checker.k8s_repository import (
+from convergence_checker.core.ports import CommitStatus
+from convergence_checker.infrastructure.github.adapters import NullStatusReporter
+from convergence_checker.infrastructure.kubernetes.adapters import K8sClusterIdentityReader, K8sClusterReader
+from convergence_checker.infrastructure.kubernetes.repository import (
     K8sApplication,
     K8sProject,
     K8sRepository,

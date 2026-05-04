@@ -1,57 +1,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING
 
-import structlog
-from pydantic import BaseModel, ConfigDict, Field
-
-from convergence_checker.models import (
-    ApplicationStatus,
-    StageStatus,
-)
+from convergence_checker.core.models import ApplicationStatus, StageStatus
 
 if TYPE_CHECKING:
     from datetime import datetime
 
-    from convergence_checker.github_repository import GitHubRepository
-    from convergence_checker.k8s_repository import K8sRepository
-
-log: structlog.stdlib.BoundLogger = structlog.get_logger()
-
-
-class TokenResponse(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-    token: str = Field(min_length=1)
-
-
-@dataclass(frozen=True)
-class CommitStatus:
-    owner_repo: str
-    sha: str
-    state: str
-    context: str
-    description: str
-
-
-class ClusterIdentityReader(Protocol):
-    def read_cluster_identity(self) -> dict[str, str]: ...
-
-
-class ClusterReader(Protocol):
-    def read_cluster_identity(self) -> dict[str, str]: ...
-    def list_applications(self) -> list[ApplicationStatus]: ...
-    def list_stage_namespaces(self) -> list[str]: ...
-    def list_stages(self, namespace: str) -> list[StageStatus]: ...
-    def write_heartbeat(self, now: datetime) -> None: ...
-
-
-class StatusReporter(Protocol):
-    def post(self, status: CommitStatus) -> None: ...
-
-
-class TokenProvider(Protocol):
-    def get(self) -> TokenResponse: ...
+    from convergence_checker.core.ports import ClusterIdentityReader
+    from convergence_checker.infrastructure.kubernetes.repository import K8sRepository
 
 
 @dataclass(frozen=True)
@@ -113,30 +71,3 @@ class K8sClusterReader:
             data={"last-success": now.isoformat()},
             field_manager=self.field_manager_name,
         )
-
-
-@dataclass(frozen=True)
-class GitHubStatusReporter:
-    client: GitHubRepository
-
-    def post(self, status: CommitStatus) -> None:
-        self.client.create_commit_status(
-            owner_repo=status.owner_repo,
-            sha=status.sha,
-            state=status.state,
-            context=status.context,
-            description=status.description,
-        )
-
-
-class NullStatusReporter:
-    def post(self, _status: CommitStatus) -> None:
-        return
-
-
-@dataclass(frozen=True)
-class StaticTokenProvider:
-    token: str
-
-    def get(self) -> TokenResponse:
-        return TokenResponse(token=self.token)

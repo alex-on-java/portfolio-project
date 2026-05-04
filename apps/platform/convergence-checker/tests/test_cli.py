@@ -5,8 +5,8 @@ from typing import Any
 import pytest
 from click.testing import CliRunner
 
-from convergence_checker import cli as cli_module
-from convergence_checker.cli import cli
+from convergence_checker.infrastructure import cli as cli_module
+from convergence_checker.infrastructure.cli import cli
 
 
 class _BootCallRecorder:

@@ -6,11 +6,8 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 
-from convergence_checker import loop
-from convergence_checker.cycle import CycleConfig
-from convergence_checker.io_adapters import ClusterReader, NullStatusReporter, StatusReporter
-from convergence_checker.loop import LoopPacing
-from convergence_checker.models import (
+from convergence_checker.core.cycle import CycleConfig
+from convergence_checker.core.models import (
     ApplicationStatus,
     ConvergenceState,
     CycleInputs,
@@ -19,9 +16,14 @@ from convergence_checker.models import (
     EvaluationVerdict,
     StageStatus,
 )
+from convergence_checker.infrastructure import runner
+from convergence_checker.infrastructure.github.adapters import NullStatusReporter
+from convergence_checker.infrastructure.runner import LoopPacing
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+    from convergence_checker.core.ports import ClusterReader, StatusReporter
 
 
 # ---------------------------------------------------------------------------
@@ -156,7 +158,7 @@ def base_inputs() -> CycleInputs:
 @pytest.fixture
 def cycle_stub(monkeypatch: pytest.MonkeyPatch) -> CycleStub:
     stub = CycleStub()
-    monkeypatch.setattr("convergence_checker.cycle.run_cycle", stub)
+    monkeypatch.setattr("convergence_checker.core.cycle.run_cycle", stub)
     return stub
 
 
@@ -183,7 +185,7 @@ class TestRunUntil:
         sleep = RecordingSleep()
         stop = StopAfter(n=3)
 
-        loop.run_until(
+        runner.run_until(
             initial_inputs=base_inputs,
             reader=SENTINEL_READER,
             reporter=reporter,
@@ -210,7 +212,7 @@ class TestRunUntil:
     ) -> None:
         sleep = RecordingSleep()
 
-        loop.run_until(
+        runner.run_until(
             initial_inputs=base_inputs,
             reader=SENTINEL_READER,
             reporter=reporter,
@@ -236,7 +238,7 @@ class TestRunUntil:
     ) -> None:
         cycle_stub.scripted = [_make_output()]
 
-        loop.run_until(
+        runner.run_until(
             initial_inputs=base_inputs,
             reader=SENTINEL_READER,
             reporter=reporter,
@@ -274,7 +276,7 @@ class TestRunUntil:
         )
         cycle_stub.scripted = [first, second]
 
-        loop.run_until(
+        runner.run_until(
             initial_inputs=base_inputs,
             reader=SENTINEL_READER,
             reporter=reporter,
@@ -311,7 +313,7 @@ class TestRunUntil:
             _make_output(sha="sha-A", new_state=ConvergenceState(consecutive_healthy=2)),
         ]
 
-        loop.run_until(
+        runner.run_until(
             initial_inputs=base_inputs,
             reader=SENTINEL_READER,
             reporter=reporter,
@@ -345,7 +347,7 @@ class TestRunUntil:
         ]
         sleep = RecordingSleep()
 
-        loop.run_until(
+        runner.run_until(
             initial_inputs=base_inputs,
             reader=SENTINEL_READER,
             reporter=reporter,
@@ -372,7 +374,7 @@ class TestRunUntil:
         t1 = datetime(2026, 4, 26, 12, 0, 12, tzinfo=UTC)
         clock = ScriptedClock(times=[t0, t1])
 
-        loop.run_until(
+        runner.run_until(
             initial_inputs=base_inputs,
             reader=SENTINEL_READER,
             reporter=reporter,
@@ -388,33 +390,3 @@ class TestRunUntil:
         assert cycle_stub.calls[0]["now"] == t0
         assert cycle_stub.calls[1]["now"] == t1
         assert clock.issued == [t0, t1]
-
-    def test_dry_run_flag_persists_across_iterations(
-        self,
-        cycle_stub: CycleStub,
-        reporter: NullStatusReporter,
-        config: CycleConfig,
-        constant_clock: Callable[[], datetime],
-    ) -> None:
-        cycle_stub.scripted = [_make_output(), _make_output()]
-        dry_run_inputs = CycleInputs(
-            previous_state=ConvergenceState(),
-            previous_commit_sha="sha-A",
-            previous_sent_status=None,
-            dry_run=True,
-        )
-
-        loop.run_until(
-            initial_inputs=dry_run_inputs,
-            reader=SENTINEL_READER,
-            reporter=reporter,
-            config=config,
-            pacing=LoopPacing(
-                sleep=RecordingSleep(),
-                clock=constant_clock,
-                should_continue=StopAfter(n=2),
-                interval_seconds=0.0,
-            ),
-        )
-
-        assert cycle_stub.calls[1]["inputs"].dry_run is True

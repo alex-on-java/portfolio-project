@@ -10,21 +10,23 @@ from anyio.from_thread import start_blocking_portal
 from kmock import KubernetesEmulator, Server
 from kubernetes import client as k8s_client
 
-from convergence_checker import cycle
-from convergence_checker.cycle import CycleConfig
-from convergence_checker.github_repository import GitHubRepository
-from convergence_checker.io_adapters import (
-    GitHubStatusReporter,
-    K8sClusterIdentityReader,
-    K8sClusterReader,
-    StaticTokenProvider,
-)
-from convergence_checker.k8s_repository import K8sRepository
-from convergence_checker.models import (
+from convergence_checker.core import cycle
+from convergence_checker.core.cycle import CycleConfig
+from convergence_checker.core.models import (
     ConvergenceState,
     CycleInputs,
     EvaluationVerdict,
 )
+from convergence_checker.infrastructure.github.adapters import (
+    GitHubStatusReporter,
+    StaticTokenProvider,
+)
+from convergence_checker.infrastructure.github.repository import GitHubRepository
+from convergence_checker.infrastructure.kubernetes.adapters import (
+    K8sClusterIdentityReader,
+    K8sClusterReader,
+)
+from convergence_checker.infrastructure.kubernetes.repository import K8sRepository
 
 if TYPE_CHECKING:
     from collections.abc import Iterator

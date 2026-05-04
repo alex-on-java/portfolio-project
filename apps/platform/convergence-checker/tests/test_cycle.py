@@ -2,13 +2,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pytest
 
-from convergence_checker.cycle import CycleConfig, run_cycle
-from convergence_checker.io_adapters import CommitStatus, NullStatusReporter
-from convergence_checker.models import (
+from convergence_checker.core.cycle import CycleConfig, run_cycle
+from convergence_checker.core.models import (
     ApplicationStatus,
     ConvergenceState,
     CycleInputs,
@@ -16,6 +15,10 @@ from convergence_checker.models import (
     EvaluationVerdict,
     StageStatus,
 )
+from convergence_checker.infrastructure.github.adapters import NullStatusReporter
+
+if TYPE_CHECKING:
+    from convergence_checker.core.ports import CommitStatus
 
 # ---------------------------------------------------------------------------
 # Fakes for run_cycle tests
@@ -61,15 +64,6 @@ class RecordingReporter:
     def post(self, status: CommitStatus) -> None:
         if self.raise_on_post is not None:
             raise self.raise_on_post
-        self.posts.append(status)
-
-
-class RecordingNullReporter(NullStatusReporter):
-    def __init__(self) -> None:
-        super().__init__()
-        self.posts: list[CommitStatus] = []
-
-    def post(self, status: CommitStatus) -> None:
         self.posts.append(status)
 
 
@@ -174,9 +168,9 @@ def stub_evaluator(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
             handle["new_state"],
         )
 
-    monkeypatch.setattr("convergence_checker.cycle.evaluator.evaluate_app", fake_evaluate_app)
-    monkeypatch.setattr("convergence_checker.cycle.evaluator.evaluate_stage", fake_evaluate_stage)
-    monkeypatch.setattr("convergence_checker.cycle.evaluator.aggregate", fake_aggregate)
+    monkeypatch.setattr("convergence_checker.core.cycle.evaluator.evaluate_app", fake_evaluate_app)
+    monkeypatch.setattr("convergence_checker.core.cycle.evaluator.evaluate_stage", fake_evaluate_stage)
+    monkeypatch.setattr("convergence_checker.core.cycle.evaluator.aggregate", fake_aggregate)
 
     return handle
 
@@ -304,18 +298,17 @@ class TestRunCycle:
         assert reporter.posts == []
         assert outputs.new_sent_status == ("success", "All healthy")
 
-    def test_null_reporter_skips_post_even_with_valid_sha(
+    def test_null_reporter_is_called_and_dedup_state_is_tracked(
         self,
         config: CycleConfig,
         reader: FakeClusterReader,
         base_inputs: CycleInputs,
     ) -> None:
-        null_reporter = RecordingNullReporter()
+        reporter = NullStatusReporter()
 
-        outputs = run_cycle(base_inputs, reader, null_reporter, config, now=NOW)
+        outputs = run_cycle(base_inputs, reader, reporter, config, now=NOW)
 
-        assert null_reporter.posts == []
-        assert outputs.new_sent_status is None
+        assert outputs.new_sent_status == ("success", "stub-healthy")
 
     def test_missing_pr_sha_skips_post_but_still_writes_heartbeat(
         self,

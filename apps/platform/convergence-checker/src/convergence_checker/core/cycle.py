@@ -5,20 +5,20 @@ from typing import TYPE_CHECKING
 
 import structlog
 
-from convergence_checker import evaluator
-from convergence_checker.io_adapters import CommitStatus, NullStatusReporter
-from convergence_checker.models import (
+from convergence_checker.core import evaluator
+from convergence_checker.core.models import (
     ConvergenceState,
     CycleInputs,
     CycleOutputs,
     EvaluationResult,
     EvaluationVerdict,
 )
+from convergence_checker.core.ports import CommitStatus
 
 if TYPE_CHECKING:
     from datetime import datetime
 
-    from convergence_checker.io_adapters import ClusterReader, StatusReporter
+    from convergence_checker.core.ports import ClusterReader, StatusReporter
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
 
@@ -61,7 +61,7 @@ def _dedup_and_post(
     previous_sent: tuple[str, str] | None,
     config: CycleConfig,
 ) -> tuple[str, str] | None:
-    if sha is None or isinstance(reporter, NullStatusReporter):
+    if sha is None:
         return previous_sent
     gh_state = _github_state_from_verdict(result.verdict)
     candidate = (gh_state, result.description)

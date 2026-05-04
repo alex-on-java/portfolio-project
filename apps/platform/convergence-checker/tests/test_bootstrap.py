@@ -5,11 +5,8 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from convergence_checker.io_adapters import (
-    GitHubStatusReporter,
-    NullStatusReporter,
-)
-from convergence_checker.loop import (
+from convergence_checker.core.models import ConvergenceState
+from convergence_checker.infrastructure.bootstrap import (
     ClusterContext,
     ShutdownController,
     build_initial_inputs,
@@ -18,7 +15,10 @@ from convergence_checker.loop import (
     read_own_namespace,
     select_reporter,
 )
-from convergence_checker.models import ConvergenceState
+from convergence_checker.infrastructure.github.adapters import (
+    GitHubStatusReporter,
+    NullStatusReporter,
+)
 
 if TYPE_CHECKING:
     import types
@@ -165,11 +165,11 @@ class TestParseClusterIdentity:
 
 class TestBuildInitialInputs:
     def test_initial_inputs_seeded_from_context_sha(self) -> None:
-        inputs = build_initial_inputs(ClusterContext(argocd_namespace="argocd", pr_commit_sha="sha-abc"), dry_run=False)
+        inputs = build_initial_inputs(ClusterContext(argocd_namespace="argocd", pr_commit_sha="sha-abc"))
         assert inputs.previous_commit_sha == "sha-abc"
         assert inputs.previous_state == ConvergenceState()
         assert inputs.previous_sent_status is None
 
-    def test_dry_run_propagates_into_initial_inputs(self) -> None:
-        inputs = build_initial_inputs(ClusterContext(argocd_namespace="argocd", pr_commit_sha="sha-1"), dry_run=True)
-        assert inputs.dry_run is True
+    def test_none_sha_yields_none_commit_sha(self) -> None:
+        inputs = build_initial_inputs(ClusterContext(argocd_namespace="argocd", pr_commit_sha=None))
+        assert inputs.previous_commit_sha is None

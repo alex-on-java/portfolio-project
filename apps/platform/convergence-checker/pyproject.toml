@@ -15,7 +15,7 @@ dependencies = [
 ]
 
 [project.scripts]
-convergence-checker = "convergence_checker.cli:cli"
+convergence-checker = "convergence_checker.infrastructure.cli:cli"
 
 [dependency-groups]
 dev = [
