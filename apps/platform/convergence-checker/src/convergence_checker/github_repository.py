@@ -1,17 +1,22 @@
 from __future__ import annotations
 
 import time
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import jwt
 import requests
+from cachetools import TTLCache, cached
+
+from convergence_checker.io_adapters import TokenResponse
 
 if TYPE_CHECKING:
     from convergence_checker.io_adapters import TokenProvider
 
 _API_VERSION = "2026-03-10"
 _TIMEOUT = 30
-_TOKEN_REFRESH_AFTER_SECONDS = 3000
+
+_token_cache: TTLCache[object, TokenResponse] = TTLCache(maxsize=1, ttl=3000)
 
 
 def _headers(token: str, *, bearer: bool = False) -> dict[str, str]:
@@ -23,40 +28,33 @@ def _headers(token: str, *, bearer: bool = False) -> dict[str, str]:
     }
 
 
+@dataclass(frozen=True)
 class GitHubAppTokenProvider:
-    def __init__(self, app_id: str, private_key: str, installation_id: str) -> None:
-        self._app_id = app_id
-        self._private_key = private_key
-        self._installation_id = installation_id
-        self._token: str | None = None
-        self._token_expires_at: float = 0
+    app_id: str
+    private_key: str
+    installation_id: str
 
-    def get(self) -> str:
+    @cached(cache=_token_cache)
+    def get(self) -> TokenResponse:
         now = time.time()
-        if self._token and now < self._token_expires_at:
-            return self._token
-
         jwt_payload = {
             "iat": int(now) - 60,
             "exp": int(now) + 600,
-            "iss": self._app_id,
+            "iss": self.app_id,
         }
-        encoded_jwt: str = jwt.encode(jwt_payload, self._private_key, algorithm="RS256")
-
+        encoded_jwt: str = jwt.encode(jwt_payload, self.private_key, algorithm="RS256")
         response = requests.post(
-            f"https://api.github.com/app/installations/{self._installation_id}/access_tokens",
+            f"https://api.github.com/app/installations/{self.installation_id}/access_tokens",
             headers=_headers(encoded_jwt, bearer=True),
             timeout=_TIMEOUT,
         )
         response.raise_for_status()
-        self._token = response.json()["token"]
-        self._token_expires_at = now + _TOKEN_REFRESH_AFTER_SECONDS
-        return self._token
+        return TokenResponse.model_validate(response.json())
 
 
-class GitHubAppClient:
-    def __init__(self, token_provider: TokenProvider) -> None:
-        self._tokens = token_provider
+@dataclass(frozen=True)
+class GitHubRepository:
+    tokens: TokenProvider
 
     def create_commit_status(
         self,
@@ -66,7 +64,7 @@ class GitHubAppClient:
         context: str,
         description: str,
     ) -> None:
-        token = self._tokens.get()
+        token = self.tokens.get().token
         response = requests.post(
             f"https://api.github.com/repos/{owner_repo}/statuses/{sha}",
             headers=_headers(token),

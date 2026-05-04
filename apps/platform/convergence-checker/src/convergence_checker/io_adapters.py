@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Protocol
 
 import structlog
+from pydantic import BaseModel, ConfigDict, Field
 
 from convergence_checker.models import (
     ApplicationStatus,
@@ -13,10 +14,15 @@ from convergence_checker.models import (
 if TYPE_CHECKING:
     from datetime import datetime
 
-    from convergence_checker.github_client import GitHubAppClient
+    from convergence_checker.github_repository import GitHubRepository
     from convergence_checker.k8s_repository import K8sRepository
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
+
+
+class TokenResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    token: str = Field(min_length=1)
 
 
 @dataclass(frozen=True)
@@ -45,7 +51,7 @@ class StatusReporter(Protocol):
 
 
 class TokenProvider(Protocol):
-    def get(self) -> str: ...
+    def get(self) -> TokenResponse: ...
 
 
 @dataclass(frozen=True)
@@ -111,7 +117,7 @@ class K8sClusterReader:
 
 @dataclass(frozen=True)
 class GitHubStatusReporter:
-    client: GitHubAppClient
+    client: GitHubRepository
 
     def post(self, status: CommitStatus) -> None:
         self.client.create_commit_status(
@@ -132,5 +138,5 @@ class NullStatusReporter:
 class StaticTokenProvider:
     token: str
 
-    def get(self) -> str:
-        return self.token
+    def get(self) -> TokenResponse:
+        return TokenResponse(token=self.token)

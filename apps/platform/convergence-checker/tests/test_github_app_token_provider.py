@@ -4,10 +4,12 @@ import time
 from unittest.mock import MagicMock, patch
 
 import jwt
+import pytest
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
+from pydantic import ValidationError
 
-from convergence_checker.github_client import GitHubAppTokenProvider
+from convergence_checker.github_repository import GitHubAppTokenProvider, _token_cache
 
 _TEST_PRIVATE_KEY = """-----BEGIN RSA PRIVATE KEY-----
 MIIEowIBAAKCAQEAy+/lO89A/DJ9MVgeViYovrp0mjtXhN31qEy92Upn3T8iGmUu
@@ -38,6 +40,11 @@ m44TQYW8NGAVUpMuQKBxkKvE14LCTaYiIkrnZHOVBMKuamD42dIs
 -----END RSA PRIVATE KEY-----"""
 
 
+@pytest.fixture(autouse=True)
+def clear_token_cache() -> None:
+    _token_cache.clear()
+
+
 class TestGitHubAppTokenProvider:
     def test_jwt_generation(self) -> None:
         provider = GitHubAppTokenProvider(
@@ -47,15 +54,15 @@ class TestGitHubAppTokenProvider:
         )
         now = int(time.time())
 
-        with patch("convergence_checker.github_client.requests.post") as mock_post:
+        with patch("convergence_checker.github_repository.requests.post") as mock_post:
             mock_response = MagicMock()
             mock_response.json.return_value = {"token": "ghs_test_token"}
             mock_response.raise_for_status = MagicMock()
             mock_post.return_value = mock_response
 
-            token = provider.get()
+            result = provider.get()
 
-        assert token == "ghs_test_token"
+        assert result.token == "ghs_test_token"
 
         call_args = mock_post.call_args
         auth_header = call_args.kwargs.get("headers", call_args[1].get("headers", {}))
@@ -78,14 +85,30 @@ class TestGitHubAppTokenProvider:
             installation_id="67890",
         )
 
-        with patch("convergence_checker.github_client.requests.post") as mock_post:
+        with patch("convergence_checker.github_repository.requests.post") as mock_post:
             mock_response = MagicMock()
             mock_response.json.return_value = {"token": "ghs_cached"}
             mock_response.raise_for_status = MagicMock()
             mock_post.return_value = mock_response
 
-            token1 = provider.get()
-            token2 = provider.get()
+            result1 = provider.get()
+            result2 = provider.get()
 
-        assert token1 == token2
+        assert result1 == result2
         assert mock_post.call_count == 1
+
+    def test_empty_token_rejected(self) -> None:
+        provider = GitHubAppTokenProvider(
+            app_id="12345",
+            private_key=_TEST_PRIVATE_KEY,
+            installation_id="67890",
+        )
+
+        with patch("convergence_checker.github_repository.requests.post") as mock_post:
+            mock_response = MagicMock()
+            mock_response.json.return_value = {"token": ""}
+            mock_response.raise_for_status = MagicMock()
+            mock_post.return_value = mock_response
+
+            with pytest.raises(ValidationError):
+                provider.get()

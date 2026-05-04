@@ -12,7 +12,7 @@ import structlog
 from kubernetes import client as k8s_client
 from kubernetes import config as k8s_config
 
-from convergence_checker import cycle, github_client
+from convergence_checker import cycle, github_repository
 from convergence_checker.config import settings
 from convergence_checker.cycle import CycleConfig
 from convergence_checker.io_adapters import (
@@ -96,8 +96,8 @@ def select_reporter(*, dry_run: bool) -> StatusReporter:
         log.warning("github_credentials_missing", missing=missing)
         return NullStatusReporter()
 
-    token_provider = github_client.GitHubAppTokenProvider(app_id, private_key, installation_id)
-    return GitHubStatusReporter(github_client.GitHubAppClient(token_provider))
+    token_provider = github_repository.GitHubAppTokenProvider(app_id, private_key, installation_id)
+    return GitHubStatusReporter(github_repository.GitHubRepository(token_provider))
 
 
 @dataclass(frozen=True)

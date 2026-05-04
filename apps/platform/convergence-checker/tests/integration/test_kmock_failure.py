@@ -12,7 +12,7 @@ from kubernetes import client as k8s_client
 
 from convergence_checker import cycle
 from convergence_checker.cycle import CycleConfig
-from convergence_checker.github_client import GitHubAppClient
+from convergence_checker.github_repository import GitHubRepository
 from convergence_checker.io_adapters import (
     GitHubStatusReporter,
     K8sClusterIdentityReader,
@@ -134,7 +134,7 @@ def test_run_cycle_failure_verdict(served_kmock: KubernetesEmulator) -> None:
     _seed(served_kmock)
 
     reader = _build_reader(str(served_kmock.url).rstrip("/"))
-    reporter = GitHubStatusReporter(GitHubAppClient(StaticTokenProvider("ghs_test")))
+    reporter = GitHubStatusReporter(GitHubRepository(StaticTokenProvider("ghs_test")))
     config = CycleConfig(
         stability_threshold=3,
         safety_timeout_seconds=600,
