@@ -19,6 +19,7 @@ from convergence_checker.io_adapters import (
     K8sClusterReader,
     StaticTokenProvider,
 )
+from convergence_checker.k8s_repository import K8sRepository
 from convergence_checker.models import (
     ConvergenceState,
     CycleInputs,
@@ -110,16 +111,18 @@ def _build_reader(host: str) -> K8sClusterReader:
     cfg.host = host
     cfg.verify_ssl = False
     api = k8s_client.ApiClient(cfg)
-    core = k8s_client.CoreV1Api(api)
+    repo = K8sRepository(
+        core_api=k8s_client.CoreV1Api(api),
+        custom_api=k8s_client.CustomObjectsApi(api),
+    )
     identity_reader = K8sClusterIdentityReader(
-        core_api=core,
+        repo=repo,
         namespace="test-shared-ns",
         configmap_name="test-identity-cm",
     )
     return K8sClusterReader(
         identity_reader=identity_reader,
-        core_api=core,
-        custom_api=k8s_client.CustomObjectsApi(api),
+        repo=repo,
         own_namespace="test-own-ns",
         argocd_namespace="test-argocd-ns",
         heartbeat_configmap_name="test-heartbeat-cm",

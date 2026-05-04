@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING, Protocol
 
 import structlog
 
-from convergence_checker import k8s_client as k8s
 from convergence_checker.models import (
     ApplicationStatus,
     StageStatus,
@@ -14,9 +13,8 @@ from convergence_checker.models import (
 if TYPE_CHECKING:
     from datetime import datetime
 
-    from kubernetes import client as k8s_client
-
     from convergence_checker.github_client import GitHubAppClient
+    from convergence_checker.k8s_repository import K8sRepository
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
 
@@ -52,13 +50,12 @@ class TokenProvider(Protocol):
 
 @dataclass(frozen=True)
 class K8sClusterIdentityReader:
-    core_api: k8s_client.CoreV1Api
+    repo: K8sRepository
     namespace: str
     configmap_name: str
 
     def read_cluster_identity(self) -> dict[str, str]:
-        return k8s.read_configmap(
-            self.core_api,
+        return self.repo.read_configmap(
             name=self.configmap_name,
             namespace=self.namespace,
         )
@@ -67,8 +64,7 @@ class K8sClusterIdentityReader:
 @dataclass(frozen=True)
 class K8sClusterReader:
     identity_reader: ClusterIdentityReader
-    core_api: k8s_client.CoreV1Api
-    custom_api: k8s_client.CustomObjectsApi
+    repo: K8sRepository
     own_namespace: str
     argocd_namespace: str
     heartbeat_configmap_name: str
@@ -78,27 +74,34 @@ class K8sClusterReader:
         return self.identity_reader.read_cluster_identity()
 
     def list_applications(self) -> list[ApplicationStatus]:
-        raw_items = k8s.list_applications(self.custom_api, self.argocd_namespace)
-        return [ApplicationStatus.from_resource(r) for r in raw_items]
+        return [
+            ApplicationStatus(
+                name=dto.metadata.name,
+                health_status=dto.status.health.status,
+                sync_status=dto.status.sync.status,
+                operation_phase=dto.status.operation_state.phase,
+            )
+            for dto in self.repo.list_applications(self.argocd_namespace)
+        ]
 
     def list_stage_namespaces(self) -> list[str]:
-        projects = k8s.list_projects(self.custom_api)
-        namespaces: list[str] = []
-        for project in projects:
-            metadata = project.get("metadata", {})
-            if isinstance(metadata, dict):
-                name = metadata.get("name")
-                if isinstance(name, str):
-                    namespaces.append(name)
-        return namespaces
+        return [p.metadata.name for p in self.repo.list_projects()]
 
     def list_stages(self, namespace: str) -> list[StageStatus]:
-        raw_items = k8s.list_stages(self.custom_api, namespace)
-        return [StageStatus.from_resource(r) for r in raw_items]
+        return [
+            StageStatus(
+                name=dto.metadata.name,
+                namespace=dto.metadata.namespace,
+                health_status=dto.status.health.status,
+                conditions={
+                    c.type: c.status == "True" for c in (dto.status.conditions or []) if c.status in ("True", "False")
+                },
+            )
+            for dto in self.repo.list_stages(namespace)
+        ]
 
     def write_heartbeat(self, now: datetime) -> None:
-        k8s.patch_configmap(
-            self.core_api,
+        self.repo.patch_configmap(
             name=self.heartbeat_configmap_name,
             namespace=self.own_namespace,
             data={"last-success": now.isoformat()},

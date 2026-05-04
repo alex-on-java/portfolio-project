@@ -23,6 +23,7 @@ from convergence_checker.io_adapters import (
     NullStatusReporter,
     StatusReporter,
 )
+from convergence_checker.k8s_repository import K8sRepository
 from convergence_checker.models import ConvergenceState, CycleInputs
 
 if TYPE_CHECKING:
@@ -66,9 +67,12 @@ def install_sigterm_handler(
     register(signal.SIGTERM, controller.request_shutdown)
 
 
-def _load_k8s_clients() -> tuple[k8s_client.CoreV1Api, k8s_client.CustomObjectsApi]:
+def _build_repository() -> K8sRepository:
     k8s_config.load_incluster_config()
-    return k8s_client.CoreV1Api(), k8s_client.CustomObjectsApi()
+    return K8sRepository(
+        core_api=k8s_client.CoreV1Api(),
+        custom_api=k8s_client.CustomObjectsApi(),
+    )
 
 
 def select_reporter(*, dry_run: bool) -> StatusReporter:
@@ -161,11 +165,11 @@ def run_until(
 def boot_and_run(*, dry_run: bool = False) -> None:
     controller = ShutdownController()
     install_sigterm_handler(controller)
-    core_api, custom_api = _load_k8s_clients()
+    repo = _build_repository()
 
     own_namespace = read_own_namespace()
     identity_reader = K8sClusterIdentityReader(
-        core_api=core_api,
+        repo=repo,
         namespace=settings.cluster_identity_namespace,
         configmap_name=settings.cluster_identity_configmap_name,
     )
@@ -192,8 +196,7 @@ def boot_and_run(*, dry_run: bool = False) -> None:
 
     reader = K8sClusterReader(
         identity_reader=identity_reader,
-        core_api=core_api,
-        custom_api=custom_api,
+        repo=repo,
         own_namespace=own_namespace,
         argocd_namespace=cluster_context.argocd_namespace,
         heartbeat_configmap_name=settings.heartbeat_configmap_name,
