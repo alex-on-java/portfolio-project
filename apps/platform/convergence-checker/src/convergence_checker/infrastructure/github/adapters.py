@@ -3,9 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from convergence_checker.core.ports import CommitStatus, TokenResponse
+from convergence_checker.infrastructure.github.repository import TokenResponse
 
 if TYPE_CHECKING:
+    from convergence_checker.core.ports import CommitStatus
     from convergence_checker.infrastructure.github.repository import GitHubRepository
 
 

@@ -9,11 +9,11 @@ from convergence_checker.core.evaluator import (
 )
 from convergence_checker.core.models import (
     ApplicationStatus,
-    ConvergenceState,
     EvaluationResult,
     EvaluationVerdict,
     StageStatus,
 )
+from tests.factories import app_status, healthy_streak, pending_since, stage_status
 
 
 class TestEvaluateApp:
@@ -30,68 +30,68 @@ class TestEvaluateApp:
         assert result.verdict == EvaluationVerdict.PENDING
 
     def test_healthy_outofsync(self) -> None:
-        app = ApplicationStatus(
+        app = app_status(
             name="test",
-            health_status="Healthy",
-            sync_status="OutOfSync",
-            operation_phase="Succeeded",
+            health="Healthy",
+            sync="OutOfSync",
+            operation="Succeeded",
         )
         result = evaluate_app(app)
         assert result.verdict == EvaluationVerdict.PENDING
 
     def test_missing_outofsync(self) -> None:
-        app = ApplicationStatus(
+        app = app_status(
             name="test",
-            health_status="Missing",
-            sync_status="OutOfSync",
-            operation_phase=None,
+            health="Missing",
+            sync="OutOfSync",
+            operation=None,
         )
         result = evaluate_app(app)
         assert result.verdict == EvaluationVerdict.PENDING
 
     def test_operation_failed(self) -> None:
-        app = ApplicationStatus(
+        app = app_status(
             name="test",
-            health_status="Healthy",
-            sync_status="Synced",
-            operation_phase="Failed",
+            health="Healthy",
+            sync="Synced",
+            operation="Failed",
         )
         result = evaluate_app(app)
         assert result.verdict == EvaluationVerdict.FAILURE
 
     def test_operation_error(self) -> None:
-        app = ApplicationStatus(
+        app = app_status(
             name="test",
-            health_status="Progressing",
-            sync_status="Synced",
-            operation_phase="Error",
+            health="Progressing",
+            sync="Synced",
+            operation="Error",
         )
         result = evaluate_app(app)
         assert result.verdict == EvaluationVerdict.FAILURE
 
     def test_degraded_takes_precedence_over_failed_operation(self) -> None:
-        app = ApplicationStatus(
+        app = app_status(
             name="test",
-            health_status="Degraded",
-            sync_status="OutOfSync",
-            operation_phase="Failed",
+            health="Degraded",
+            sync="OutOfSync",
+            operation="Failed",
         )
         result = evaluate_app(app)
         assert result.verdict == EvaluationVerdict.FAILURE
         assert "Degraded" in result.description
 
     def test_healthy_synced_no_operation(self) -> None:
-        app = ApplicationStatus(
+        app = app_status(
             name="test",
-            health_status="Healthy",
-            sync_status="Synced",
-            operation_phase=None,
+            health="Healthy",
+            sync="Synced",
+            operation=None,
         )
         result = evaluate_app(app)
         assert result.verdict == EvaluationVerdict.HEALTHY
 
     def test_all_none(self) -> None:
-        app = ApplicationStatus(name="test")
+        app = app_status(name="test", health=None, sync=None, operation=None)
         result = evaluate_app(app)
         assert result.verdict == EvaluationVerdict.PENDING
 
@@ -106,60 +106,60 @@ class TestEvaluateStage:
         assert result.verdict == EvaluationVerdict.FAILURE
 
     def test_healthy_condition_false(self) -> None:
-        stage = StageStatus(
+        stage = stage_status(
             name="test",
             namespace="ns",
-            health_status="Healthy",
+            health="Healthy",
             conditions={"Ready": True, "Healthy": False, "Verified": True},
         )
         result = evaluate_stage(stage)
         assert result.verdict == EvaluationVerdict.FAILURE
 
     def test_verified_false(self) -> None:
-        stage = StageStatus(
+        stage = stage_status(
             name="test",
             namespace="ns",
-            health_status="Healthy",
+            health="Healthy",
             conditions={"Ready": True, "Healthy": True, "Verified": False},
         )
         result = evaluate_stage(stage)
         assert result.verdict == EvaluationVerdict.PENDING
 
     def test_missing_conditions(self) -> None:
-        stage = StageStatus(
+        stage = stage_status(
             name="test",
             namespace="ns",
-            health_status="Healthy",
+            health="Healthy",
             conditions={},
         )
         result = evaluate_stage(stage)
         assert result.verdict == EvaluationVerdict.PENDING
 
     def test_no_health_status(self) -> None:
-        stage = StageStatus(
+        stage = stage_status(
             name="test",
             namespace="ns",
-            health_status=None,
+            health=None,
             conditions={"Ready": True, "Verified": True},
         )
         result = evaluate_stage(stage)
         assert result.verdict == EvaluationVerdict.PENDING
 
     def test_ready_false(self) -> None:
-        stage = StageStatus(
+        stage = stage_status(
             name="test",
             namespace="ns",
-            health_status="Healthy",
+            health="Healthy",
             conditions={"Ready": False, "Healthy": True, "Verified": True},
         )
         result = evaluate_stage(stage)
         assert result.verdict == EvaluationVerdict.PENDING
 
     def test_unhealthy_takes_precedence_over_healthy_condition_false(self) -> None:
-        stage = StageStatus(
+        stage = stage_status(
             name="test",
             namespace="ns",
-            health_status="Unhealthy",
+            health="Unhealthy",
             conditions={"Healthy": False},
         )
         result = evaluate_stage(stage)
@@ -168,6 +168,8 @@ class TestEvaluateStage:
 
 
 class TestAggregate:
+    _now = datetime(2026, 5, 5, 12, 0, 0, tzinfo=UTC)
+
     def _healthy(self, name: str = "ok") -> EvaluationResult:
         return EvaluationResult(verdict=EvaluationVerdict.HEALTHY, description=name)
 
@@ -178,80 +180,147 @@ class TestAggregate:
         return EvaluationResult(verdict=EvaluationVerdict.FAILURE, description=name)
 
     def test_five_consecutive_healthy_is_success(self) -> None:
-        state = ConvergenceState(consecutive_healthy=4)
-        result, new_state = aggregate([self._healthy()], state, stability_threshold=5, safety_timeout_seconds=900)
+        state = healthy_streak(4)
+        result, new_state = aggregate(
+            [self._healthy()],
+            state,
+            stability_threshold=5,
+            safety_timeout_seconds=900,
+            now=self._now,
+        )
         assert result.verdict == EvaluationVerdict.HEALTHY
         assert new_state.consecutive_healthy == 5
 
     def test_four_healthy_then_pending_resets(self) -> None:
-        state = ConvergenceState(consecutive_healthy=4)
+        state = healthy_streak(4)
         result, new_state = aggregate(
-            [self._healthy(), self._pending()], state, stability_threshold=5, safety_timeout_seconds=900
+            [self._healthy(), self._pending()],
+            state,
+            stability_threshold=5,
+            safety_timeout_seconds=900,
+            now=self._now,
         )
         assert result.verdict == EvaluationVerdict.PENDING
         assert new_state.consecutive_healthy == 0
 
     def test_failure_is_immediate(self) -> None:
-        state = ConvergenceState(consecutive_healthy=4)
-        result, new_state = aggregate([self._failure()], state, stability_threshold=5, safety_timeout_seconds=900)
+        state = healthy_streak(4)
+        result, new_state = aggregate(
+            [self._failure()],
+            state,
+            stability_threshold=5,
+            safety_timeout_seconds=900,
+            now=self._now,
+        )
         assert result.verdict == EvaluationVerdict.FAILURE
         assert new_state.consecutive_healthy == 0
 
     def test_mixed_results_are_pending(self) -> None:
-        state = ConvergenceState()
+        state = healthy_streak()
         result, new_state = aggregate(
-            [self._healthy(), self._pending()], state, stability_threshold=5, safety_timeout_seconds=900
+            [self._healthy(), self._pending()],
+            state,
+            stability_threshold=5,
+            safety_timeout_seconds=900,
+            now=self._now,
         )
         assert result.verdict == EvaluationVerdict.PENDING
         assert new_state.consecutive_healthy == 0
 
     def test_safety_timeout(self) -> None:
-        old_time = datetime.now(tz=UTC) - timedelta(seconds=1000)
-        state = ConvergenceState(first_pending_at=old_time)
-        result, _ = aggregate([self._pending()], state, stability_threshold=5, safety_timeout_seconds=900)
+        old_time = self._now - timedelta(seconds=1000)
+        state = pending_since(old_time)
+        result, _ = aggregate(
+            [self._pending()],
+            state,
+            stability_threshold=5,
+            safety_timeout_seconds=900,
+            now=self._now,
+        )
         assert result.verdict == EvaluationVerdict.FAILURE
         assert "timeout" in result.description.lower()
 
     def test_pending_within_timeout(self) -> None:
-        recent = datetime.now(tz=UTC) - timedelta(seconds=60)
-        state = ConvergenceState(first_pending_at=recent)
-        result, new_state = aggregate([self._pending()], state, stability_threshold=5, safety_timeout_seconds=900)
+        recent = self._now - timedelta(seconds=60)
+        state = pending_since(recent)
+        result, new_state = aggregate(
+            [self._pending()],
+            state,
+            stability_threshold=5,
+            safety_timeout_seconds=900,
+            now=self._now,
+        )
         assert result.verdict == EvaluationVerdict.PENDING
-        assert new_state.first_pending_at == recent
+        assert new_state.pending_since() == recent
 
     def test_first_pending_sets_timestamp(self) -> None:
-        state = ConvergenceState()
-        _, new_state = aggregate([self._pending()], state, stability_threshold=5, safety_timeout_seconds=900)
-        assert new_state.first_pending_at is not None
+        state = healthy_streak()
+        _, new_state = aggregate(
+            [self._pending()],
+            state,
+            stability_threshold=5,
+            safety_timeout_seconds=900,
+            now=self._now,
+        )
+        assert new_state.phase == "pending"
+        assert new_state.pending_since() == self._now
 
     def test_healthy_clears_pending_timestamp(self) -> None:
-        state = ConvergenceState(first_pending_at=datetime.now(tz=UTC), consecutive_healthy=0)
-        _, new_state = aggregate([self._healthy()], state, stability_threshold=5, safety_timeout_seconds=900)
-        assert new_state.first_pending_at is None
+        state = pending_since(self._now)
+        _, new_state = aggregate(
+            [self._healthy()],
+            state,
+            stability_threshold=5,
+            safety_timeout_seconds=900,
+            now=self._now,
+        )
+        assert new_state.phase == "healthy_streak"
 
     def test_empty_results_stay_pending(self) -> None:
-        state = ConvergenceState()
-        result, new_state = aggregate([], state, stability_threshold=5, safety_timeout_seconds=900)
+        state = healthy_streak()
+        result, new_state = aggregate([], state, stability_threshold=5, safety_timeout_seconds=900, now=self._now)
         assert result.verdict == EvaluationVerdict.PENDING
         assert new_state.consecutive_healthy == 0
 
     def test_multiple_failures_all_reported(self) -> None:
-        state = ConvergenceState()
+        state = healthy_streak()
         result, _ = aggregate(
-            [self._failure("a"), self._failure("b")], state, stability_threshold=5, safety_timeout_seconds=900
+            [self._failure("a"), self._failure("b")],
+            state,
+            stability_threshold=5,
+            safety_timeout_seconds=900,
+            now=self._now,
         )
         assert result.verdict == EvaluationVerdict.FAILURE
         assert "a" in result.description
         assert "b" in result.description
 
     def test_consecutive_healthy_caps_at_threshold_times_two(self) -> None:
-        state = ConvergenceState(consecutive_healthy=10)
-        _, new_state = aggregate([self._healthy()], state, stability_threshold=5, safety_timeout_seconds=900)
+        state = healthy_streak(10)
+        _, new_state = aggregate(
+            [self._healthy()],
+            state,
+            stability_threshold=5,
+            safety_timeout_seconds=900,
+            now=self._now,
+        )
         assert new_state.consecutive_healthy == 10
 
     def test_consecutive_healthy_reaches_cap_then_stops(self) -> None:
-        state = ConvergenceState(consecutive_healthy=9)
-        _, mid_state = aggregate([self._healthy()], state, stability_threshold=5, safety_timeout_seconds=900)
+        state = healthy_streak(9)
+        _, mid_state = aggregate(
+            [self._healthy()],
+            state,
+            stability_threshold=5,
+            safety_timeout_seconds=900,
+            now=self._now,
+        )
         assert mid_state.consecutive_healthy == 10
-        _, capped_state = aggregate([self._healthy()], mid_state, stability_threshold=5, safety_timeout_seconds=900)
+        _, capped_state = aggregate(
+            [self._healthy()],
+            mid_state,
+            stability_threshold=5,
+            safety_timeout_seconds=900,
+            now=self._now,
+        )
         assert capped_state.consecutive_healthy == 10

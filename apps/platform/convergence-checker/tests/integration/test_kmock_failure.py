@@ -12,11 +12,7 @@ from kubernetes import client as k8s_client
 
 from convergence_checker.core import cycle
 from convergence_checker.core.cycle import CycleConfig
-from convergence_checker.core.models import (
-    ConvergenceState,
-    CycleInputs,
-    EvaluationVerdict,
-)
+from convergence_checker.core.models import CycleInputs, EvaluationVerdict
 from convergence_checker.infrastructure.github.adapters import (
     GitHubStatusReporter,
     StaticTokenProvider,
@@ -27,6 +23,7 @@ from convergence_checker.infrastructure.kubernetes.adapters import (
     K8sClusterReader,
 )
 from convergence_checker.infrastructure.kubernetes.repository import K8sRepository
+from tests.factories import healthy_streak, known_commit, no_sent_status
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -144,9 +141,9 @@ def test_run_cycle_failure_verdict(served_kmock: KubernetesEmulator) -> None:
         github_status_context="convergence",
     )
     inputs = CycleInputs(
-        previous_state=ConvergenceState(),
-        previous_commit_sha="sha-test",
-        previous_sent_status=None,
+        previous_state=healthy_streak(),
+        previous_commit=known_commit("sha-test"),
+        previous_sent_status=no_sent_status(),
     )
 
     with responses.RequestsMock() as rsps:

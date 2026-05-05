@@ -57,6 +57,24 @@ class TestK8sApplicationParsing:
         assert app.status.health.status == "Progressing"
         assert app.status.sync.status == "OutOfSync"
 
+    def test_empty_status_string_raises_validation_error(self) -> None:
+        with pytest.raises(ValidationError):
+            K8sApplication.model_validate(
+                {
+                    "metadata": {"name": "test"},
+                    "status": {"health": {"status": ""}},
+                }
+            )
+
+    def test_whitespace_status_string_raises_validation_error(self) -> None:
+        with pytest.raises(ValidationError):
+            K8sApplication.model_validate(
+                {
+                    "metadata": {"name": "test"},
+                    "status": {"sync": {"status": " "}},
+                }
+            )
+
     def test_missing_metadata_raises_validation_error(self) -> None:
         with pytest.raises(ValidationError):
             K8sApplication.model_validate({})
@@ -152,6 +170,15 @@ class TestK8sStageParsing:
         assert stage.status.conditions is not None
         statuses = {c.type: c.status for c in stage.status.conditions}
         assert statuses == {"Ready": "True", "Healthy": "Unknown"}
+
+    def test_blank_condition_status_raises_validation_error(self) -> None:
+        with pytest.raises(ValidationError):
+            K8sStage.model_validate(
+                {
+                    "metadata": {"name": "test", "namespace": "ns"},
+                    "status": {"conditions": [{"type": "Ready", "status": ""}]},
+                }
+            )
 
     def test_malformed_condition_missing_required_fields_raises(self) -> None:
         with pytest.raises(ValidationError):

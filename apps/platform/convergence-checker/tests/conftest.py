@@ -1,55 +1,60 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import pytest
 
-from convergence_checker.core.models import ApplicationStatus, StageStatus
+from tests.factories import app_status, stage_status
+
+if TYPE_CHECKING:
+    from convergence_checker.core.models import ApplicationStatus, StageStatus
 
 
 @pytest.fixture
 def healthy_synced_app() -> ApplicationStatus:
-    return ApplicationStatus(
+    return app_status(
         name="web-app-dev",
-        health_status="Healthy",
-        sync_status="Synced",
-        operation_phase="Succeeded",
+        health="Healthy",
+        sync="Synced",
+        operation="Succeeded",
     )
 
 
 @pytest.fixture
 def degraded_app() -> ApplicationStatus:
-    return ApplicationStatus(
+    return app_status(
         name="web-app-dev",
-        health_status="Degraded",
-        sync_status="Synced",
-        operation_phase="Succeeded",
+        health="Degraded",
+        sync="Synced",
+        operation="Succeeded",
     )
 
 
 @pytest.fixture
 def progressing_app() -> ApplicationStatus:
-    return ApplicationStatus(
+    return app_status(
         name="web-app-dev",
-        health_status="Progressing",
-        sync_status="OutOfSync",
-        operation_phase="Running",
+        health="Progressing",
+        sync="OutOfSync",
+        operation="Running",
     )
 
 
 @pytest.fixture
 def healthy_stage() -> StageStatus:
-    return StageStatus(
+    return stage_status(
         name="workloads-web-app-dev",
         namespace="portfolio-project",
-        health_status="Healthy",
+        health="Healthy",
         conditions={"Ready": True, "Healthy": True, "Verified": True},
     )
 
 
 @pytest.fixture
 def unhealthy_stage() -> StageStatus:
-    return StageStatus(
+    return stage_status(
         name="workloads-web-app-dev",
         namespace="portfolio-project",
-        health_status="Unhealthy",
+        health="Unhealthy",
         conditions={"Ready": False, "Healthy": False},
     )

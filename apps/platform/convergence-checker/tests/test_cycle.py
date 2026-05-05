@@ -9,13 +9,24 @@ import pytest
 from convergence_checker.core.cycle import CycleConfig, run_cycle
 from convergence_checker.core.models import (
     ApplicationStatus,
+    ClusterIdentity,
     ConvergenceState,
     CycleInputs,
     EvaluationResult,
     EvaluationVerdict,
+    NoCommit,
     StageStatus,
 )
 from convergence_checker.infrastructure.github.adapters import NullStatusReporter
+from tests.factories import (
+    app_status,
+    healthy_streak,
+    known_commit,
+    no_commit,
+    no_sent_status,
+    sent_status,
+    stage_status,
+)
 
 if TYPE_CHECKING:
     from convergence_checker.core.ports import CommitStatus
@@ -27,7 +38,9 @@ if TYPE_CHECKING:
 
 @dataclass
 class FakeClusterReader:
-    identity: dict[str, str] = field(default_factory=dict)
+    identity: ClusterIdentity = field(
+        default_factory=lambda: ClusterIdentity(argocd_namespace="argocd", commit=NoCommit(reason="test")),
+    )
     apps: list[ApplicationStatus] = field(default_factory=list)
     stage_namespaces: list[str] = field(default_factory=list)
     stages_by_namespace: dict[str, list[StageStatus]] = field(default_factory=dict)
@@ -37,7 +50,7 @@ class FakeClusterReader:
 
     raise_on_write_heartbeat: Exception | None = None
 
-    def read_cluster_identity(self) -> dict[str, str]:
+    def read_cluster_identity(self) -> ClusterIdentity:
         return self.identity
 
     def list_applications(self) -> list[ApplicationStatus]:
@@ -87,22 +100,22 @@ def config() -> CycleConfig:
 @pytest.fixture
 def reader() -> FakeClusterReader:
     return FakeClusterReader(
-        identity={"prCommitSha": "sha-A"},
+        identity=ClusterIdentity(argocd_namespace="argocd", commit=known_commit("sha-A")),
         apps=[
-            ApplicationStatus(
+            app_status(
                 name="web-app",
-                health_status="Healthy",
-                sync_status="Synced",
-                operation_phase="Succeeded",
+                health="Healthy",
+                sync="Synced",
+                operation="Succeeded",
             ),
         ],
         stage_namespaces=["portfolio-project"],
         stages_by_namespace={
             "portfolio-project": [
-                StageStatus(
+                stage_status(
                     name="workloads-web-app",
                     namespace="portfolio-project",
-                    health_status="Healthy",
+                    health="Healthy",
                     conditions={"Ready": True, "Healthy": True, "Verified": True},
                 ),
             ],
@@ -118,9 +131,9 @@ def reporter() -> RecordingReporter:
 @pytest.fixture
 def base_inputs() -> CycleInputs:
     return CycleInputs(
-        previous_state=ConvergenceState(),
-        previous_commit_sha="sha-A",
-        previous_sent_status=None,
+        previous_state=healthy_streak(),
+        previous_commit=known_commit("sha-A"),
+        previous_sent_status=no_sent_status(),
     )
 
 
@@ -129,7 +142,7 @@ def stub_evaluator(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
     handle: dict[str, Any] = {
         "verdict": EvaluationVerdict.HEALTHY,
         "description": "stub-healthy",
-        "new_state": ConvergenceState(consecutive_healthy=3),
+        "new_state": healthy_streak(3),
         "evaluate_app_calls": [],
         "evaluate_stage_calls": [],
         "aggregate_calls": [],
@@ -154,6 +167,8 @@ def stub_evaluator(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
         state: ConvergenceState,
         stability_threshold: int,
         safety_timeout_seconds: int,
+        *,
+        now: datetime,
     ) -> tuple[EvaluationResult, ConvergenceState]:
         handle["aggregate_calls"].append(
             {
@@ -161,6 +176,7 @@ def stub_evaluator(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
                 "state": state,
                 "stability_threshold": stability_threshold,
                 "safety_timeout_seconds": safety_timeout_seconds,
+                "now": now,
             },
         )
         return (
@@ -195,17 +211,18 @@ class TestRunCycle:
     ) -> None:
         outputs = run_cycle(base_inputs, reader, reporter, config, now=NOW)
 
-        assert outputs.new_commit_sha == "sha-A"
+        assert outputs.new_commit == known_commit("sha-A")
         assert outputs.resource_count == 2
         assert outputs.new_state is stub_evaluator["new_state"]
         assert outputs.result.verdict == EvaluationVerdict.HEALTHY
-        assert outputs.new_sent_status == ("success", "stub-healthy")
+        assert outputs.new_sent_status == sent_status("success", "stub-healthy")
 
         assert reader.heartbeat_writes == [NOW]
 
         assert len(stub_evaluator["aggregate_calls"]) == 1
         assert stub_evaluator["aggregate_calls"][0]["stability_threshold"] == config.stability_threshold
         assert stub_evaluator["aggregate_calls"][0]["safety_timeout_seconds"] == config.safety_timeout_seconds
+        assert stub_evaluator["aggregate_calls"][0]["now"] == NOW
 
         assert len(reporter.posts) == 1
         assert reporter.posts[0].state == "success"
@@ -222,18 +239,18 @@ class TestRunCycle:
         stub_evaluator: dict[str, Any],
     ) -> None:
         reader.apps = [
-            ApplicationStatus(name="web-app", health_status="Healthy", sync_status="Synced"),
-            ApplicationStatus(name="api-app", health_status="Healthy", sync_status="Synced"),
-            ApplicationStatus(name="worker-app", health_status="Healthy", sync_status="Synced"),
+            app_status(name="web-app", health="Healthy", sync="Synced", operation=None),
+            app_status(name="api-app", health="Healthy", sync="Synced", operation=None),
+            app_status(name="worker-app", health="Healthy", sync="Synced", operation=None),
         ]
         reader.stage_namespaces = ["ns-a", "ns-b"]
         reader.stages_by_namespace = {
             "ns-a": [
-                StageStatus(name="stage-a1", namespace="ns-a", health_status="Healthy"),
-                StageStatus(name="stage-a2", namespace="ns-a", health_status="Healthy"),
+                stage_status(name="stage-a1", namespace="ns-a", health="Healthy"),
+                stage_status(name="stage-a2", namespace="ns-a", health="Healthy"),
             ],
             "ns-b": [
-                StageStatus(name="stage-b1", namespace="ns-b", health_status="Healthy"),
+                stage_status(name="stage-b1", namespace="ns-b", health="Healthy"),
             ],
         }
 
@@ -261,16 +278,16 @@ class TestRunCycle:
         reporter: RecordingReporter,
         stub_evaluator: dict[str, Any],
     ) -> None:
-        reader.identity = {"prCommitSha": "sha-B"}
+        reader.identity = ClusterIdentity(argocd_namespace="argocd", commit=known_commit("sha-B"))
         inputs = CycleInputs(
-            previous_state=ConvergenceState(consecutive_healthy=4),
-            previous_commit_sha="sha-A",
-            previous_sent_status=("success", "stub-healthy"),
+            previous_state=healthy_streak(4),
+            previous_commit=known_commit("sha-A"),
+            previous_sent_status=sent_status("success", "stub-healthy"),
         )
 
         outputs = run_cycle(inputs, reader, reporter, config, now=NOW)
 
-        assert outputs.new_commit_sha == "sha-B"
+        assert outputs.new_commit == known_commit("sha-B")
 
         passed_state = stub_evaluator["aggregate_calls"][0]["state"]
         assert passed_state.consecutive_healthy == 0
@@ -288,15 +305,15 @@ class TestRunCycle:
         stub_evaluator["verdict"] = EvaluationVerdict.HEALTHY
         stub_evaluator["description"] = "All healthy"
         inputs = CycleInputs(
-            previous_state=ConvergenceState(),
-            previous_commit_sha="sha-A",
-            previous_sent_status=("success", "All healthy"),
+            previous_state=healthy_streak(),
+            previous_commit=known_commit("sha-A"),
+            previous_sent_status=sent_status("success", "All healthy"),
         )
 
         outputs = run_cycle(inputs, reader, reporter, config, now=NOW)
 
         assert reporter.posts == []
-        assert outputs.new_sent_status == ("success", "All healthy")
+        assert outputs.new_sent_status == sent_status("success", "All healthy")
 
     def test_null_reporter_is_called_and_dedup_state_is_tracked(
         self,
@@ -308,7 +325,7 @@ class TestRunCycle:
 
         outputs = run_cycle(base_inputs, reader, reporter, config, now=NOW)
 
-        assert outputs.new_sent_status == ("success", "stub-healthy")
+        assert outputs.new_sent_status == sent_status("success", "stub-healthy")
 
     def test_missing_pr_sha_skips_post_but_still_writes_heartbeat(
         self,
@@ -316,20 +333,20 @@ class TestRunCycle:
         reader: FakeClusterReader,
         reporter: RecordingReporter,
     ) -> None:
-        reader.identity = {}
+        reader.identity = ClusterIdentity(argocd_namespace="argocd", commit=no_commit())
         inputs = CycleInputs(
-            previous_state=ConvergenceState(),
-            previous_commit_sha=None,
-            previous_sent_status=None,
+            previous_state=healthy_streak(),
+            previous_commit=no_commit(),
+            previous_sent_status=no_sent_status(),
         )
 
         outputs = run_cycle(inputs, reader, reporter, config, now=NOW)
 
         assert reporter.posts == []
-        assert outputs.new_commit_sha is None
+        assert isinstance(outputs.new_commit, NoCommit)
         assert len(reader.heartbeat_writes) == 1
 
-    def test_reporter_post_exception_is_swallowed_and_dedup_memory_unchanged(
+    def test_reporter_post_exception_propagates_loudly(
         self,
         config: CycleConfig,
         reader: FakeClusterReader,
@@ -337,27 +354,26 @@ class TestRunCycle:
     ) -> None:
         reporter.raise_on_post = RuntimeError("github 500")
         inputs = CycleInputs(
-            previous_state=ConvergenceState(),
-            previous_commit_sha="sha-A",
-            previous_sent_status=("pending", "earlier"),
+            previous_state=healthy_streak(),
+            previous_commit=known_commit("sha-A"),
+            previous_sent_status=sent_status("pending", "earlier"),
         )
 
-        outputs = run_cycle(inputs, reader, reporter, config, now=NOW)
+        with pytest.raises(RuntimeError, match="github 500"):
+            run_cycle(inputs, reader, reporter, config, now=NOW)
 
-        assert outputs.new_sent_status == ("pending", "earlier")
-        assert reader.heartbeat_writes == [NOW]
+        assert reader.heartbeat_writes == []
 
-    def test_heartbeat_failure_is_swallowed_and_returns_outputs(
+    def test_heartbeat_failure_propagates_loudly(
         self,
         config: CycleConfig,
         reader: FakeClusterReader,
         reporter: RecordingReporter,
         base_inputs: CycleInputs,
-        stub_evaluator: dict[str, Any],
     ) -> None:
         reader.raise_on_write_heartbeat = RuntimeError("k8s heartbeat write failed")
 
-        outputs = run_cycle(base_inputs, reader, reporter, config, now=NOW)
+        with pytest.raises(RuntimeError, match="k8s heartbeat write failed"):
+            run_cycle(base_inputs, reader, reporter, config, now=NOW)
 
         assert reader.heartbeat_writes == []
-        assert outputs.new_state is stub_evaluator["new_state"]

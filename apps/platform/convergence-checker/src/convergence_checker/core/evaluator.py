@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
 from convergence_checker.core.models import (
     ApplicationStatus,
@@ -10,63 +10,57 @@ from convergence_checker.core.models import (
     StageStatus,
 )
 
+if TYPE_CHECKING:
+    from datetime import datetime
+
 
 def evaluate_app(app: ApplicationStatus) -> EvaluationResult:
-    if app.health_status == "Degraded":
+    if app.is_degraded():
         return EvaluationResult(
             verdict=EvaluationVerdict.FAILURE,
-            description=f"{app.name}: Degraded",
+            description=app.failure_description(),
         )
 
-    if app.operation_phase in ("Failed", "Error"):
+    if app.has_failed_operation():
         return EvaluationResult(
             verdict=EvaluationVerdict.FAILURE,
-            description=f"{app.name}: operation {app.operation_phase}",
+            description=app.failure_description(),
         )
 
-    if app.health_status == "Healthy" and app.sync_status == "Synced":
+    if app.is_healthy_synced():
         return EvaluationResult(
             verdict=EvaluationVerdict.HEALTHY,
-            description=f"{app.name}: Healthy+Synced",
+            description=app.healthy_description(),
         )
 
     return EvaluationResult(
         verdict=EvaluationVerdict.PENDING,
-        description=f"{app.name}: health={app.health_status} sync={app.sync_status} op={app.operation_phase}",
+        description=app.pending_description(),
     )
 
 
 def evaluate_stage(stage: StageStatus) -> EvaluationResult:
-    if stage.health_status == "Unhealthy":
+    if stage.is_unhealthy():
         return EvaluationResult(
             verdict=EvaluationVerdict.FAILURE,
-            description=f"{stage.namespace}/{stage.name}: Unhealthy",
+            description=stage.failure_description(),
         )
 
-    if stage.conditions.get("Healthy") is False:
+    if stage.has_failed_healthy_condition():
         return EvaluationResult(
             verdict=EvaluationVerdict.FAILURE,
-            description=f"{stage.namespace}/{stage.name}: Healthy condition is False",
+            description=stage.failure_description(),
         )
 
-    is_healthy = stage.health_status == "Healthy"
-    is_ready = stage.conditions.get("Ready") is True
-    is_verified = stage.conditions.get("Verified") is True
-
-    if is_healthy and is_ready and is_verified:
+    if stage.is_healthy_ready_verified():
         return EvaluationResult(
             verdict=EvaluationVerdict.HEALTHY,
-            description=f"{stage.namespace}/{stage.name}: Healthy+Ready+Verified",
+            description=stage.healthy_description(),
         )
 
     return EvaluationResult(
         verdict=EvaluationVerdict.PENDING,
-        description=(
-            f"{stage.namespace}/{stage.name}: "
-            f"health={stage.health_status} "
-            f"ready={stage.conditions.get('Ready')} "
-            f"verified={stage.conditions.get('Verified')}"
-        ),
+        description=stage.pending_description(),
     )
 
 
@@ -75,9 +69,9 @@ def aggregate(
     state: ConvergenceState,
     stability_threshold: int,
     safety_timeout_seconds: int,
+    *,
+    now: datetime,
 ) -> tuple[EvaluationResult, ConvergenceState]:
-    now = datetime.now(tz=UTC)
-
     failures = [r for r in results if r.verdict == EvaluationVerdict.FAILURE]
     if failures:
         descriptions = "; ".join(f.description for f in failures)
@@ -86,40 +80,31 @@ def aggregate(
                 verdict=EvaluationVerdict.FAILURE,
                 description=f"Failed: {descriptions}",
             ),
-            ConvergenceState(
-                consecutive_healthy=0,
-                first_pending_at=None,
-            ),
+            state.reset(),
         )
 
     all_healthy = all(r.verdict == EvaluationVerdict.HEALTHY for r in results)
     if all_healthy and results:
-        new_count = min(state.consecutive_healthy + 1, stability_threshold * 2)
+        new_state = state.record_healthy(stability_threshold=stability_threshold)
+        new_count = new_state.consecutive_healthy
         if new_count >= stability_threshold:
             return (
                 EvaluationResult(
                     verdict=EvaluationVerdict.HEALTHY,
                     description=f"All {len(results)} resources healthy for {new_count} consecutive checks",
                 ),
-                ConvergenceState(
-                    consecutive_healthy=new_count,
-                    first_pending_at=None,
-                ),
+                new_state,
             )
         return (
             EvaluationResult(
                 verdict=EvaluationVerdict.PENDING,
                 description=f"Healthy {new_count}/{stability_threshold} — awaiting stability",
             ),
-            ConvergenceState(
-                consecutive_healthy=new_count,
-                first_pending_at=None,
-            ),
+            new_state,
         )
 
-    first_pending = state.first_pending_at or now
-    elapsed = (now - first_pending).total_seconds()
-    if elapsed > safety_timeout_seconds:
+    pending_state = state.record_pending(now=now)
+    if pending_state.pending_timed_out(now=now, safety_timeout_seconds=safety_timeout_seconds):
         pending = [r for r in results if r.verdict == EvaluationVerdict.PENDING]
         descriptions = "; ".join(p.description for p in pending)
         return (
@@ -127,10 +112,7 @@ def aggregate(
                 verdict=EvaluationVerdict.FAILURE,
                 description=f"Safety timeout ({safety_timeout_seconds}s) exceeded. Pending: {descriptions}",
             ),
-            ConvergenceState(
-                consecutive_healthy=0,
-                first_pending_at=first_pending,
-            ),
+            pending_state,
         )
 
     return (
@@ -138,8 +120,5 @@ def aggregate(
             verdict=EvaluationVerdict.PENDING,
             description=f"{sum(1 for r in results if r.verdict == EvaluationVerdict.PENDING)} resources pending",
         ),
-        ConvergenceState(
-            consecutive_healthy=0,
-            first_pending_at=first_pending,
-        ),
+        pending_state,
     )

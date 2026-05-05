@@ -1,33 +1,34 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Annotated, Any
 
 from kubernetes import client as k8s
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 type ConfigMapData = dict[str, str]
+type NonBlankString = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
 
 class _Meta(BaseModel):
     model_config = ConfigDict(extra="ignore")
-    name: str
+    name: NonBlankString
     namespace: str = ""
 
 
 class _Health(BaseModel):
     model_config = ConfigDict(extra="ignore")
-    status: str | None = None
+    status: NonBlankString | None = None
 
 
 class _AppSync(BaseModel):
     model_config = ConfigDict(extra="ignore")
-    status: str | None = None
+    status: NonBlankString | None = None
 
 
 class _AppOperationState(BaseModel):
     model_config = ConfigDict(extra="ignore")
-    phase: str | None = None
+    phase: NonBlankString | None = None
 
 
 class _AppStatus(BaseModel):
@@ -45,8 +46,8 @@ class K8sApplication(BaseModel):
 
 class _Condition(BaseModel):
     model_config = ConfigDict(extra="ignore")
-    type: str
-    status: str
+    type: NonBlankString
+    status: NonBlankString
 
 
 class _StageStatus(BaseModel):

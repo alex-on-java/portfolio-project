@@ -2,19 +2,25 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import Protocol
 
 import jwt
 import requests
 from cachetools import TTLCache, cached
-
-from convergence_checker.core.ports import TokenResponse
-
-if TYPE_CHECKING:
-    from convergence_checker.core.ports import TokenProvider
+from pydantic import BaseModel, ConfigDict, Field
 
 _API_VERSION = "2026-03-10"
 _TIMEOUT = 30
+
+
+class TokenResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    token: str = Field(min_length=1)
+
+
+class TokenProvider(Protocol):
+    def get(self) -> TokenResponse: ...
+
 
 _token_cache: TTLCache[object, TokenResponse] = TTLCache(maxsize=1, ttl=3000)
 

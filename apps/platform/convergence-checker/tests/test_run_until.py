@@ -9,16 +9,19 @@ import pytest
 from convergence_checker.core.cycle import CycleConfig
 from convergence_checker.core.models import (
     ApplicationStatus,
+    ClusterIdentity,
     ConvergenceState,
     CycleInputs,
     CycleOutputs,
     EvaluationResult,
     EvaluationVerdict,
+    NoCommit,
     StageStatus,
 )
 from convergence_checker.infrastructure import runner
 from convergence_checker.infrastructure.github.adapters import NullStatusReporter
 from convergence_checker.infrastructure.runner import LoopPacing
+from tests.factories import healthy_streak, known_commit, no_sent_status, sent_status
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -90,14 +93,14 @@ class CycleStub:
 
 
 def _make_output(
-    sha: str | None = "sha-A",
+    sha: str = "sha-A",
     new_state: ConvergenceState | None = None,
-    new_sent: tuple[str, str] | None = None,
+    new_sent: str | None = None,
 ) -> CycleOutputs:
     return CycleOutputs(
-        new_state=new_state if new_state is not None else ConvergenceState(),
-        new_commit_sha=sha,
-        new_sent_status=new_sent,
+        new_state=new_state if new_state is not None else healthy_streak(),
+        new_commit=known_commit(sha),
+        new_sent_status=sent_status("success", new_sent) if new_sent is not None else no_sent_status(),
         result=EvaluationResult(verdict=EvaluationVerdict.HEALTHY, description="ok"),
         resource_count=1,
     )
@@ -112,8 +115,8 @@ FIXED_NOW = datetime(2026, 4, 26, 12, 0, 0, tzinfo=UTC)
 
 
 class _NoopReader:
-    def read_cluster_identity(self) -> dict[str, str]:
-        return {}
+    def read_cluster_identity(self) -> ClusterIdentity:
+        return ClusterIdentity(argocd_namespace="argocd", commit=NoCommit(reason="test"))
 
     def list_applications(self) -> list[ApplicationStatus]:
         return []
@@ -149,9 +152,9 @@ def config() -> CycleConfig:
 @pytest.fixture
 def base_inputs() -> CycleInputs:
     return CycleInputs(
-        previous_state=ConvergenceState(),
-        previous_commit_sha="sha-A",
-        previous_sent_status=None,
+        previous_state=healthy_streak(),
+        previous_commit=known_commit("sha-A"),
+        previous_sent_status=no_sent_status(),
     )
 
 
@@ -266,13 +269,13 @@ class TestRunUntil:
     ) -> None:
         first = _make_output(
             sha="sha-B",
-            new_state=ConvergenceState(consecutive_healthy=2),
-            new_sent=("success", "first"),
+            new_state=healthy_streak(2),
+            new_sent="first",
         )
         second = _make_output(
             sha="sha-B",
-            new_state=ConvergenceState(consecutive_healthy=3),
-            new_sent=("success", "second"),
+            new_state=healthy_streak(3),
+            new_sent="second",
         )
         cycle_stub.scripted = [first, second]
 
@@ -291,10 +294,10 @@ class TestRunUntil:
 
         cycle2_inputs = cycle_stub.calls[1]["inputs"]
         assert cycle2_inputs.previous_state == first.new_state
-        assert cycle2_inputs.previous_commit_sha == first.new_commit_sha
+        assert cycle2_inputs.previous_commit == first.new_commit
         assert cycle2_inputs.previous_sent_status == first.new_sent_status
 
-    def test_exception_in_cycle_is_swallowed_loop_continues_inputs_unchanged(
+    def test_exception_in_cycle_propagates_loudly(
         self,
         cycle_stub: CycleStub,
         reporter: NullStatusReporter,
@@ -302,38 +305,25 @@ class TestRunUntil:
         base_inputs: CycleInputs,
         constant_clock: Callable[[], datetime],
     ) -> None:
-        ok_output = _make_output(
-            sha="sha-A",
-            new_state=ConvergenceState(consecutive_healthy=1),
-            new_sent=("success", "ok"),
-        )
-        cycle_stub.scripted = [
-            ok_output,
-            RuntimeError("transient cluster read failure"),
-            _make_output(sha="sha-A", new_state=ConvergenceState(consecutive_healthy=2)),
-        ]
+        cycle_stub.scripted = [RuntimeError("transient cluster read failure")]
 
-        runner.run_until(
-            initial_inputs=base_inputs,
-            reader=SENTINEL_READER,
-            reporter=reporter,
-            config=config,
-            pacing=LoopPacing(
-                sleep=RecordingSleep(),
-                clock=constant_clock,
-                should_continue=StopAfter(n=3),
-                interval_seconds=0.0,
-            ),
-        )
+        with pytest.raises(RuntimeError, match="transient cluster read failure"):
+            runner.run_until(
+                initial_inputs=base_inputs,
+                reader=SENTINEL_READER,
+                reporter=reporter,
+                config=config,
+                pacing=LoopPacing(
+                    sleep=RecordingSleep(),
+                    clock=constant_clock,
+                    should_continue=StopAfter(n=3),
+                    interval_seconds=0.0,
+                ),
+            )
 
-        assert len(cycle_stub.calls) == 3
+        assert len(cycle_stub.calls) == 1
 
-        cycle3_inputs = cycle_stub.calls[2]["inputs"]
-        assert cycle3_inputs.previous_state == ok_output.new_state
-        assert cycle3_inputs.previous_commit_sha == ok_output.new_commit_sha
-        assert cycle3_inputs.previous_sent_status == ok_output.new_sent_status
-
-    def test_sleep_runs_once_per_iteration_including_after_exception(
+    def test_exception_in_cycle_skips_sleep(
         self,
         cycle_stub: CycleStub,
         reporter: NullStatusReporter,
@@ -341,26 +331,24 @@ class TestRunUntil:
         base_inputs: CycleInputs,
         constant_clock: Callable[[], datetime],
     ) -> None:
-        cycle_stub.scripted = [
-            RuntimeError("boom"),
-            _make_output(),
-        ]
+        cycle_stub.scripted = [RuntimeError("boom")]
         sleep = RecordingSleep()
 
-        runner.run_until(
-            initial_inputs=base_inputs,
-            reader=SENTINEL_READER,
-            reporter=reporter,
-            config=config,
-            pacing=LoopPacing(
-                sleep=sleep,
-                clock=constant_clock,
-                should_continue=StopAfter(n=2),
-                interval_seconds=12.5,
-            ),
-        )
+        with pytest.raises(RuntimeError, match="boom"):
+            runner.run_until(
+                initial_inputs=base_inputs,
+                reader=SENTINEL_READER,
+                reporter=reporter,
+                config=config,
+                pacing=LoopPacing(
+                    sleep=sleep,
+                    clock=constant_clock,
+                    should_continue=StopAfter(n=2),
+                    interval_seconds=12.5,
+                ),
+            )
 
-        assert sleep.intervals == [12.5, 12.5]
+        assert sleep.intervals == []
 
     def test_clock_called_per_cycle_value_passed_as_now(
         self,

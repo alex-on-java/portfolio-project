@@ -1,17 +1,24 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import structlog
+from attrs import frozen
 
 from convergence_checker.core import evaluator
 from convergence_checker.core.models import (
+    ClusterIdentity,
+    CommitTracking,
     ConvergenceState,
     CycleInputs,
     CycleOutputs,
     EvaluationResult,
     EvaluationVerdict,
+    KnownCommit,
+    NoCommit,
+    NoSentStatus,
+    SentStatus,
+    SentStatusTracking,
 )
 from convergence_checker.core.ports import CommitStatus
 
@@ -22,10 +29,8 @@ if TYPE_CHECKING:
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
 
-ABSORBED_FAULTS: tuple[type[BaseException], ...] = (Exception,)
 
-
-@dataclass(frozen=True)
+@frozen
 class CycleConfig:
     stability_threshold: int
     safety_timeout_seconds: int
@@ -44,41 +49,39 @@ def _github_state_from_verdict(verdict: EvaluationVerdict) -> str:
 
 def _apply_sha_change(
     prev_state: ConvergenceState,
-    prev_sha: str | None,
-    prev_sent: tuple[str, str] | None,
-    current_sha: str | None,
-) -> tuple[str | None, ConvergenceState, tuple[str, str] | None]:
-    if current_sha and current_sha != prev_sha:
-        log.info("sha_changed", old=prev_sha, new=current_sha)
-        return (current_sha, ConvergenceState(), None)
-    return (prev_sha, prev_state, prev_sent)
+    prev_commit: CommitTracking,
+    prev_sent: SentStatusTracking,
+    identity: ClusterIdentity,
+) -> tuple[CommitTracking, ConvergenceState, SentStatusTracking]:
+    current_commit = identity.commit
+    if isinstance(current_commit, KnownCommit) and current_commit != prev_commit:
+        old_sha = prev_commit.sha if isinstance(prev_commit, KnownCommit) else None
+        log.info("sha_changed", old=old_sha, new=current_commit.sha)
+        return (current_commit, prev_state.reset(), NoSentStatus(reason="commit changed"))
+    return (prev_commit, prev_state, prev_sent)
 
 
 def _dedup_and_post(
     reporter: StatusReporter,
-    sha: str | None,
+    commit: CommitTracking,
     result: EvaluationResult,
-    previous_sent: tuple[str, str] | None,
+    previous_sent: SentStatusTracking,
     config: CycleConfig,
-) -> tuple[str, str] | None:
-    if sha is None:
+) -> SentStatusTracking:
+    if isinstance(commit, NoCommit):
         return previous_sent
     gh_state = _github_state_from_verdict(result.verdict)
-    candidate = (gh_state, result.description)
+    candidate = SentStatus(state=gh_state, description=result.description)
     if candidate == previous_sent:
         return previous_sent
     status = CommitStatus(
         owner_repo=config.owner_repo,
-        sha=sha,
+        sha=commit.sha,
         state=gh_state,
         context=config.github_status_context,
         description=result.description,
     )
-    try:
-        reporter.post(status)
-    except ABSORBED_FAULTS:
-        log.exception("github_status_failed")
-        return previous_sent
+    reporter.post(status)
     log.info("github_status_reported", state=gh_state)
     return candidate
 
@@ -99,11 +102,11 @@ def run_cycle(
     now: datetime,
 ) -> CycleOutputs:
     identity = reader.read_cluster_identity()
-    effective_sha, effective_state, effective_sent = _apply_sha_change(
+    effective_commit, effective_state, effective_sent = _apply_sha_change(
         inputs.previous_state,
-        inputs.previous_commit_sha,
+        inputs.previous_commit,
         inputs.previous_sent_status,
-        identity.get("prCommitSha"),
+        identity,
     )
 
     results = _gather_results(reader)
@@ -113,18 +116,16 @@ def run_cycle(
         effective_state,
         stability_threshold=config.stability_threshold,
         safety_timeout_seconds=config.safety_timeout_seconds,
+        now=now,
     )
 
-    new_sent = _dedup_and_post(reporter, effective_sha, result, effective_sent, config)
+    new_sent = _dedup_and_post(reporter, effective_commit, result, effective_sent, config)
 
-    try:
-        reader.write_heartbeat(now)
-    except ABSORBED_FAULTS:
-        log.exception("heartbeat_write_failed")
+    reader.write_heartbeat(now)
 
     return CycleOutputs(
         new_state=new_state,
-        new_commit_sha=effective_sha,
+        new_commit=effective_commit,
         new_sent_status=new_sent,
         result=result,
         resource_count=len(results),

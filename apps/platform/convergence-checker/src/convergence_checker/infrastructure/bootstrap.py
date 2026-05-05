@@ -13,8 +13,15 @@ from kubernetes import client as k8s_client
 from kubernetes import config as k8s_config
 
 from convergence_checker.core.cycle import CycleConfig
-from convergence_checker.core.models import ConvergenceState, CycleInputs
-from convergence_checker.infrastructure.config import settings
+from convergence_checker.core.models import (
+    ClusterIdentity,
+    ConvergenceState,
+    CycleInputs,
+    KnownCommit,
+    NoCommit,
+    NoSentStatus,
+)
+from convergence_checker.infrastructure.config import RuntimeSettings, load_settings
 from convergence_checker.infrastructure.github.adapters import (
     GitHubStatusReporter,
     NullStatusReporter,
@@ -32,25 +39,30 @@ from convergence_checker.infrastructure.runner import LoopPacing, run_until
 
 if TYPE_CHECKING:
     import types
-    from collections.abc import Callable, Mapping
+    from collections.abc import Callable
 
     from convergence_checker.core.ports import StatusReporter
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
 
 _DEFAULT_SA_NAMESPACE_PATH = Path("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
-_DEFAULT_OWN_NAMESPACE = "observability"
-_DEFAULT_ARGOCD_NAMESPACE = "argocd"
 
 
 def read_own_namespace(
     path: Path = _DEFAULT_SA_NAMESPACE_PATH,
     *,
-    default: str = _DEFAULT_OWN_NAMESPACE,
+    default: str | None = None,
 ) -> str:
     if path.exists():
-        return path.read_text(encoding="utf-8").strip()
-    return default
+        namespace = path.read_text(encoding="utf-8").strip()
+        if namespace:
+            return namespace
+        msg = f"Service-account namespace file is empty: {path}"
+        raise RuntimeError(msg)
+    if default is not None:
+        return default
+    msg = f"Service-account namespace file is required: {path}"
+    raise RuntimeError(msg)
 
 
 @dataclass
@@ -99,8 +111,9 @@ def select_reporter(*, dry_run: bool) -> StatusReporter:
             )
             if not value
         ]
-        log.warning("github_credentials_missing", missing=missing)
-        return NullStatusReporter()
+        joined = ", ".join(missing)
+        msg = f"GitHub App credentials are required outside dry-run; missing: {joined}"
+        raise RuntimeError(msg)
 
     token_provider = GitHubAppTokenProvider(app_id, private_key, installation_id)
     return GitHubStatusReporter(GitHubRepository(token_provider))
@@ -109,25 +122,26 @@ def select_reporter(*, dry_run: bool) -> StatusReporter:
 @dataclass(frozen=True)
 class ClusterContext:
     argocd_namespace: str
-    pr_commit_sha: str | None
+    identity: ClusterIdentity
 
 
-def parse_cluster_identity(identity: Mapping[str, str]) -> ClusterContext:
+def build_cluster_context(identity: ClusterIdentity) -> ClusterContext:
     return ClusterContext(
-        argocd_namespace=identity.get("argocdNamespace", _DEFAULT_ARGOCD_NAMESPACE),
-        pr_commit_sha=identity.get("prCommitSha"),
+        argocd_namespace=identity.argocd_namespace,
+        identity=identity,
     )
 
 
 def build_initial_inputs(context: ClusterContext) -> CycleInputs:
     return CycleInputs(
         previous_state=ConvergenceState(),
-        previous_commit_sha=context.pr_commit_sha,
-        previous_sent_status=None,
+        previous_commit=context.identity.commit,
+        previous_sent_status=NoSentStatus(),
     )
 
 
 def boot_and_run(*, dry_run: bool = False) -> None:
+    runtime_settings = load_settings()
     controller = ShutdownController()
     install_sigterm_handler(controller)
     repo = _build_repository()
@@ -135,44 +149,42 @@ def boot_and_run(*, dry_run: bool = False) -> None:
     own_namespace = read_own_namespace()
     identity_reader = K8sClusterIdentityReader(
         repo=repo,
-        namespace=settings.cluster_identity_namespace,
-        configmap_name=settings.cluster_identity_configmap_name,
+        namespace=runtime_settings.cluster.cluster_identity_namespace,
+        configmap_name=runtime_settings.cluster.cluster_identity_configmap_name,
     )
     identity = identity_reader.read_cluster_identity()
-    cluster_context = parse_cluster_identity(identity)
+    cluster_context = build_cluster_context(identity)
 
-    if not cluster_context.pr_commit_sha:
+    if isinstance(cluster_context.identity.commit, NoCommit):
         log.info("no_pr_context", msg="running in log-only mode")
 
+    commit_sha = (
+        cluster_context.identity.commit.sha if isinstance(cluster_context.identity.commit, KnownCommit) else None
+    )
     log.info(
         "checker_started",
         namespace=own_namespace,
         argocd_namespace=cluster_context.argocd_namespace,
-        commit_sha=cluster_context.pr_commit_sha,
+        commit_sha=commit_sha,
         dry_run=dry_run,
     )
 
-    config = CycleConfig(
-        stability_threshold=settings.stability_threshold,
-        safety_timeout_seconds=settings.safety_timeout_seconds,
-        owner_repo=settings.owner_repo,
-        github_status_context=settings.github_status_context,
-    )
+    config = _cycle_config(runtime_settings)
 
     reader = K8sClusterReader(
         identity_reader=identity_reader,
         repo=repo,
         own_namespace=own_namespace,
         argocd_namespace=cluster_context.argocd_namespace,
-        heartbeat_configmap_name=settings.heartbeat_configmap_name,
-        field_manager_name=settings.field_manager_name,
+        heartbeat_configmap_name=runtime_settings.cluster.heartbeat_configmap_name,
+        field_manager_name=runtime_settings.cluster.field_manager_name,
     )
     initial_inputs = build_initial_inputs(cluster_context)
     pacing = LoopPacing(
         sleep=time.sleep,
         clock=lambda: datetime.now(tz=UTC),
         should_continue=controller.should_continue,
-        interval_seconds=settings.check_interval_seconds,
+        interval_seconds=runtime_settings.loop.check_interval_seconds,
     )
 
     run_until(
@@ -181,4 +193,13 @@ def boot_and_run(*, dry_run: bool = False) -> None:
         reporter=select_reporter(dry_run=dry_run),
         config=config,
         pacing=pacing,
+    )
+
+
+def _cycle_config(settings: RuntimeSettings) -> CycleConfig:
+    return CycleConfig(
+        stability_threshold=settings.loop.stability_threshold,
+        safety_timeout_seconds=settings.loop.safety_timeout_seconds,
+        owner_repo=settings.github.owner_repo,
+        github_status_context=settings.github.github_status_context,
     )

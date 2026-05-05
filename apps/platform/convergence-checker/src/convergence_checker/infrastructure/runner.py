@@ -36,22 +36,18 @@ def run_until(
 ) -> None:
     inputs = initial_inputs
     while pacing.should_continue():
-        try:
-            outputs = cycle.run_cycle(inputs, reader, reporter, config, now=pacing.clock())
-        except cycle.ABSORBED_FAULTS:
-            log.exception("evaluation_cycle_failed")
-        else:
-            log.info(
-                "evaluation",
-                verdict=outputs.result.verdict.value,
-                description=outputs.result.description,
-                consecutive_healthy=outputs.new_state.consecutive_healthy,
-                resources=outputs.resource_count,
-            )
-            inputs = CycleInputs(
-                previous_state=outputs.new_state,
-                previous_commit_sha=outputs.new_commit_sha,
-                previous_sent_status=outputs.new_sent_status,
-            )
+        outputs = cycle.run_cycle(inputs, reader, reporter, config, now=pacing.clock())
+        log.info(
+            "evaluation",
+            verdict=outputs.result.verdict.value,
+            description=outputs.result.description,
+            consecutive_healthy=outputs.new_state.consecutive_healthy,
+            resources=outputs.resource_count,
+        )
+        inputs = CycleInputs(
+            previous_state=outputs.new_state,
+            previous_commit=outputs.new_commit,
+            previous_sent_status=outputs.new_sent_status,
+        )
 
         pacing.sleep(pacing.interval_seconds)

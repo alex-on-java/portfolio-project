@@ -4,6 +4,8 @@ version = "0.1.0"
 description = "GitOps convergence gate — polls ArgoCD and Kargo status, reports to GitHub"
 requires-python = ">=3.13"
 dependencies = [
+    "adaptix==3.0.0b12",
+    "attrs==26.1.0",
     "cachetools==7.1.1",
     "click==8.1.8",
     "dynaconf==3.2.11",
