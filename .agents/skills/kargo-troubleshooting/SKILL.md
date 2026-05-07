@@ -9,57 +9,109 @@ user-invocable: false
 
 ## Architecture Context
 
-Kargo polls for new images and git commits, packages them as Freight, then drives promotions
-through stages by running a ClusterPromotionTask: it commits rendered manifests to stage branches
-and triggers ArgoCD syncs. On ephemeral clusters, all three stages (dev, stg, prd) auto-promote.
+Kargo polls git and image sources (Warehouse), packages discoveries into immutable Freight, then
+drives promotions through Stages by running a ClusterPromotionTask: render the manifest, commit
+it to a stage branch, and nudge the matching ArgoCD Application. The flow:
+
+```
+Warehouse → Freight → Stage → stage-branch commit → ArgoCD sync
+```
+
+**Project↔namespace convention** (contract): a Kargo Project lives in a namespace of the same
+name — the admission webhook enforces this. Two Projects exist on the cluster today:
+
+- `portfolio-project` — workload pipelines (dev/stg/prd Stages).
+- `observability-project` — platform-workload pipelines (currently the convergence-checker
+  reporter). Its Stage is terminal and unverified today; not a permanent rule — re-check when
+  the pipeline shape changes.
+
+Discover Projects + Stages at runtime:
+
+```
+kubectl --context <ctx> get projects.kargo.akuity.io -A
+kubectl --context <ctx> get stages -A
+kubectl --context <ctx> get warehouses -A
+```
+
+**ClusterPromotionTask ↔ cluster-identity** (contract): promotion task steps expand template
+variables from the `cluster-identity` ConfigMap (`branchPrefix`, `domainPrefix`, `overlayTarget`,
+`clusterLifecycle`, ...). If pool-ctl has not written the PR-context keys yet (still `"pending"`),
+template expansion fails silently — Kargo breakage here often traces back to a cluster-activation
+issue (see `cluster-troubleshooting`).
 
 ## Diagnostic Approach
 
-Work down the pipeline, starting from the earliest broken point:
+Follow the pipeline from its earliest broken point.
 
-**1. Is the warehouse detecting new images?**
-Check warehouse status for the last detected image. Compare the image tag (commit SHA format)
-against what CI pushed. Polling interval is 30s on ephemeral clusters — detection should happen
-within a minute of CI completing. If no image is detected, check whether the image subscription
-config points to the correct registry, and verify the image exists in GHCR.
+**1. Is the Warehouse detecting new artifacts?**
+Inspect Warehouse status for the latest image digest and git commit:
+
+```
+kubectl --context <ctx> describe warehouse -n <project-ns> <warehouse-name>
+```
+
+Polling interval is configurable per overlay — detection should happen within a single interval
+of CI completing. If nothing is detected, confirm the subscription (registry, branch,
+`includePaths` with a `glob:` prefix for wildcards) matches what CI actually pushes.
 
 **2. Is Freight being created?**
-Freight bundles an image digest + a git commit from the source branch. Kargo requires both
-subscriptions to be satisfied before creating Freight. If the warehouse detects the image but
-no Freight appears, check whether the git subscription is also polling the correct branch.
+Freight requires *all* Warehouse subscriptions satisfied. If image is detected but no Freight
+appears, confirm the git subscription is polling the right branch and its `includePaths` match
+changed paths:
 
-**3. Is the stage promoting?**
-Check stage status in the `portfolio-project` namespace. A stage not promoting means one of:
-- No freight available (upstream stage has not verified yet, for downstream stages)
-- Auto-promotion not enabled (check ProjectConfig and stage labels — ephemeral overlay patches
-  auto-promote to all stages)
-- A promotion is already in `Running` phase for this stage (check `kubectl get promotions`)
+```
+kubectl --context <ctx> get freight -n <project-ns>
+```
 
-**4. Is the promotion failing?**
-Inspect the promotion resource YAML for the failed step. The ClusterPromotionTask runs:
-`git-clone` → `kustomize-set-image` → `kustomize-build` → `git-push` → `argocd-update`
+**3. Is the Stage promoting?**
+`kubectl --context <ctx> get stages -n <project-ns>`. Non-promotion reasons:
+- No upstream freight available (downstream stage waiting on upstream verification).
+- Auto-promotion disabled for this stage (check `ProjectConfig` + per-stage labels — ephemeral
+  overlay typically enables it via a label-selector patch).
+- A `Running` Promotion already exists for this Stage.
 
-Common failure points:
-- `git-push`: GitHub App credentials expired or misconfigured (Secret in `kargo-shared-resources`)
-- `kustomize-build`: overlay path wrong or kustomization file missing on the source branch
-- `argocd-update`: ArgoCD app not found or the app lacks `kargo.akuity.io/authorized-stage`
-  annotation
+**4. Is the Promotion failing?**
+Fetch the failing Promotion and inspect `status.steps` — each step reports its own status. Steps
+are declared in the Project's ClusterPromotionTask spec; different Projects may use different
+task variants, so **read the spec** rather than assuming a step sequence.
 
-**5. Are stage branches updated?**
-After a successful promotion, a new commit appears on `stage/{branch-prefix}/{app}-{env}`.
-Each stage branch contains a single pre-rendered manifest file (not a kustomize tree).
-If the branch exists but the latest commit predates the expected freight, the promotion may
-have succeeded for an older freight — confirm the current promotion targets the right freight ID.
+Common step-class failures:
+- `git-*` steps → GitHub App credentials (Secret in `kargo-shared-resources`) expired or lacking
+  permission on the target branch.
+- `kustomize-*` steps → overlay path missing on the source branch. Overlay paths are often
+  templated from cluster-identity keys; a mis-activated cluster surfaces here.
+- `argocd-update` → target Application missing, or missing
+  `kargo.akuity.io/authorized-stage: "<project>:<stage>"` annotation. Renaming either the Project
+  or the Stage requires updating this annotation on every dependent Application.
 
-**6. Is verification blocking downstream?**
-Dev and stg stages run HTTP health check verification after promotion. A stage stuck in
-`Verified: False` blocks downstream stages from receiving freight. Check the analysis run
-in the `portfolio-project` namespace — the health check Job's logs show whether the curl
-succeeded or timed out.
+**5. Stage branches**
+A successful Promotion leaves one commit on `stage/<branch-prefix>/<stage-name>`. Stage branches
+hold a **pre-rendered manifest**, not a kustomize tree — the Application targeting that branch
+uses `path: .`.
+
+The stage-name segment is per-Stage: workload Stages include an env suffix (e.g.
+`portfolio-project-dev`); terminal platform Stages may have no suffix (e.g. `convergence-checker`).
+Verify branch existence at the remote rather than assuming a naming convention:
+
+```
+git ls-remote origin 'refs/heads/stage/<branch-prefix>/*'
+```
+
+If a branch exists but its HEAD predates the expected Freight, the Promotion succeeded for an
+older Freight — confirm the current Promotion targets the right Freight ID.
+
+**6. Is verification gating downstream?**
+A Stage may declare verification (e.g. an AnalysisRun) that must pass before downstream Freight
+flows. A `Verified: false` Stage blocks downstream. Not every Stage has verification —
+inspect `status.verifications` on the Stage to see whether it applies here.
 
 ## Escape
 
-Kargo controller logs (`-n kargo`, `kargo-controller`) contain promotion step details and
-polling errors. Management-controller logs cover ProjectConfig and auto-promotion policy issues.
-The `kargo.akuity.io/argocd-context` annotation on Stage resources identifies the linked
-ArgoCD applications.
+Controller logs carry promotion-step detail and polling errors:
+
+```
+kubectl --context <ctx> logs -n kargo -l app=kargo-controller
+kubectl --context <ctx> logs -n kargo -l app=kargo-management-controller
+```
+
+Management-controller covers `ProjectConfig` and auto-promotion policy issues.

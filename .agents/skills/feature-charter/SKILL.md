@@ -33,7 +33,7 @@ Compose the charter following the structure defined in `references/charter-struc
 
 #### Size budget
 
-Keep charter content **≤ 8000 UTF-16 code units** (guideline). The `charter-injection.sh` hook appends a `## Session History` section — up to ~10 transcript paths — and, for main agents, a short nudge block. Everything together must fit under Claude Code's 10,000-unit `additionalContext` cap; beyond it, the payload is saved to a file and only a ~2KB preview is inlined, and agents often skip the re-read.
+Keep charter content under the Claude Code 10,000 UTF-16 code unit `additionalContext` cap. Beyond it, the payload is saved to a file and only a ~2KB preview is inlined — agents often skip the re-read.
 
 Verify with:
 
@@ -41,7 +41,7 @@ Verify with:
 python3 -c "import sys; print(len(sys.stdin.read().encode('utf-16-le'))//2)" < .claude/charters/<sanitized-branch>.md
 ```
 
-Byte-based tools (`wc -c`) misreport multi-byte content — use the Python one-liner. If the count approaches 8000, tighten prose; do not rely on truncation.
+Byte-based tools (`wc -c`) misreport multi-byte content — use the Python one-liner. If the count approaches the cap, tighten prose; do not rely on truncation.
 
 ### 4. Save
 
