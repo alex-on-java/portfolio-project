@@ -1,4 +1,0 @@
-check_interval_seconds = 12
-stability_threshold = 5
-safety_timeout_seconds = 900
-github_status_context = "GitOps Convergence Gate"

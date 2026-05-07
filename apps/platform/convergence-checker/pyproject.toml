@@ -103,8 +103,6 @@ disable = [
     "missing-module-docstring",                # commit messages carry the "why" (mirrors ruff's D ignore)
     "missing-class-docstring",                 # commit messages carry the "why" (mirrors ruff's D ignore)
     "missing-function-docstring",              # commit messages carry the "why" (mirrors ruff's D ignore)
-    "redefined-outer-name",                    # pytest fixtures inherently shadow module-level names
-    "too-few-public-methods",                  # dataclasses, Null-objects, and stubs are deliberately minimal
     "too-many-arguments",                      # ruff's PLR0913 covers this with better semantics (excludes self)
     "too-many-positional-arguments",           # ruff's PLR0917 covers this with better semantics (excludes self)
     "use-implicit-booleaness-not-comparison",  # explicit comparisons are clearer in tests
