@@ -92,13 +92,19 @@ class KubernetesGateway:
             },
             "data": {"last-success": observed_at.isoformat()},
         }
-        self._core_api.patch_namespaced_config_map(
-            name=self._settings.heartbeat_configmap_name,
-            namespace=self._settings.heartbeat_namespace,
+        self._core_api.api_client.call_api(
+            "/api/v1/namespaces/{namespace}/configmaps/{name}",
+            "PATCH",
+            {"namespace": self._settings.heartbeat_namespace, "name": self._settings.heartbeat_configmap_name},
+            [("fieldManager", self._settings.field_manager_name), ("force", True)],
+            {
+                "Accept": "application/json",
+                "Content-Type": "application/apply-patch+yaml",
+            },
             body=body,
-            field_manager=self._settings.field_manager_name,
-            force=True,
-            _content_type="application/apply-patch+yaml",
+            response_type="V1ConfigMap",
+            auth_settings=["BearerToken"],
+            _return_http_data_only=True,
         )
 
 

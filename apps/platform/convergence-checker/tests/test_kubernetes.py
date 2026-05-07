@@ -8,17 +8,39 @@ from convergence_checker.infrastructure.config import KubernetesSettings
 from convergence_checker.infrastructure.kubernetes import KubernetesGateway
 
 
-class FakeCoreApi:
+class FakeCoreApi:  # pylint: disable=too-few-public-methods
     def __init__(self) -> None:
-        self.patch_calls: list[dict[str, object]] = []
+        self.api_client = FakeApiClient()
 
     def read_namespaced_config_map(self, *, name: str, namespace: str) -> SimpleNamespace:
         assert name == "identity-cm"
         assert namespace == "identity-ns"
         return SimpleNamespace(data={"prCommitSha": "sha-a", "argocdNamespace": "argo-system", "ignored": "value"})
 
-    def patch_namespaced_config_map(self, **kwargs: object) -> None:
-        self.patch_calls.append(kwargs)
+
+class FakeApiClient:  # pylint: disable=too-few-public-methods
+    def __init__(self) -> None:
+        self.call_api_calls: list[dict[str, object]] = []
+
+    def call_api(
+        self,
+        resource_path: str,
+        method: str,
+        path_params: dict[str, str],
+        query_params: list[tuple[str, object]],
+        header_params: dict[str, str],
+        **kwargs: object,
+    ) -> None:
+        self.call_api_calls.append(
+            {
+                "resource_path": resource_path,
+                "method": method,
+                "path_params": path_params,
+                "query_params": query_params,
+                "header_params": header_params,
+                **kwargs,
+            },
+        )
 
 
 class FakeCustomApi:
@@ -87,25 +109,28 @@ def test_kubernetes_gateway_reads_and_normalizes_unstructured_resources() -> Non
     assert stages[0].verified_condition is False
 
 
-def test_kubernetes_gateway_writes_heartbeat_with_field_manager_and_apply_content_type() -> None:
+def test_kubernetes_gateway_writes_heartbeat_with_server_side_apply_content_type() -> None:
     core_api = FakeCoreApi()
     gateway = KubernetesGateway(core_api=core_api, custom_api=FakeCustomApi(), settings=_settings())
 
     gateway.write(datetime(2026, 5, 7, 12, 30, tzinfo=UTC))
 
-    assert core_api.patch_calls == [
+    assert core_api.api_client.call_api_calls == [
         {
-            "name": "heartbeat-cm",
-            "namespace": "observability",
+            "resource_path": "/api/v1/namespaces/{namespace}/configmaps/{name}",
+            "method": "PATCH",
+            "path_params": {"namespace": "observability", "name": "heartbeat-cm"},
+            "query_params": [("fieldManager", "field-owner"), ("force", True)],
+            "header_params": {"Accept": "application/json", "Content-Type": "application/apply-patch+yaml"},
             "body": {
                 "apiVersion": "v1",
                 "kind": "ConfigMap",
                 "metadata": {"name": "heartbeat-cm", "namespace": "observability"},
                 "data": {"last-success": "2026-05-07T12:30:00+00:00"},
             },
-            "field_manager": "field-owner",
-            "force": True,
-            "_content_type": "application/apply-patch+yaml",
+            "response_type": "V1ConfigMap",
+            "auth_settings": ["BearerToken"],
+            "_return_http_data_only": True,
         },
     ]
 
