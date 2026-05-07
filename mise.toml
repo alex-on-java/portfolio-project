@@ -1,5 +1,5 @@
 [tools]
-kubectl = "1.35.1"
+kubectl = "1.35.3"
 helm = "4.1.1"
 kind = "0.31.0"
 kubeseal = "0.36.1"
