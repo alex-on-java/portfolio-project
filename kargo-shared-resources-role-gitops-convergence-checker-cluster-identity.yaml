@@ -1,0 +1,14 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: gitops-convergence-checker-cluster-identity
+  namespace: kargo-shared-resources
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - cluster-identity
+  resources:
+  - configmaps
+  verbs:
+  - get
