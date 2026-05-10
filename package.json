@@ -1,0 +1,7 @@
+{
+  "name": "portfolio-project",
+  "private": true,
+  "devDependencies": {
+    "nx": "22.7.1"
+  }
+}

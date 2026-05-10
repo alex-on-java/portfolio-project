@@ -32,55 +32,128 @@ jobs:
           echo "::error::This PR mutates permanent history artefacts. These files are immutable once committed. Capture new reasoning in a new record instead."
           exit 1
 
-  build:
-    needs: permanent-history-artefacts
-    uses: ./.github/workflows/reusable-build-push.yml
-    permissions:
-      contents: read
-      packages: write
-
-  build-convergence-checker:
+  changes:
+    name: Detect affected projects
     needs: permanent-history-artefacts
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write
+    outputs:
+      matrix: ${{ steps.affected.outputs.matrix }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
+          fetch-depth: 0
           persist-credentials: false
 
-      - name: Detect changes
-        id: filter
-        uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
+      - name: Set up nx
+        uses: ./.github/actions/setup-nx
+
+      - name: Compute affected publish-image matrix
+        id: affected
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          matrix=$(pnpm exec nx show projects --affected --withTarget=publish-image --json)
+          echo "$matrix" | jq empty
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
+  lint:
+    name: Lint
+    needs: permanent-history-artefacts
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          filters: |
-            convergence-checker:
-              - 'apps/platform/convergence-checker/**'
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up nx
+        uses: ./.github/actions/setup-nx
+
+      - name: prek run --all-files
+        shell: bash
+        run: prek run --all-files --show-diff-on-failure
+
+  test:
+    name: Test
+    needs: permanent-history-artefacts
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up nx
+        uses: ./.github/actions/setup-nx
+
+      - name: nx affected -t test
+        shell: bash
+        run: pnpm exec nx affected -t test
+
+  build:
+    name: Build & publish image
+    needs: changes
+    if: needs.changes.outputs.matrix != '[]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        app: ${{ fromJSON(needs.changes.outputs.matrix) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up nx
+        uses: ./.github/actions/setup-nx
 
       - name: Set up Docker Buildx
-        if: steps.filter.outputs.convergence-checker == 'true'
         uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
 
       - name: Login to GHCR
-        if: steps.filter.outputs.convergence-checker == 'true'
         uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
-      - name: Build and push
-        if: steps.filter.outputs.convergence-checker == 'true'
-        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
+      - name: nx run ${{ matrix.app }}:publish-image
+        shell: bash
+        env:
+          APP: ${{ matrix.app }}
+          IMAGE_TAG: ${{ github.event.pull_request.head.sha }}
+          BUILDX_CACHE_ARGS: --cache-from type=gha,scope=${{ matrix.app }} --cache-to type=gha,mode=max,scope=${{ matrix.app }}
+        run: pnpm exec nx run "$APP":publish-image
+
+  build-status:
+    name: build-status
+    needs: [permanent-history-artefacts, changes, lint, test, build]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Aggregate required-job statuses
+        uses: re-actors/alls-green@05ac9388f0aebcb5727afa17fcccfecd6f8ec5fe # v1.2.2
         with:
-          context: apps/platform/convergence-checker
-          push: true
-          tags: ghcr.io/alex-on-java/convergence-checker:${{ github.sha }}
+          jobs: ${{ toJSON(needs) }}
+          allowed-skips: build
 
   dispatch-pr-push:
-    needs: build
+    needs: build-status
     runs-on: ubuntu-latest
     permissions:
       contents: read

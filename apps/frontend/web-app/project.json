@@ -1,0 +1,26 @@
+{
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "name": "web-app",
+  "root": "apps/frontend/web-app",
+  "projectType": "application",
+  "targets": {
+    "build-image": {
+      "executor": "nx:run-commands",
+      "inputs": [
+        "{projectRoot}/Dockerfile",
+        "{projectRoot}/nginx.conf",
+        "{projectRoot}/static/**"
+      ],
+      "options": {
+        "command": "docker buildx build --load --tag ghcr.io/alex-on-java/web-app:${IMAGE_TAG:-$(git rev-parse HEAD)} ${BUILDX_CACHE_ARGS:-} {projectRoot}"
+      }
+    },
+    "publish-image": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build-image"],
+      "options": {
+        "command": "docker push ghcr.io/alex-on-java/web-app:${IMAGE_TAG:?IMAGE_TAG required for publish-image}"
+      }
+    }
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "k8s-validation",
+  "root": "tools/k8s-validation",
+  "projectType": "library",
+  "targets": {
+    "lint": {
+      "executor": "nx:run-commands",
+      "inputs": [
+        "{projectRoot}/src/**/*.py",
+        "{projectRoot}/validators/**/*.py",
+        "{projectRoot}/pyproject.toml",
+        "{projectRoot}/uv.lock"
+      ],
+      "options": {
+        "command": "uv run --frozen poe lint",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "validate-gitops": {
+      "executor": "nx:run-commands",
+      "inputs": [
+        "{projectRoot}/src/**",
+        "{projectRoot}/validators/**",
+        "{projectRoot}/pyproject.toml",
+        "{projectRoot}/uv.lock",
+        "{projectRoot}/settings.yaml",
+        "{workspaceRoot}/gitops/**",
+        "{workspaceRoot}/mise.toml"
+      ],
+      "options": {
+        "command": "uv run --frozen pytest validators/",
+        "cwd": "{projectRoot}"
+      }
+    }
+  }
+}

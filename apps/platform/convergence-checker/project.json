@@ -1,0 +1,57 @@
+{
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "name": "convergence-checker",
+  "root": "apps/platform/convergence-checker",
+  "projectType": "application",
+  "targets": {
+    "lint": {
+      "executor": "nx:run-commands",
+      "inputs": [
+        "{projectRoot}/src/**/*.py",
+        "{projectRoot}/tests/**/*.py",
+        "{projectRoot}/pyproject.toml",
+        "{projectRoot}/uv.lock",
+        "{projectRoot}/.python-version"
+      ],
+      "options": {
+        "command": "uv run --frozen poe lint",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "inputs": [
+        "{projectRoot}/src/**/*.py",
+        "{projectRoot}/tests/**/*.py",
+        "{projectRoot}/pyproject.toml",
+        "{projectRoot}/uv.lock",
+        "{projectRoot}/.python-version"
+      ],
+      "options": {
+        "command": "uv run --frozen poe test",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "build-image": {
+      "executor": "nx:run-commands",
+      "inputs": [
+        "{projectRoot}/Dockerfile",
+        "{projectRoot}/pyproject.toml",
+        "{projectRoot}/uv.lock",
+        "{projectRoot}/src/**",
+        "{projectRoot}/settings.toml",
+        "{projectRoot}/.python-version"
+      ],
+      "options": {
+        "command": "docker buildx build --load --tag ghcr.io/alex-on-java/convergence-checker:${IMAGE_TAG:-$(git rev-parse HEAD)} ${BUILDX_CACHE_ARGS:-} {projectRoot}"
+      }
+    },
+    "publish-image": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build-image"],
+      "options": {
+        "command": "docker push ghcr.io/alex-on-java/convergence-checker:${IMAGE_TAG:?IMAGE_TAG required for publish-image}"
+      }
+    }
+  }
+}

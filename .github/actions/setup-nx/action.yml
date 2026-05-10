@@ -1,0 +1,17 @@
+name: Set up nx workspace
+description: Install mise toolchain, install node_modules, set nx affected base/head. Caller must run actions/checkout (fetch-depth 0) first.
+
+runs:
+  using: composite
+  steps:
+    - name: Install mise toolchain
+      uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151 # v4.0.1
+      with:
+        version: 2026.4.20
+
+    - name: Install node_modules
+      shell: bash
+      run: pnpm install --frozen-lockfile
+
+    - name: Derive nx affected base/head
+      uses: nrwl/nx-set-shas@afb73a62d26e41464e9254689e1fd6122ee683c1 # v5.0.1

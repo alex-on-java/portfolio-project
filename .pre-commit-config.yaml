@@ -46,16 +46,16 @@ repos:
   - repo: local
     hooks:
       - id: lint-python-projects
-        name: Lint Python projects (poe per project, parallel)
+        name: Lint Python projects (nx affected -t lint)
         language: system
-        entry: .pre-commit-scripts/lint-python-projects
-        files: \.py$|(^|/)pyproject\.toml$
+        entry: .pre-commit-scripts/nx-affected-lint
+        files: \.py$|(^|/)pyproject\.toml$|(^|/)\.python-version$
         pass_filenames: true
 
       - id: validate-k8s-manifests
         name: K8s manifest validation (Kyverno + Kubeconform)
         language: system
-        entry: uv run --project tools/k8s-validation pytest tools/k8s-validation/validators/ -q
+        entry: pnpm exec nx run k8s-validation:validate-gitops
         files: ^(gitops/|tools/k8s-validation/|mise\.toml$)
         pass_filenames: false
 
@@ -80,6 +80,12 @@ repos:
         name: conftest (Dockerfile version pinning)
         files: Dockerfile
         args: [--policy, policies/conftest, --parser, dockerfile]
+
+      - id: conftest-test
+        alias: conftest-json
+        name: conftest (JSON version pinning)
+        files: (^|/)package\.json$
+        args: [--policy, policies/conftest, --parser, json]
 
       - id: conftest-verify
         alias: conftest-verify

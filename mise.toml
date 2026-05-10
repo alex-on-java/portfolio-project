@@ -1,4 +1,6 @@
 [tools]
+node = "v24.13.1"
+pnpm = "10.30.1"
 kubectl = "1.35.1"
 helm = "4.1.1"
 kind = "0.31.0"
@@ -12,3 +14,4 @@ python = "3.13.12"
 kyverno = "1.17.1"
 kubeconform = "0.7.0"
 uv = "0.11.7"
+prek = "0.3.13"
