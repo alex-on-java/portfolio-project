@@ -4,9 +4,20 @@ set -Eeuo pipefail
 trap 'pcs=("${PIPESTATUS[@]}" "$?"); rc=${pcs[-1]}; unset "pcs[-1]"; cmd=$BASH_COMMAND; file="${BASH_SOURCE[0]}"; ((${#BASH_SOURCE[@]} > 1)) && file="${BASH_SOURCE[1]}"; line="${BASH_LINENO[0]}"; [[ $line -eq 0 ]] && line="$LINENO"; printf "ERROR %d at %s:%s: %s  PIPESTATUS=%s\n" "$rc" "$file" "$line" "$cmd" "${pcs[*]}" >&2' ERR
 
 policy_file=".github/path-filters/permanent-history-artefacts.yml"
+base_ref="origin/master"
 
 if [[ ! -f "$policy_file" ]]; then
     echo "FATAL: policy file not found: $policy_file" >&2
+    exit 1
+fi
+
+if ! git rev-parse --verify --quiet "${base_ref}^{commit}" >/dev/null; then
+    echo "FATAL: base ref '$base_ref' not found; cannot determine which artefacts are permanent history" >&2
+    exit 1
+fi
+
+if ! base_commit=$(git merge-base "$base_ref" HEAD 2>/dev/null); then
+    echo "FATAL: no merge-base between '$base_ref' and HEAD; branch shares no history with the base" >&2
     exit 1
 fi
 
@@ -65,7 +76,7 @@ while IFS=$'\t' read -r status_field path _new_path; do
                 ;;
         esac
     done
-done < <(git diff --cached --name-status)
+done < <(git diff "$base_commit" --cached --name-status)
 
 if [[ ${#violations[@]} -gt 0 ]]; then
     echo "Forbidden mutation of permanent history artefacts:" >&2
