@@ -44,7 +44,7 @@ spec:
           value: cluster-identity
         - name: CONVERGENCE_CHECKER_CLUSTER_IDENTITY_NAMESPACE
           value: kargo-shared-resources
-        image: ghcr.io/alex-on-java/convergence-checker@sha256:c66699cb18645f484f53033b24b10e39e045c36f579b1de8efd2ce11555e009c
+        image: ghcr.io/alex-on-java/convergence-checker@sha256:195d127c234f57a9ef5ed50928cd76aef09ccaa96dd354f17329b83c8e3648c0
         imagePullPolicy: IfNotPresent
         name: checker
         resources:
