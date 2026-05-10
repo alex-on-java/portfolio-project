@@ -154,6 +154,7 @@ jobs:
 
   dispatch-pr-push:
     needs: build-status
+    if: always() && needs.build-status.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: read
