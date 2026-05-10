@@ -16,28 +16,31 @@ Decisions that shape the system's structure and are hard to reverse: technology 
 
 ## Decision Records
 
-| # | Decision | Status |
-|---|----------|--------|
-| [ADR-001](ADR-001-gitops-promotion-pipeline-with-kargo-and-argo-rollouts.md) | GitOps promotion pipeline with Kargo and Argo Rollouts | accepted |
-| [ADR-002](ADR-002-ephemeral-and-main-cluster-separation.md) | Ephemeral and main cluster separation | accepted |
-| [ADR-003](ADR-003-deterministic-commit-pinned-promotions.md) | Deterministic commit-pinned promotions | accepted |
-| [ADR-004](ADR-004-helm-for-external-charts-kustomize-for-first-party-manifests.md) | Helm for external charts, Kustomize for first-party manifests | accepted |
-| [ADR-005](ADR-005-gateway-api-exposure-with-promotion-time-hostname-injection.md) | Gateway API exposure with promotion-time hostname injection | accepted |
-| [ADR-006](ADR-006-contour-over-envoy-gateway-and-nginx-gateway-fabric.md) | Contour over Envoy Gateway and NGINX Gateway Fabric in ephemeral clusters | accepted |
-| [ADR-007](ADR-007-contour-for-ephemeral-gcp-managed-gateway-for-main.md) | Contour for ephemeral clusters, GCP managed Gateway for main cluster | accepted |
-| [ADR-008](ADR-008-edge-owned-wildcard-tls-and-stage-first-hostnames.md) | Edge-owned wildcard TLS and stage-first hostname contract | accepted |
-| [ADR-009](ADR-009-prefer-source-fixes-and-ssd-over-respectignoredifferences.md) | Prefer source fixes and SSD over RespectIgnoreDifferences | accepted |
-| [ADR-010](ADR-010-per-pr-delegated-dns-zones-for-ephemeral-cluster-isolation.md) | Per-PR delegated DNS zones for ephemeral cluster isolation | accepted |
-| [ADR-011](ADR-011-go-templates-with-missingkey-error-for-applicationsets.md) | Go templates with missingkey=error for all ApplicationSets | accepted |
-| [ADR-012](ADR-012-strict-semvers-false-for-warehouse-subscriptions.md) | Strict semvers false for Warehouse subscriptions | accepted |
-| [ADR-013](ADR-013-policy-location-architecture.md) | Separate policy locations by enforcement plane | accepted |
-| [ADR-014](ADR-014-crd-handling-in-validation-pipeline.md) | Exclude CRDs from rendering, include for schema extraction | accepted |
-| [ADR-015](ADR-015-schema-lifecycle.md) | Clean generated CRD schemas before each generation run | accepted |
-| [ADR-016](ADR-016-pytest-as-orchestration-for-k8s-validation.md) | pytest as orchestration layer for K8s manifest validation | accepted |
-| [ADR-017](ADR-017-python-project-linting-via-poe-router.md) | Python project linting via poe tasks dispatched by a pre-commit router | accepted |
-| [ADR-018](ADR-018-no-deployment-from-base-kustomize-directories.md) | No deployment from base Kustomize directories (interim) | accepted |
-| [ADR-019](ADR-019-gitops-convergence-gate.md) | GitOps convergence gate — in-cluster health aggregation as a required merge check | accepted |
-| [ADR-020](ADR-020-kmock-for-k8s-api-integration-tests.md) | kmock for K8s API integration tests in convergence-checker | accepted |
-| [ADR-021](ADR-021-persistence-boundaries-and-recovery-model.md) | Persistence boundaries and recovery model for the convergence gate | accepted |
-| [ADR-022](ADR-022-workload-scoped-overlay-segmentation-via-kargo-vars.md) | Workload-scoped overlay segmentation via Kargo `vars.targetSegment` with PLACEHOLDER sentinel | accepted |
-| [ADR-023](ADR-023-managedfieldsmanagers-for-cooperative-configmap-writes.md) | `managedFieldsManagers` for cooperative ConfigMap writes | accepted |
+| #                                                                                  | Decision                                                                                      | Status                |
+|------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------|-----------------------|
+| [ADR-001](ADR-001-gitops-promotion-pipeline-with-kargo-and-argo-rollouts.md)       | GitOps promotion pipeline with Kargo and Argo Rollouts                                        | accepted              |
+| [ADR-002](ADR-002-ephemeral-and-main-cluster-separation.md)                        | Ephemeral and main cluster separation                                                         | accepted              |
+| [ADR-003](ADR-003-deterministic-commit-pinned-promotions.md)                       | Deterministic commit-pinned promotions                                                        | accepted              |
+| [ADR-004](ADR-004-helm-for-external-charts-kustomize-for-first-party-manifests.md) | Helm for external charts, Kustomize for first-party manifests                                 | accepted              |
+| [ADR-005](ADR-005-gateway-api-exposure-with-promotion-time-hostname-injection.md)  | Gateway API exposure with promotion-time hostname injection                                   | accepted              |
+| [ADR-006](ADR-006-contour-over-envoy-gateway-and-nginx-gateway-fabric.md)          | Contour over Envoy Gateway and NGINX Gateway Fabric in ephemeral clusters                     | accepted              |
+| [ADR-007](ADR-007-contour-for-ephemeral-gcp-managed-gateway-for-main.md)           | Contour for ephemeral clusters, GCP managed Gateway for main cluster                          | accepted              |
+| [ADR-008](ADR-008-edge-owned-wildcard-tls-and-stage-first-hostnames.md)            | Edge-owned wildcard TLS and stage-first hostname contract                                     | accepted              |
+| [ADR-009](ADR-009-prefer-source-fixes-and-ssd-over-respectignoredifferences.md)    | Prefer source fixes and SSD over RespectIgnoreDifferences                                     | accepted              |
+| [ADR-010](ADR-010-per-pr-delegated-dns-zones-for-ephemeral-cluster-isolation.md)   | Per-PR delegated DNS zones for ephemeral cluster isolation                                    | accepted              |
+| [ADR-011](ADR-011-go-templates-with-missingkey-error-for-applicationsets.md)       | Go templates with missingkey=error for all ApplicationSets                                    | accepted              |
+| [ADR-012](ADR-012-strict-semvers-false-for-warehouse-subscriptions.md)             | Strict semvers false for Warehouse subscriptions                                              | accepted              |
+| [ADR-013](ADR-013-policy-location-architecture.md)                                 | Separate policy locations by enforcement plane                                                | accepted              |
+| [ADR-014](ADR-014-crd-handling-in-validation-pipeline.md)                          | Exclude CRDs from rendering, include for schema extraction                                    | accepted              |
+| [ADR-015](ADR-015-schema-lifecycle.md)                                             | Clean generated CRD schemas before each generation run                                        | accepted              |
+| [ADR-016](ADR-016-pytest-as-orchestration-for-k8s-validation.md)                   | pytest as orchestration layer for K8s manifest validation                                     | accepted              |
+| [ADR-017](ADR-017-python-project-linting-via-poe-router.md)                        | Python project linting via poe tasks dispatched by a pre-commit router                        | superseded by ADR-025 |
+| [ADR-018](ADR-018-no-deployment-from-base-kustomize-directories.md)                | No deployment from base Kustomize directories (interim)                                       | accepted              |
+| [ADR-019](ADR-019-gitops-convergence-gate.md)                                      | GitOps convergence gate — in-cluster health aggregation as a required merge check             | accepted              |
+| [ADR-020](ADR-020-kmock-for-k8s-api-integration-tests.md)                          | kmock for K8s API integration tests in convergence-checker                                    | accepted              |
+| [ADR-021](ADR-021-persistence-boundaries-and-recovery-model.md)                    | Persistence boundaries and recovery model for the convergence gate                            | accepted              |
+| [ADR-022](ADR-022-workload-scoped-overlay-segmentation-via-kargo-vars.md)          | Workload-scoped overlay segmentation via Kargo `vars.targetSegment` with PLACEHOLDER sentinel | accepted              |
+| [ADR-023](ADR-023-managedfieldsmanagers-for-cooperative-configmap-writes.md)       | `managedFieldsManagers` for cooperative ConfigMap writes                                      | accepted              |
+| [ADR-024](ADR-024-nx-as-monorepo-project-graph-and-task-runner.md)                 | Adopt Nx as the monorepo project graph and task runner                                        | accepted              |
+| [ADR-025](ADR-025-python-project-linting-routed-through-nx.md)                     | Python project linting routed through Nx (supersedes ADR-017)                                 | accepted              |
+| [ADR-026](ADR-026-image-build-ci-strategy.md)                                      | Image build CI strategy: affected-driven matrix with `alls-green` aggregator                  | accepted              |

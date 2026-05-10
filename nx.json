@@ -1,0 +1,22 @@
+{
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "defaultBase": "master",
+  "nxBail": false,
+  "targetDefaults": {
+    "lint": {
+      "cache": true
+    },
+    "test": {
+      "cache": true
+    },
+    "validate-gitops": {
+      "cache": true
+    },
+    "build-image": {
+      "cache": false
+    },
+    "publish-image": {
+      "cache": false
+    }
+  }
+}

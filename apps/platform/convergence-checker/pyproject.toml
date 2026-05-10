@@ -88,6 +88,7 @@ fmt    = "ruff format --check src tests"
 mypy   = "mypy"
 pylint = "pylint src tests"
 lint   = { sequence = ["ruff", "fmt", "mypy", "pylint"], ignore_fail = "return_non_zero", help = "Run every linter; aggregate all failures" }
+test   = "pytest"
 
 [tool.pylint.format]
 max-line-length = 120
