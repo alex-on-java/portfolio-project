@@ -59,3 +59,5 @@ Surprising platform behaviors, invisible failure modes, misleading defaults, and
 - [Nx hashes only files declared in a target's `inputs`; a lockfile-only pin bump replays the cache when `uv.lock` is missing from the set](LL-0043-nx-target-cache-survives-lockfile-pin-bump.md)
 - [The hook fixes Conftest's `--parser` per invocation; widening `files:` across formats feeds the wrong bytes to that fixed parser](LL-0044-conftest-toml-parse-error-on-widened-files-regex.md)
 - [`conftest verify` evaluates every `deny` rule against every fixture; an unguarded structural access crashes on a sibling parser's shape](LL-0045-conftest-verify-crashes-with-object-get-type-error.md)
+- [GitHub Actions auto-prepends `success() &&` to a job-level `if:` lacking a status-check function, walking the transitive `needs:` graph](LL-0046-job-skipped-despite-explicit-needs-result-check.md)
+- [GitHub Actions auto-prepends `success() &&` past the `allowed-skips` of a safe-merge-gate aggregator, silently skipping any downstream job](LL-0047-downstream-job-silently-skipped-after-green-aggregator.md)
