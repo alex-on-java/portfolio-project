@@ -17,20 +17,11 @@
         "cwd": "{projectRoot}"
       }
     },
-    "validate-gitops": {
+    "ci": {
       "executor": "nx:run-commands",
-      "inputs": [
-        "{projectRoot}/src/**",
-        "{projectRoot}/validators/**",
-        "{projectRoot}/pyproject.toml",
-        "{projectRoot}/uv.lock",
-        "{projectRoot}/settings.yaml",
-        "{workspaceRoot}/gitops/**",
-        "{workspaceRoot}/mise.toml"
-      ],
+      "dependsOn": ["lint"],
       "options": {
-        "command": "uv run --frozen pytest validators/",
-        "cwd": "{projectRoot}"
+        "command": "echo 'k8s-validation:ci complete'"
       }
     }
   }

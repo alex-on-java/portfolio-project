@@ -9,8 +9,8 @@
     "test": {
       "cache": true
     },
-    "validate-gitops": {
-      "cache": true
+    "ci": {
+      "cache": false
     },
     "build-image": {
       "cache": false
