@@ -17,9 +17,15 @@
     },
     "publish-image": {
       "executor": "nx:run-commands",
-      "dependsOn": ["build-image"],
       "options": {
         "command": "docker push ghcr.io/alex-on-java/web-app:${IMAGE_TAG:?IMAGE_TAG required for publish-image}"
+      }
+    },
+    "ci": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build-image"],
+      "options": {
+        "command": "echo 'web-app:ci complete'"
       }
     }
   }

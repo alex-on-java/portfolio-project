@@ -45,19 +45,11 @@ repos:
 
   - repo: local
     hooks:
-      - id: lint-python-projects
-        name: Lint Python projects (nx affected -t lint)
+      - id: nx-affected-lint
+        name: nx affected -t lint
         language: system
         entry: .pre-commit-scripts/nx-affected-lint
-        files: \.py$|(^|/)pyproject\.toml$|(^|/)\.python-version$
         pass_filenames: true
-
-      - id: validate-k8s-manifests
-        name: K8s manifest validation (Kyverno + Kubeconform)
-        language: system
-        entry: pnpm exec nx run k8s-validation:validate-gitops
-        files: ^(gitops/|tools/k8s-validation/|mise\.toml$)
-        pass_filenames: false
 
   - repo: https://github.com/open-policy-agent/conftest
     rev: v0.68.0
