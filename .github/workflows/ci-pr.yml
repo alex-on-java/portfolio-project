@@ -243,6 +243,7 @@ jobs:
           title='CI artifact cleanup failed'
 
           existing=$(gh issue list \
+            --repo "$GITHUB_REPOSITORY" \
             --search "${title} in:title" \
             --state open \
             --json number \
@@ -250,9 +251,11 @@ jobs:
 
           if [[ -n "$existing" ]]; then
             gh issue comment "$existing" \
+              --repo "$GITHUB_REPOSITORY" \
               --body "Another occurrence: ${run_url} (PR #${PR_NUMBER}, ${PR_HEAD_SHA})"
           else
             gh issue create \
+              --repo "$GITHUB_REPOSITORY" \
               --title "$title" \
               --assignee "$ASSIGNEE" \
               --body "$(cat <<EOF
