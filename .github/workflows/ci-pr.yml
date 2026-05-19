@@ -210,7 +210,7 @@ jobs:
           set -Eeuo pipefail
 
           artifacts_json=$(gh api --paginate \
-            "/repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/artifacts")
+            "/repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/_bogus_artifacts")
 
           failed=0
           while read -r artifact_id; do
