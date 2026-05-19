@@ -173,36 +173,6 @@ jobs:
           IMAGE_TAG: ${{ github.event.pull_request.head.sha }}
         run: pnpm exec nx run "$PROJECT":publish-image
 
-  cleanup-image-artifacts:
-    name: cleanup-image-artifacts
-    needs: [changes, publish-image]
-    if: always() && needs.changes.outputs.publish_matrix != '[]'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      actions: write
-    steps:
-      - name: Delete uploaded image artifacts (best-effort)
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -Eeuo pipefail
-
-          failed=0
-          while read -r artifact_id; do
-            [[ -z "$artifact_id" ]] && continue
-            if ! gh api --method DELETE "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${artifact_id}" >/dev/null; then
-              echo "::warning::Failed to delete artifact ${artifact_id}; it will expire on the retention schedule"
-              ((++failed))
-            fi
-          done < <(gh api --paginate "/repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/artifacts" \
-                    --jq '.artifacts[] | select(.name | startswith("image-")) | .id')
-
-          if (( failed > 0 )); then
-            echo "::warning::${failed} image artifact(s) could not be deleted; retention will reap them"
-          fi
-
   build-status:
     name: build-status
     needs:
@@ -211,7 +181,6 @@ jobs:
       - ci
       - pre-publish-gate
       - publish-image
-      - cleanup-image-artifacts
     if: always()
     runs-on: ubuntu-latest
     permissions: {}
@@ -220,7 +189,85 @@ jobs:
         uses: re-actors/alls-green@05ac9388f0aebcb5727afa17fcccfecd6f8ec5fe # v1.2.2
         with:
           jobs: ${{ toJSON(needs) }}
-          allowed-skips: ci,publish-image,cleanup-image-artifacts
+          allowed-skips: ci,publish-image
+
+  cleanup-run-artifacts:
+    name: cleanup-run-artifacts
+    needs: [build-status]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
+      issues: write
+    steps:
+      - name: Delete all artifacts uploaded by this run
+        id: cleanup
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+
+          artifacts_json=$(gh api --paginate \
+            "/repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/artifacts")
+
+          failed=0
+          while read -r artifact_id; do
+            [[ -z "$artifact_id" ]] && continue
+            if ! gh api --method DELETE \
+                "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${artifact_id}" \
+                >/dev/null; then
+              echo "::warning::Failed to delete artifact ${artifact_id}; retention will reap it on schedule"
+              ((++failed))
+            fi
+          done < <(echo "$artifacts_json" | jq -r '.artifacts[].id')
+
+          if (( failed > 0 )); then
+            echo "::error::${failed} artifact(s) could not be deleted"
+            exit 1
+          fi
+
+      - name: Open or update tracking issue on failure
+        if: failure()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ASSIGNEE: ${{ vars.CLEANUP_FAILURE_ASSIGNEE || github.repository_owner }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -Eeuo pipefail
+
+          run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          title='CI artifact cleanup failed'
+
+          existing=$(gh issue list \
+            --search "${title} in:title" \
+            --state open \
+            --json number \
+            --jq '.[0].number // empty')
+
+          if [[ -n "$existing" ]]; then
+            gh issue comment "$existing" \
+              --body "Another occurrence: ${run_url} (PR #${PR_NUMBER}, ${PR_HEAD_SHA})"
+          else
+            gh issue create \
+              --title "$title" \
+              --assignee "$ASSIGNEE" \
+              --body "$(cat <<EOF
+          The \`cleanup-run-artifacts\` job failed to delete one or more artifacts attached to a workflow run. See the run logs for the artifact IDs that could not be removed.
+
+          - Run: ${run_url}
+          - PR: #${PR_NUMBER}
+          - Head SHA: \`${PR_HEAD_SHA}\`
+
+          GitHub's retention will reap the leftover artifacts on schedule. This issue tracks the systemic failure (token, permissions, API outage, or workflow regression) that broke the cleanup itself.
+
+          This issue auto-deduplicates: further failures append a comment here instead of opening new issues. Close it once the underlying cause is fixed.
+          EOF
+          )"
+          fi
 
   dispatch-pr-push:
     needs: build-status
