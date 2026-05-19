@@ -14,9 +14,6 @@
     },
     "build-image": {
       "cache": false
-    },
-    "publish-image": {
-      "cache": false
     }
   }
 }

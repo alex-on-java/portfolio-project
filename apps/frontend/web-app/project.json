@@ -15,12 +15,6 @@
         "command": "docker buildx build --load --tag ghcr.io/alex-on-java/web-app:${IMAGE_TAG:-$(git rev-parse HEAD)} ${BUILDX_CACHE_ARGS:-} {projectRoot}"
       }
     },
-    "publish-image": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "docker push ghcr.io/alex-on-java/web-app:${IMAGE_TAG:?IMAGE_TAG required for publish-image}"
-      }
-    },
     "ci": {
       "executor": "nx:run-commands",
       "dependsOn": ["build-image"],
