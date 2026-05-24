@@ -44,3 +44,4 @@ Decisions that shape the system's structure and are hard to reverse: technology 
 | [ADR-024](ADR-024-nx-as-monorepo-project-graph-and-task-runner.md)                 | Adopt Nx as the monorepo project graph and task runner                                        | accepted              |
 | [ADR-025](ADR-025-python-project-linting-routed-through-nx.md)                     | Python project linting routed through Nx (supersedes ADR-017)                                 | accepted              |
 | [ADR-026](ADR-026-image-build-ci-strategy.md)                                      | Image build CI strategy: affected-driven matrix with `alls-green` aggregator                  | accepted              |
+| [ADR-027](ADR-027-cascade-driven-ephemeral-teardown.md)                            | ArgoCD cascade drains ephemeral workloads before Terraform destroys the cluster               | accepted              |
