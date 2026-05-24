@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: gitops-convergence-checker
+  name: gitops-convergence-checker
+  namespace: observability
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gitops-convergence-checker
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: gitops-convergence-checker
+    spec:
+      containers:
+      - env:
+        - name: GITHUB_APP_ID
+          valueFrom:
+            secretKeyRef:
+              key: app-id
+              name: gitops-convergence-credentials
+        - name: GITHUB_APP_PRIVATE_KEY
+          valueFrom:
+            secretKeyRef:
+              key: private-key
+              name: gitops-convergence-credentials
+        - name: GITHUB_APP_INSTALLATION_ID
+          valueFrom:
+            secretKeyRef:
+              key: installation-id
+              name: gitops-convergence-credentials
+        - name: CONVERGENCE_CHECKER_OWNER_REPO
+          value: alex-on-java/portfolio-project
+        - name: CONVERGENCE_CHECKER_FIELD_MANAGER_NAME
+          value: convergence-checker
+        - name: CONVERGENCE_CHECKER_HEARTBEAT_CONFIGMAP_NAME
+          value: gitops-convergence-heartbeat
+        - name: CONVERGENCE_CHECKER_CLUSTER_IDENTITY_CONFIGMAP_NAME
+          value: cluster-identity
+        - name: CONVERGENCE_CHECKER_CLUSTER_IDENTITY_NAMESPACE
+          value: kargo-shared-resources
+        image: ghcr.io/alex-on-java/convergence-checker@sha256:0a6cfaf043f84703f51274a0b1c68477064564388b660e42e221d7bf2f1c55be
+        imagePullPolicy: IfNotPresent
+        name: checker
+        resources:
+          limits:
+            cpu: 100m
+            ephemeral-storage: 64Mi
+            memory: 128Mi
+          requests:
+            cpu: 50m
+            ephemeral-storage: 64Mi
+            memory: 64Mi
+      serviceAccountName: gitops-convergence-checker
