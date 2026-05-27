@@ -1,0 +1,32 @@
+{
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "name": "gitops",
+  "root": "gitops",
+  "projectType": "library",
+  "implicitDependencies": ["k8s-validation"],
+  "targets": {
+    "lint": {
+      "executor": "nx:run-commands",
+      "inputs": [
+        "{projectRoot}/**/*",
+        "{workspaceRoot}/tools/k8s-validation/src/**",
+        "{workspaceRoot}/tools/k8s-validation/validators/**",
+        "{workspaceRoot}/tools/k8s-validation/pyproject.toml",
+        "{workspaceRoot}/tools/k8s-validation/uv.lock",
+        "{workspaceRoot}/tools/k8s-validation/settings.yaml",
+        "{workspaceRoot}/mise.toml"
+      ],
+      "options": {
+        "command": "uv run --frozen pytest validators/",
+        "cwd": "tools/k8s-validation"
+      }
+    },
+    "ci": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["lint"],
+      "options": {
+        "command": "echo 'gitops:ci complete'"
+      }
+    }
+  }
+}

@@ -45,3 +45,7 @@ Decisions that shape the system's structure and are hard to reverse: technology 
 | [ADR-025](ADR-025-python-project-linting-routed-through-nx.md)                     | Python project linting routed through Nx (supersedes ADR-017)                                 | accepted              |
 | [ADR-026](ADR-026-image-build-ci-strategy.md)                                      | Image build CI strategy: affected-driven matrix with `alls-green` aggregator                  | accepted              |
 | [ADR-027](ADR-027-cascade-driven-ephemeral-teardown.md)                            | ArgoCD cascade drains ephemeral workloads before Terraform destroys the cluster               | accepted              |
+| [ADR-028](ADR-028-pr-ci-with-two-aggregators-and-per-project-ci-target.md)         | Two-aggregator PR CI graph that makes "no publish unless gate green" a graph property         | accepted              |
+| [ADR-029](ADR-029-image-push-as-workflow-side-effect.md)                           | Why image push lives in the workflow, not as a project-level Nx target                        | accepted              |
+| [ADR-030](ADR-030-project-routing-for-static-analysis-lives-in-nx.md)              | Single pre-commit hook that delegates project routing to Nx affected                          | accepted              |
+| [ADR-031](ADR-031-ci-artifact-cleanup-as-hygiene.md)                               | End-of-pipeline artifact cleanup with deduplicated issue tracking, off the merge path         | accepted              |
