@@ -77,3 +77,8 @@ Surprising platform behaviors, invisible failure modes, misleading defaults, and
 - [`pool-ctl release` collapses last-poll transient errors into `DESTROY_FAILED` without a final re-read; a real `success` can be discarded](LL-0063-successful-destroy-marked-failed-by-poll-timeout-race.md)
 - [GCP audit logs default to writes; `firewalls.list` and `clusters.get` are `ADMIN_READ` Data Access events, silent until audit-config opt-in](LL-0064-audit-log-silent-on-list-and-describe-calls.md)
 - [`argocd --core` resolves namespace via kube-context, not a fixed `argocd` default; lookup misses surface as `NotFound` without `-N argocd`](LL-0065-argocd-core-app-delete-not-found-in-default-namespace.md)
+- [`gh issue` resolves owner/repo via `git remote -v`; fails outside a working tree even for pure REST calls](LL-0066-gh-issue-fatal-not-a-git-repository.md)
+- [Bash process substitution discards the inner subshell's exit status; `set -Eeuo pipefail` does not cover it](LL-0067-process-substitution-exits-zero-despite-inner-failure.md)
+- [GitHub Actions represents a skipped job's outputs as empty string; `!= '[]'` guards silently admit the never-ran case](LL-0068-output-guard-passes-when-producer-skipped.md)
+- [Nx replaces `targetDefaults.dependsOn` entirely when a project declares its own; other keys like `cache` merge normally](LL-0069-nx-targetdefaults-dependson-missing-from-project.md)
+- [Nx silently drops `dependsOn` entries referencing targets the project does not declare; `nx show project --json` still lists them](LL-0070-nx-dependson-silently-drops-missing-targets.md)
