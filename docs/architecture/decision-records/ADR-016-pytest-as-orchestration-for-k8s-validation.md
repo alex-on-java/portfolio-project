@@ -10,7 +10,7 @@ decision-makers: [alex-on-java]
 
 The K8s validation engine renders all project manifests (Helm charts and Kustomize overlays) and feeds them to independent validators: Kyverno for policy enforcement, kubeconform for schema validation. The orchestration layer must manage three concerns: rendering all manifests once (expensive subprocess calls to `helm template` and `kubectl kustomize`), distributing the output to N validators, and reporting results with enough detail to locate violations.
 
-Which tool should orchestrate this pipeline?
+Which tool should orchestrate this validation pipeline?
 
 ## Decision Drivers
 
