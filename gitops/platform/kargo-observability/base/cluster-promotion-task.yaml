@@ -10,6 +10,7 @@ spec:
     - name: warehouseImageURL
     - name: gitRepoURL
       value: https://github.com/alex-on-java/portfolio-project.git
+    - name: targetSegment
   steps:
     - uses: git-clone
       config:
@@ -28,7 +29,7 @@ spec:
     - uses: kustomize-set-image
       as: update-image
       config:
-        path: ./src/gitops/apps/platform/${{ vars.appName }}/overlays/${{ sharedConfigMap('cluster-identity').overlayTarget }}/${{ sharedConfigMap('cluster-identity').clusterLifecycle }}
+        path: ./src/gitops/apps/platform/${{ vars.appName }}/overlays/${{ vars.targetSegment }}
         images:
           - image: ${{ vars.warehouseImageURL }}
             name: ${{ vars.imageRepo }}
@@ -38,7 +39,7 @@ spec:
     - uses: kustomize-build
       as: build
       config:
-        path: ./src/gitops/apps/platform/${{ vars.appName }}/overlays/${{ sharedConfigMap('cluster-identity').overlayTarget }}/${{ sharedConfigMap('cluster-identity').clusterLifecycle }}
+        path: ./src/gitops/apps/platform/${{ vars.appName }}/overlays/${{ vars.targetSegment }}
         outPath: ./out
 
     - uses: git-commit

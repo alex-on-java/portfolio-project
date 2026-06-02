@@ -49,3 +49,4 @@ Decisions that shape the system's structure and are hard to reverse: technology 
 | [ADR-029](ADR-029-image-push-as-workflow-side-effect.md)                           | Why image push lives in the workflow, not as a project-level Nx target                        | accepted              |
 | [ADR-030](ADR-030-project-routing-for-static-analysis-lives-in-nx.md)              | Single pre-commit hook that delegates project routing to Nx affected                          | accepted              |
 | [ADR-031](ADR-031-ci-artifact-cleanup-as-hygiene.md)                               | End-of-pipeline artifact cleanup with deduplicated issue tracking, off the merge path         | accepted              |
+| [ADR-032](ADR-032-per-environment-lifecycle-segment-resolution-and-overlaytarget-retirement.md) | Per-environment lifecycle overlay resolution; retires fake `overlayTarget`, keeps `clusterLifecycle` | accepted              |

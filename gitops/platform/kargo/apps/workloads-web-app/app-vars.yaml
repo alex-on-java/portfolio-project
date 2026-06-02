@@ -17,3 +17,4 @@ data:
   gitRepoURL: https://github.com/alex-on-java/portfolio-project.git
   gitIncludePath: gitops/apps/workloads/web-app
   targetSegment: any
+  lifecycleSegmentEnvs: prd

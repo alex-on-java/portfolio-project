@@ -23,6 +23,8 @@ spec:
           value: ghcr.io/alex-on-java/convergence-checker
         - name: warehouseImageURL
           value: ghcr.io/alex-on-java/convergence-checker
+        - name: targetSegment
+          value: ephemeral
       steps:
         - task:
             name: promote-platform-app
