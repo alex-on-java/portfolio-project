@@ -38,6 +38,8 @@ spec:
           value: PLACEHOLDER
         - name: targetSegment
           value: PLACEHOLDER
+        - name: lifecycleSegmentEnvs
+          value: PLACEHOLDER
       steps:
         - task:
             name: promote-kustomize-app

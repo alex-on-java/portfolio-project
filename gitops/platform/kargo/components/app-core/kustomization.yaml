@@ -62,6 +62,16 @@ replacements:
           kind: Stage
         fieldPaths:
           - spec.promotionTemplate.spec.vars.[name=targetSegment].value
+  - source:
+      kind: ConfigMap
+      fieldPath: data.lifecycleSegmentEnvs
+    targets:
+      - select:
+          group: kargo.akuity.io
+          version: v1alpha1
+          kind: Stage
+        fieldPaths:
+          - spec.promotionTemplate.spec.vars.[name=lifecycleSegmentEnvs].value
   # ── Stage-level vars (for verification expressions) ──
   - source:
       kind: ConfigMap

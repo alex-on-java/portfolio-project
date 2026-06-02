@@ -12,6 +12,7 @@ spec:
     - name: gitRepoURL
       value: https://github.com/alex-on-java/portfolio-project.git
     - name: targetSegment
+    - name: lifecycleSegmentEnvs
   steps:
     - uses: git-clone
       config:
@@ -30,7 +31,7 @@ spec:
     - uses: kustomize-set-image
       as: update-image
       config:
-        path: ./src/gitops/apps/${{ vars.appCategory }}/${{ vars.appName }}/overlays/${{ vars.targetSegment }}/${{ vars.env }}
+        path: "./src/gitops/apps/${{ vars.appCategory }}/${{ vars.appName }}/overlays/${{ vars.lifecycleSegmentEnvs == 'PLACEHOLDER' ? 'PLACEHOLDER' : (vars.env in split(vars.lifecycleSegmentEnvs, ',') ? sharedConfigMap('cluster-identity').clusterLifecycle : vars.targetSegment) }}/${{ vars.env }}"
         images:
           - image: ${{ vars.warehouseImageURL }}
             name: ${{ vars.imageRepo }}
@@ -39,14 +40,14 @@ spec:
 
     - uses: yaml-update
       config:
-        path: ./src/gitops/apps/${{ vars.appCategory }}/${{ vars.appName }}/overlays/${{ vars.targetSegment }}/${{ vars.env }}/http-route-active.yaml
+        path: "./src/gitops/apps/${{ vars.appCategory }}/${{ vars.appName }}/overlays/${{ vars.lifecycleSegmentEnvs == 'PLACEHOLDER' ? 'PLACEHOLDER' : (vars.env in split(vars.lifecycleSegmentEnvs, ',') ? sharedConfigMap('cluster-identity').clusterLifecycle : vars.targetSegment) }}/${{ vars.env }}/http-route-active.yaml"
         updates:
           - key: spec.hostnames.0
             value: ${{ vars.appName }}.${{ vars.env }}.${{ sharedConfigMap('cluster-identity').domainPrefix }}.${{ sharedConfigMap('cluster-identity').domain }}
 
     - uses: yaml-update
       config:
-        path: ./src/gitops/apps/${{ vars.appCategory }}/${{ vars.appName }}/overlays/${{ vars.targetSegment }}/${{ vars.env }}/http-route-preview.yaml
+        path: "./src/gitops/apps/${{ vars.appCategory }}/${{ vars.appName }}/overlays/${{ vars.lifecycleSegmentEnvs == 'PLACEHOLDER' ? 'PLACEHOLDER' : (vars.env in split(vars.lifecycleSegmentEnvs, ',') ? sharedConfigMap('cluster-identity').clusterLifecycle : vars.targetSegment) }}/${{ vars.env }}/http-route-preview.yaml"
         updates:
           - key: spec.hostnames.0
             value: preview-${{ vars.appName }}.${{ vars.env }}.${{ sharedConfigMap('cluster-identity').domainPrefix }}.${{ sharedConfigMap('cluster-identity').domain }}
@@ -54,7 +55,7 @@ spec:
     - uses: kustomize-build
       as: build
       config:
-        path: ./src/gitops/apps/${{ vars.appCategory }}/${{ vars.appName }}/overlays/${{ vars.targetSegment }}/${{ vars.env }}
+        path: "./src/gitops/apps/${{ vars.appCategory }}/${{ vars.appName }}/overlays/${{ vars.lifecycleSegmentEnvs == 'PLACEHOLDER' ? 'PLACEHOLDER' : (vars.env in split(vars.lifecycleSegmentEnvs, ',') ? sharedConfigMap('cluster-identity').clusterLifecycle : vars.targetSegment) }}/${{ vars.env }}"
         outPath: ./out
 
     - uses: git-commit
