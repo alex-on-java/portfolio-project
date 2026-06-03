@@ -50,3 +50,4 @@ Decisions that shape the system's structure and are hard to reverse: technology 
 | [ADR-030](ADR-030-project-routing-for-static-analysis-lives-in-nx.md)              | Single pre-commit hook that delegates project routing to Nx affected                          | accepted              |
 | [ADR-031](ADR-031-ci-artifact-cleanup-as-hygiene.md)                               | End-of-pipeline artifact cleanup with deduplicated issue tracking, off the merge path         | accepted              |
 | [ADR-032](ADR-032-per-environment-lifecycle-segment-resolution-and-overlaytarget-retirement.md) | Per-environment lifecycle overlay resolution; retires fake `overlayTarget`, keeps `clusterLifecycle` | accepted              |
+| [ADR-033](ADR-033-secrets-management-with-eso-and-google-secret-manager.md)        | First secrets reference: ESO + GSM via Workload Identity, single store, overlay-mapped `prd` safety | accepted              |

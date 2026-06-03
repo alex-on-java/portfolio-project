@@ -6,6 +6,8 @@ resources:
   - argo-rollouts-helm-appset.yaml
   - cert-manager-helm-appset.yaml
   - cert-manager-config-appset.yaml
+  - external-secrets-helm-appset.yaml
+  - external-secrets-config-appset.yaml
   - contour-helm-appset.yaml
   - edge-routing-appset.yaml
   - external-dns-helm-appset.yaml

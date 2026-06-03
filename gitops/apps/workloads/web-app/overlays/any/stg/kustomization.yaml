@@ -9,3 +9,11 @@ images:
   - name: ghcr.io/alex-on-java/web-app
     newName: ghcr.io/alex-on-java/web-app
     newTag: "sha256:placeholder"
+patches:
+  - target:
+      kind: ExternalSecret
+      name: web-app-demo-gsm
+    patch: |
+      - op: replace
+        path: /spec/data/0/remoteRef/key
+        value: portfolio-project-web-app-demo-stg

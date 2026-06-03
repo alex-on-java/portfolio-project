@@ -1,0 +1,49 @@
+# Invariant: the controller ServiceAccount must be named `external-secrets`, because
+# the infra Workload Identity binding targets serviceAccount[external-secrets/external-secrets].
+# This pins the name independent of the ArgoCD release name (which would otherwise prefix it).
+fullnameOverride: external-secrets
+
+installCRDs: true
+
+crds:
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
+  conversion:
+    enabled: false
+  unsafeServeV1Beta1: false
+
+serviceAccount:
+  annotations:
+    iam.gke.io/gcp-service-account: external-secrets@cv-driven-dev-e-commerce.iam.gserviceaccount.com
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 96Mi
+    ephemeral-storage: 64Mi
+  limits:
+    cpu: 100m
+    memory: 192Mi
+    ephemeral-storage: 64Mi
+
+webhook:
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+      ephemeral-storage: 64Mi
+    limits:
+      cpu: 50m
+      memory: 128Mi
+      ephemeral-storage: 64Mi
+
+certController:
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+      ephemeral-storage: 64Mi
+    limits:
+      cpu: 50m
+      memory: 128Mi
+      ephemeral-storage: 64Mi
