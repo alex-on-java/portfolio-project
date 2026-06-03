@@ -21,6 +21,9 @@ schemas:
     - chart: argo-rollouts
       crd_helm_sets:
         installCRDs: "true"
+    - chart: external-secrets
+      crd_helm_sets:
+        installCRDs: "true"
     - chart: kargo
       crd_helm_sets:
         api.adminAccount.enabled: "false"

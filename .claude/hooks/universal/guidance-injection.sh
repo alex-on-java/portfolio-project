@@ -21,7 +21,6 @@ GUIDANCE_FILES=(
   "${PROJECT_ROOT}/docs/WORKING_PRINCIPLES.md"
   "${PROJECT_ROOT}/docs/AGENT_OPERATING_POLICIES.md"
   "${PROJECT_ROOT}/docs/code-quality-policies/README.md|## Entries"
-  "${PROJECT_ROOT}/docs/architecture/decision-records/README.md|## Decision Records"
 )
 
 slice_file() {

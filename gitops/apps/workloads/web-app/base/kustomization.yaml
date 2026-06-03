@@ -4,3 +4,5 @@ resources:
   - rollout.yaml
   - service.yaml
   - service-preview.yaml
+  - external-secret-gsm.yaml
+  - external-secret-generated.yaml

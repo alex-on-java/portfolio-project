@@ -21,6 +21,46 @@ spec:
       labels:
         app: web-app
     spec:
+      initContainers:
+        - name: render-secret-evidence
+          image: busybox:1.37.0
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -eu
+              out=/served/index.html
+              {
+                echo '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">'
+                echo '<title>web-app secret evidence</title></head><body>'
+                echo '<h1>Secret evidence</h1><ul>'
+                for f in /secrets/gsm/demo-gsm /secrets/generated/demo-generated; do
+                  name=$(basename "$f")
+                  bytes=$(wc -c <"$f" | tr -d ' ')
+                  first5hex=$(dd if="$f" bs=1 count=5 2>/dev/null | od -An -tx1 | tr -d ' \n')
+                  echo "<li>${name}: bytes=${bytes} first5hex=${first5hex}</li>"
+                done
+                echo '</ul></body></html>'
+              } >"$out"
+          volumeMounts:
+            - name: served
+              mountPath: /served
+            - name: demo-gsm
+              mountPath: /secrets/gsm
+              readOnly: true
+            - name: demo-generated
+              mountPath: /secrets/generated
+              readOnly: true
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+              ephemeral-storage: 16Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi
+              ephemeral-storage: 16Mi
       containers:
         - name: web-app
           image: ghcr.io/alex-on-java/web-app:sha256-placeholder
@@ -42,3 +82,16 @@ spec:
               cpu: 100m
               memory: 64Mi
               ephemeral-storage: 64Mi
+          volumeMounts:
+            - name: served
+              mountPath: /usr/share/nginx/html/secrets
+              readOnly: true
+      volumes:
+        - name: served
+          emptyDir: {}
+        - name: demo-gsm
+          secret:
+            secretName: web-app-demo-gsm
+        - name: demo-generated
+          secret:
+            secretName: web-app-demo-generated

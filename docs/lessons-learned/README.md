@@ -82,3 +82,6 @@ Surprising platform behaviors, invisible failure modes, misleading defaults, and
 - [GitHub Actions represents a skipped job's outputs as empty string; `!= '[]'` guards silently admit the never-ran case](LL-0068-output-guard-passes-when-producer-skipped.md)
 - [Nx replaces `targetDefaults.dependsOn` entirely when a project declares its own; other keys like `cache` merge normally](LL-0069-nx-targetdefaults-dependson-missing-from-project.md)
 - [Nx silently drops `dependsOn` entries referencing targets the project does not declare; `nx show project --json` still lists them](LL-0070-nx-dependson-silently-drops-missing-targets.md)
+- [ESO generators are stateless — a timer `refreshInterval` regenerates the value every cycle; only `refreshPolicy: CreatedOnce` pins it](LL-0071-generated-secret-rotates-every-refresh-interval.md)
+- [ESO's ServiceAccount name is release-derived; renaming its Application breaks Workload Identity auth unless `fullnameOverride` pins it](LL-0072-external-secrets-gsm-auth-breaks-on-application-rename.md)
+- [A GCP IAM `startsWith` condition with an empty prefix matches everything, collapsing a scoped `secretAccessor` grant to project-wide](LL-0073-secret-accessor-grant-matches-every-secret.md)
