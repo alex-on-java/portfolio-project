@@ -70,6 +70,7 @@ data:
       owner="${service}_app"
       ro_group="${service}_app_ro"
       rw_group="${service}_app_rw"
+      mig_group="${service}_app_mig"
       mig_a="${service}_app_mig_a"
       mig_b="${service}_app_mig_b"
       ro_a="${service}_app_ro_a"
@@ -99,7 +100,7 @@ data:
               AND acl.grantee = 0
               AND acl.privilege_type IN ('CONNECT', 'TEMPORARY');"
       )"
-      assert_eq "${service} direct CONNECT grants are stable roles only" "3" "$(
+      assert_eq "${service} direct CONNECT grants are stable roles only" "4" "$(
         scalar_as "$mig_a" "$mig_password" "$service" "$role_options" \
           "SELECT count(DISTINCT r.rolname)
              FROM pg_database d
@@ -107,7 +108,7 @@ data:
              JOIN pg_roles r ON r.oid = acl.grantee
             WHERE d.datname = '${service}'
               AND acl.privilege_type = 'CONNECT'
-              AND r.rolname IN ('${owner}', '${ro_group}', '${rw_group}');"
+              AND r.rolname IN ('${owner}', '${ro_group}', '${rw_group}', '${mig_group}');"
       )"
       assert_eq "${service} rotating slots have no direct database ACLs" "0" "$(
         scalar_as "$mig_a" "$mig_password" "$service" "$role_options" \
@@ -159,7 +160,7 @@ data:
       scalar_as lorem_app_mig_a "$LOREM_MIG_A_PASSWORD" lorem "-c role=lorem_app" \
         "SELECT count(*) FROM pg_database WHERE datname IN ('lorem', 'ipsum');"
     )"
-    assert_eq "only namespaced service role families are present" "18" "$(
+    assert_eq "only namespaced service role families are present" "20" "$(
       scalar_as lorem_app_mig_a "$LOREM_MIG_A_PASSWORD" lorem "-c role=lorem_app" \
         "SELECT count(*) FROM pg_roles WHERE rolname ~ '^(lorem|ipsum)_app($|_)';"
     )"

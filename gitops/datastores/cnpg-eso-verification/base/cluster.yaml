@@ -28,6 +28,12 @@ spec:
   logLevel: info
   managed:
     roles:
+      - name: lorem_app_mig
+        ensure: present
+        login: false
+        inherit: false
+        inRoles:
+          - lorem_app
       - name: lorem_app_ro_a
         connectionLimit: -1
         ensure: present
@@ -68,20 +74,26 @@ spec:
         connectionLimit: -1
         ensure: present
         login: true
-        inherit: false
+        inherit: true
         inRoles:
-          - lorem_app
+          - lorem_app_mig
         passwordSecret:
           name: cnpg-verification-lorem-app-mig-a
       - name: lorem_app_mig_b
         connectionLimit: -1
         ensure: present
         login: true
-        inherit: false
+        inherit: true
         inRoles:
-          - lorem_app
+          - lorem_app_mig
         passwordSecret:
           name: cnpg-verification-lorem-app-mig-b
+      - name: ipsum_app_mig
+        ensure: present
+        login: false
+        inherit: false
+        inRoles:
+          - ipsum_app
       - name: ipsum_app_ro_a
         connectionLimit: -1
         ensure: present
@@ -122,18 +134,18 @@ spec:
         connectionLimit: -1
         ensure: present
         login: true
-        inherit: false
+        inherit: true
         inRoles:
-          - ipsum_app
+          - ipsum_app_mig
         passwordSecret:
           name: cnpg-verification-ipsum-app-mig-a
       - name: ipsum_app_mig_b
         connectionLimit: -1
         ensure: present
         login: true
-        inherit: false
+        inherit: true
         inRoles:
-          - ipsum_app
+          - ipsum_app_mig
         passwordSecret:
           name: cnpg-verification-ipsum-app-mig-b
   maxSyncReplicas: 0
