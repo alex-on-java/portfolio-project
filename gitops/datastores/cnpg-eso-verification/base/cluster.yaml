@@ -69,6 +69,8 @@ spec:
         ensure: present
         login: true
         inherit: false
+        inRoles:
+          - app
         passwordSecret:
           name: cnpg-verification-app-mig-a
       - name: app_mig_b
@@ -76,6 +78,8 @@ spec:
         ensure: present
         login: true
         inherit: false
+        inRoles:
+          - app
         passwordSecret:
           name: cnpg-verification-app-mig-b
   maxSyncReplicas: 0
