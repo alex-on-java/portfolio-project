@@ -5,23 +5,14 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "-5"
 data:
-  00-roles-and-grants.sql: |
-    CREATE ROLE app NOLOGIN;
-    CREATE ROLE app_ro NOLOGIN;
-    CREATE ROLE app_rw NOLOGIN;
+  00-roles-and-bootstrap-hardening.sql: |
+    CREATE ROLE lorem_app NOLOGIN;
+    CREATE ROLE lorem_app_ro NOLOGIN;
+    CREATE ROLE lorem_app_rw NOLOGIN;
+    CREATE ROLE ipsum_app NOLOGIN;
+    CREATE ROLE ipsum_app_ro NOLOGIN;
+    CREATE ROLE ipsum_app_rw NOLOGIN;
 
-    GRANT CONNECT ON DATABASE cnpg_eso_app TO app_ro;
-    GRANT CONNECT ON DATABASE cnpg_eso_app TO app_rw;
-
-    ALTER DATABASE cnpg_eso_app OWNER TO app;
-    CREATE SCHEMA app AUTHORIZATION app;
-
-    GRANT USAGE ON SCHEMA app TO app_ro;
-    GRANT USAGE ON SCHEMA app TO app_rw;
-
-    ALTER DEFAULT PRIVILEGES FOR ROLE app IN SCHEMA app
-      GRANT SELECT ON TABLES TO app_ro;
-    ALTER DEFAULT PRIVILEGES FOR ROLE app IN SCHEMA app
-      GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO app_rw;
-    ALTER DEFAULT PRIVILEGES FOR ROLE app IN SCHEMA app
-      GRANT USAGE, SELECT ON SEQUENCES TO app_rw;
+    ALTER DATABASE cnpg_eso_bootstrap OWNER TO bootstrap_owner;
+    REVOKE ALL ON DATABASE cnpg_eso_bootstrap FROM PUBLIC;
+    DROP SCHEMA IF EXISTS public;

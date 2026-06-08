@@ -20,6 +20,24 @@ test_container_sha256_placeholder if {
 	]}}
 }
 
+test_container_digest_pin if {
+	count(deny) == 0 with input as {"spec": {"containers": [
+		{"name": "app", "image": "postgres:18.3@sha256:7e32e9833a6fb1c92c32552794cb6ed569d51b445a54907d35fc112ef39684db"},
+	]}}
+}
+
+test_container_digest_without_tag_rejected if {
+	count(deny) > 0 with input as {"spec": {"containers": [
+		{"name": "app", "image": "postgres@sha256:7e32e9833a6fb1c92c32552794cb6ed569d51b445a54907d35fc112ef39684db"},
+	]}}
+}
+
+test_container_malformed_digest_rejected if {
+	count(deny) > 0 with input as {"spec": {"containers": [
+		{"name": "app", "image": "postgres:18.3@sha256:not-a-digest"},
+	]}}
+}
+
 test_container_latest_rejected if {
 	count(deny) > 0 with input as {"spec": {"containers": [
 		{"name": "app", "image": "nginx:latest"},

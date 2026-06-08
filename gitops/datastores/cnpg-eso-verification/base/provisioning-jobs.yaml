@@ -1,0 +1,91 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cnpg-verification-provision-lorem
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "20"
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: psql
+          image: postgres:18.3@sha256:7e32e9833a6fb1c92c32552794cb6ed569d51b445a54907d35fc112ef39684db
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: PGHOST
+              value: cnpg-eso-multidb-verification-rw
+            - name: PGPORT
+              value: "5432"
+            - name: PGDATABASE
+              value: lorem
+            - name: PGUSER
+              value: lorem_app_mig_a
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cnpg-verification-lorem-app-mig-a
+                  key: password
+            - name: PGOPTIONS
+              value: -c role=lorem_app
+          command:
+            - psql
+            - --set=ON_ERROR_STOP=1
+            - --file=/sql/provision-lorem.sql
+          volumeMounts:
+            - name: sql
+              mountPath: /sql
+              readOnly: true
+      volumes:
+        - name: sql
+          configMap:
+            name: cnpg-verification-provisioning-sql
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cnpg-verification-provision-ipsum
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "20"
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: psql
+          image: postgres:18.3@sha256:7e32e9833a6fb1c92c32552794cb6ed569d51b445a54907d35fc112ef39684db
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: PGHOST
+              value: cnpg-eso-multidb-verification-rw
+            - name: PGPORT
+              value: "5432"
+            - name: PGDATABASE
+              value: ipsum
+            - name: PGUSER
+              value: ipsum_app_mig_a
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cnpg-verification-ipsum-app-mig-a
+                  key: password
+            - name: PGOPTIONS
+              value: -c role=ipsum_app
+          command:
+            - psql
+            - --set=ON_ERROR_STOP=1
+            - --file=/sql/provision-ipsum.sql
+          volumeMounts:
+            - name: sql
+              mountPath: /sql
+              readOnly: true
+      volumes:
+        - name: sql
+          configMap:
+            name: cnpg-verification-provisioning-sql

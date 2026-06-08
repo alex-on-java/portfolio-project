@@ -1,7 +1,7 @@
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
-  name: cnpg-eso-verification
+  name: cnpg-eso-multidb-verification
   annotations:
     argocd.argoproj.io/sync-wave: "0"
 spec:
@@ -9,7 +9,7 @@ spec:
     podAntiAffinityType: preferred
   bootstrap:
     initdb:
-      database: cnpg_eso_app
+      database: cnpg_eso_bootstrap
       encoding: UTF8
       localeCType: C
       localeCollate: C
@@ -19,7 +19,7 @@ spec:
       postInitApplicationSQLRefs:
         configMapRefs:
           - name: cnpg-verification-postinit-sql
-            key: 00-roles-and-grants.sql
+            key: 00-roles-and-bootstrap-hardening.sql
   enablePDB: true
   enableSuperuserAccess: false
   failoverDelay: 0
@@ -28,60 +28,114 @@ spec:
   logLevel: info
   managed:
     roles:
-      - name: app_ro_a
+      - name: lorem_app_ro_a
         connectionLimit: -1
         ensure: present
         login: true
         inherit: true
         inRoles:
-          - app_ro
+          - lorem_app_ro
         passwordSecret:
-          name: cnpg-verification-app-ro-a
-      - name: app_ro_b
+          name: cnpg-verification-lorem-app-ro-a
+      - name: lorem_app_ro_b
         connectionLimit: -1
         ensure: present
         login: true
         inherit: true
         inRoles:
-          - app_ro
+          - lorem_app_ro
         passwordSecret:
-          name: cnpg-verification-app-ro-b
-      - name: app_rw_a
+          name: cnpg-verification-lorem-app-ro-b
+      - name: lorem_app_rw_a
         connectionLimit: -1
         ensure: present
         login: true
         inherit: true
         inRoles:
-          - app_rw
+          - lorem_app_rw
         passwordSecret:
-          name: cnpg-verification-app-rw-a
-      - name: app_rw_b
+          name: cnpg-verification-lorem-app-rw-a
+      - name: lorem_app_rw_b
         connectionLimit: -1
         ensure: present
         login: true
         inherit: true
         inRoles:
-          - app_rw
+          - lorem_app_rw
         passwordSecret:
-          name: cnpg-verification-app-rw-b
-      - name: app_mig_a
+          name: cnpg-verification-lorem-app-rw-b
+      - name: lorem_app_mig_a
         connectionLimit: -1
         ensure: present
         login: true
         inherit: false
         inRoles:
-          - app
+          - lorem_app
         passwordSecret:
-          name: cnpg-verification-app-mig-a
-      - name: app_mig_b
+          name: cnpg-verification-lorem-app-mig-a
+      - name: lorem_app_mig_b
         connectionLimit: -1
         ensure: present
         login: true
         inherit: false
         inRoles:
-          - app
+          - lorem_app
         passwordSecret:
-          name: cnpg-verification-app-mig-b
+          name: cnpg-verification-lorem-app-mig-b
+      - name: ipsum_app_ro_a
+        connectionLimit: -1
+        ensure: present
+        login: true
+        inherit: true
+        inRoles:
+          - ipsum_app_ro
+        passwordSecret:
+          name: cnpg-verification-ipsum-app-ro-a
+      - name: ipsum_app_ro_b
+        connectionLimit: -1
+        ensure: present
+        login: true
+        inherit: true
+        inRoles:
+          - ipsum_app_ro
+        passwordSecret:
+          name: cnpg-verification-ipsum-app-ro-b
+      - name: ipsum_app_rw_a
+        connectionLimit: -1
+        ensure: present
+        login: true
+        inherit: true
+        inRoles:
+          - ipsum_app_rw
+        passwordSecret:
+          name: cnpg-verification-ipsum-app-rw-a
+      - name: ipsum_app_rw_b
+        connectionLimit: -1
+        ensure: present
+        login: true
+        inherit: true
+        inRoles:
+          - ipsum_app_rw
+        passwordSecret:
+          name: cnpg-verification-ipsum-app-rw-b
+      - name: ipsum_app_mig_a
+        connectionLimit: -1
+        ensure: present
+        login: true
+        inherit: false
+        inRoles:
+          - ipsum_app
+        passwordSecret:
+          name: cnpg-verification-ipsum-app-mig-a
+      - name: ipsum_app_mig_b
+        connectionLimit: -1
+        ensure: present
+        login: true
+        inherit: false
+        inRoles:
+          - ipsum_app
+        passwordSecret:
+          name: cnpg-verification-ipsum-app-mig-b
   maxSyncReplicas: 0
   minSyncReplicas: 0
   monitoring:
@@ -129,8 +183,7 @@ spec:
         requestTimeout: 1000
   replicationSlots:
     highAvailability:
-      enabled: true
-      slotPrefix: _cnpg_
+      enabled: false
     synchronizeReplicas:
       enabled: true
     updateInterval: 30

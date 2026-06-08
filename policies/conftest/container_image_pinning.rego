@@ -8,6 +8,7 @@ deny contains msg if {
 	is_string(value)
 	not contains(value, "${{")
 	not contains(value, "{{")
+	not _valid_digest_pin(value)
 	tag := _extract_tag(value)
 	tag != ""
 	not _valid_container_tag(tag)
@@ -23,11 +24,19 @@ deny contains msg if {
 	is_string(value)
 	not contains(value, "${{")
 	not contains(value, "{{")
+	not _valid_digest_pin(value)
 	_extract_tag(value) == ""
 	msg := sprintf(
 		"Container image '%s' has no tag — must include a pinned version tag",
 		[value],
 	)
+}
+
+_valid_digest_pin(image) if {
+	parts := split(image, "@")
+	count(parts) == 2
+	regex.match("^sha256:[a-f0-9]{64}$", parts[1])
+	_extract_tag(parts[0]) != ""
 }
 
 _extract_tag(image) := tag if {

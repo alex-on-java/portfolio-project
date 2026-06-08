@@ -3,5 +3,9 @@ kind: Kustomization
 resources:
   - generated-secrets.yaml
   - postinit-sql.yaml
+  - provisioning-sql.yaml
   - cluster.yaml
-  - database-crd-probe.yaml
+  - database-lorem.yaml
+  - database-ipsum.yaml
+  - provisioning-jobs.yaml
+  - verification.yaml

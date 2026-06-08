@@ -1,0 +1,273 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cnpg-verification-script
+  annotations:
+    argocd.argoproj.io/sync-wave: "-5"
+data:
+  verify.sh: |
+    set -eu
+
+    fail() {
+      echo "FAIL: $1" >&2
+      exit 1
+    }
+
+    assert_eq() {
+      description="$1"
+      expected="$2"
+      actual="$3"
+      if [ "$actual" != "$expected" ]; then
+        fail "$description: expected '$expected', got '$actual'"
+      fi
+      echo "ok: $description"
+    }
+
+    psql_as() {
+      user="$1"
+      password="$2"
+      database="$3"
+      options="$4"
+      shift 4
+      PGUSER="$user" PGPASSWORD="$password" PGDATABASE="$database" PGOPTIONS="$options" \
+        psql --no-psqlrc --set=ON_ERROR_STOP=1 "$@"
+    }
+
+    scalar_as() {
+      user="$1"
+      password="$2"
+      database="$3"
+      options="$4"
+      sql="$5"
+      psql_as "$user" "$password" "$database" "$options" \
+        --tuples-only --no-align --command "$sql"
+    }
+
+    expect_failure() {
+      description="$1"
+      user="$2"
+      password="$3"
+      database="$4"
+      options="$5"
+      sql="$6"
+      if psql_as "$user" "$password" "$database" "$options" --command "$sql" >/tmp/expected-failure.log 2>&1; then
+        cat /tmp/expected-failure.log >&2
+        fail "$description unexpectedly succeeded"
+      fi
+      echo "ok: $description"
+    }
+
+    verify_service() {
+      service="$1"
+      other="$2"
+      mig_password="$3"
+      ro_a_password="$4"
+      ro_b_password="$5"
+      rw_a_password="$6"
+      rw_b_password="$7"
+      mig_b_password="$8"
+
+      owner="${service}_app"
+      ro_group="${service}_app_ro"
+      rw_group="${service}_app_rw"
+      mig_a="${service}_app_mig_a"
+      mig_b="${service}_app_mig_b"
+      ro_a="${service}_app_ro_a"
+      ro_b="${service}_app_ro_b"
+      rw_a="${service}_app_rw_a"
+      rw_b="${service}_app_rw_b"
+      role_options="-c role=${owner}"
+
+      assert_eq "${service} database exists" "1" "$(
+        scalar_as "$mig_a" "$mig_password" "$service" "$role_options" \
+          "SELECT count(*) FROM pg_database WHERE datname = '${service}';"
+      )"
+      assert_eq "${service} named schema exists" "1" "$(
+        scalar_as "$mig_a" "$mig_password" "$service" "$role_options" \
+          "SELECT count(*) FROM pg_namespace WHERE nspname = '${service}';"
+      )"
+      assert_eq "${service} public schema absent" "0" "$(
+        scalar_as "$mig_a" "$mig_password" "$service" "$role_options" \
+          "SELECT count(*) FROM pg_namespace WHERE nspname = 'public';"
+      )"
+      assert_eq "${service} PUBLIC has no CONNECT or TEMPORARY" "0" "$(
+        scalar_as "$mig_a" "$mig_password" "$service" "$role_options" \
+          "SELECT count(*)
+             FROM pg_database d
+             CROSS JOIN LATERAL aclexplode(coalesce(d.datacl, acldefault('d', d.datdba))) acl
+            WHERE d.datname = '${service}'
+              AND acl.grantee = 0
+              AND acl.privilege_type IN ('CONNECT', 'TEMPORARY');"
+      )"
+      assert_eq "${service} direct CONNECT grants are stable roles only" "3" "$(
+        scalar_as "$mig_a" "$mig_password" "$service" "$role_options" \
+          "SELECT count(DISTINCT r.rolname)
+             FROM pg_database d
+             CROSS JOIN LATERAL aclexplode(coalesce(d.datacl, acldefault('d', d.datdba))) acl
+             JOIN pg_roles r ON r.oid = acl.grantee
+            WHERE d.datname = '${service}'
+              AND acl.privilege_type = 'CONNECT'
+              AND r.rolname IN ('${owner}', '${ro_group}', '${rw_group}');"
+      )"
+      assert_eq "${service} rotating slots have no direct database ACLs" "0" "$(
+        scalar_as "$mig_a" "$mig_password" "$service" "$role_options" \
+          "SELECT count(*)
+             FROM pg_database d
+             CROSS JOIN LATERAL aclexplode(coalesce(d.datacl, acldefault('d', d.datdba))) acl
+             JOIN pg_roles r ON r.oid = acl.grantee
+            WHERE d.datname = '${service}'
+              AND r.rolname IN ('${ro_a}', '${ro_b}', '${rw_a}', '${rw_b}', '${mig_a}', '${mig_b}');"
+      )"
+
+      psql_as "$mig_a" "$mig_password" "$service" "$role_options" --command "
+        DROP TABLE IF EXISTS ${service}.verification_items;
+        DROP TABLE IF EXISTS ${service}.rw_forbidden;
+        CREATE TABLE ${service}.verification_items (
+          id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+          note text NOT NULL
+        );
+        INSERT INTO ${service}.verification_items (note) VALUES ('created-by-migration-slot');
+      "
+      assert_eq "${service} migration-created table is owned by stable owner" "$owner" "$(
+        scalar_as "$mig_a" "$mig_password" "$service" "$role_options" \
+          "SELECT pg_get_userbyid(c.relowner)
+             FROM pg_class c
+             JOIN pg_namespace n ON n.oid = c.relnamespace
+            WHERE n.nspname = '${service}'
+              AND c.relname = 'verification_items';"
+      )"
+
+      psql_as "$ro_a" "$ro_a_password" "$service" "" \
+        --command "SELECT count(*) FROM ${service}.verification_items;"
+      expect_failure "${service} RO slot cannot write" "$ro_a" "$ro_a_password" "$service" "" \
+        "INSERT INTO ${service}.verification_items (note) VALUES ('forbidden-ro-write');"
+
+      psql_as "$rw_a" "$rw_a_password" "$service" "" \
+        --command "INSERT INTO ${service}.verification_items (note) VALUES ('rw-write');"
+      expect_failure "${service} RW slot cannot perform DDL" "$rw_a" "$rw_a_password" "$service" "" \
+        "CREATE TABLE ${service}.rw_forbidden (id integer);"
+
+      expect_failure "${service} RO A cannot connect to ${other}" "$ro_a" "$ro_a_password" "$other" "" "SELECT 1;"
+      expect_failure "${service} RO B cannot connect to ${other}" "$ro_b" "$ro_b_password" "$other" "" "SELECT 1;"
+      expect_failure "${service} RW A cannot connect to ${other}" "$rw_a" "$rw_a_password" "$other" "" "SELECT 1;"
+      expect_failure "${service} RW B cannot connect to ${other}" "$rw_b" "$rw_b_password" "$other" "" "SELECT 1;"
+      expect_failure "${service} MIG A cannot connect to ${other}" "$mig_a" "$mig_password" "$other" "$role_options" "SELECT 1;"
+      expect_failure "${service} MIG B cannot connect to ${other}" "$mig_b" "$mig_b_password" "$other" "$role_options" "SELECT 1;"
+    }
+
+    assert_eq "lorem and ipsum databases are on this cluster" "2" "$(
+      scalar_as lorem_app_mig_a "$LOREM_MIG_A_PASSWORD" lorem "-c role=lorem_app" \
+        "SELECT count(*) FROM pg_database WHERE datname IN ('lorem', 'ipsum');"
+    )"
+    assert_eq "only namespaced service role families are present" "18" "$(
+      scalar_as lorem_app_mig_a "$LOREM_MIG_A_PASSWORD" lorem "-c role=lorem_app" \
+        "SELECT count(*) FROM pg_roles WHERE rolname ~ '^(lorem|ipsum)_app($|_)';"
+    )"
+    assert_eq "bare app role family is absent" "0" "$(
+      scalar_as lorem_app_mig_a "$LOREM_MIG_A_PASSWORD" lorem "-c role=lorem_app" \
+        "SELECT count(*) FROM pg_roles WHERE rolname = 'app' OR rolname LIKE 'app\_%' ESCAPE '\';"
+    )"
+
+    verify_service \
+      lorem ipsum \
+      "$LOREM_MIG_A_PASSWORD" "$LOREM_RO_A_PASSWORD" "$LOREM_RO_B_PASSWORD" \
+      "$LOREM_RW_A_PASSWORD" "$LOREM_RW_B_PASSWORD" "$LOREM_MIG_B_PASSWORD"
+
+    verify_service \
+      ipsum lorem \
+      "$IPSUM_MIG_A_PASSWORD" "$IPSUM_RO_A_PASSWORD" "$IPSUM_RO_B_PASSWORD" \
+      "$IPSUM_RW_A_PASSWORD" "$IPSUM_RW_B_PASSWORD" "$IPSUM_MIG_B_PASSWORD"
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cnpg-verification-acceptance
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "30"
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: verify
+          image: postgres:18.3@sha256:7e32e9833a6fb1c92c32552794cb6ed569d51b445a54907d35fc112ef39684db
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: PGHOST
+              value: cnpg-eso-multidb-verification-rw
+            - name: PGPORT
+              value: "5432"
+            - name: LOREM_RO_A_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cnpg-verification-lorem-app-ro-a
+                  key: password
+            - name: LOREM_RO_B_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cnpg-verification-lorem-app-ro-b
+                  key: password
+            - name: LOREM_RW_A_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cnpg-verification-lorem-app-rw-a
+                  key: password
+            - name: LOREM_RW_B_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cnpg-verification-lorem-app-rw-b
+                  key: password
+            - name: LOREM_MIG_A_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cnpg-verification-lorem-app-mig-a
+                  key: password
+            - name: LOREM_MIG_B_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cnpg-verification-lorem-app-mig-b
+                  key: password
+            - name: IPSUM_RO_A_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cnpg-verification-ipsum-app-ro-a
+                  key: password
+            - name: IPSUM_RO_B_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cnpg-verification-ipsum-app-ro-b
+                  key: password
+            - name: IPSUM_RW_A_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cnpg-verification-ipsum-app-rw-a
+                  key: password
+            - name: IPSUM_RW_B_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cnpg-verification-ipsum-app-rw-b
+                  key: password
+            - name: IPSUM_MIG_A_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cnpg-verification-ipsum-app-mig-a
+                  key: password
+            - name: IPSUM_MIG_B_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cnpg-verification-ipsum-app-mig-b
+                  key: password
+          command:
+            - /bin/sh
+            - /scripts/verify.sh
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+              readOnly: true
+      volumes:
+        - name: scripts
+          configMap:
+            name: cnpg-verification-script
