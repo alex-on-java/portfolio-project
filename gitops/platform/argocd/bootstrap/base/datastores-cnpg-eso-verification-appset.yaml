@@ -17,6 +17,8 @@ spec:
     metadata:
       name: datastores-cnpg-eso-verification
       namespace: argocd
+      annotations:
+        argocd.argoproj.io/compare-options: ServerSideDiff=true
       finalizers:
         - resources-finalizer.argocd.argoproj.io
     spec:
