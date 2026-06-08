@@ -6,12 +6,14 @@ resources:
   - argo-rollouts-helm-appset.yaml
   - cert-manager-helm-appset.yaml
   - cert-manager-config-appset.yaml
+  - cloudnative-pg-helm-appset.yaml
   - external-secrets-helm-appset.yaml
   - external-secrets-config-appset.yaml
   - contour-helm-appset.yaml
   - edge-routing-appset.yaml
   - external-dns-helm-appset.yaml
   - analysis-templates-appset.yaml
+  - datastores-cnpg-eso-verification-appset.yaml
   - workload-appset.yaml
   - convergence-checker-appset.yaml
   - kargo-observability-appset.yaml

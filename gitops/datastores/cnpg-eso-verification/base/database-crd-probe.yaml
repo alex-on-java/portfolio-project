@@ -1,0 +1,15 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: cnpg-eso-crd-probe
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+spec:
+  cluster:
+    name: cnpg-eso-verification
+  name: cnpg_eso_crd_probe
+  owner: app
+  reclaimPolicy: delete
+  schemas:
+    - name: app_crd
+      owner: app
