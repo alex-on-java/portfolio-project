@@ -32,9 +32,20 @@ spec:
             - name: PGOPTIONS
               value: -c role=lorem_app
           command:
-            - psql
-            - --set=ON_ERROR_STOP=1
-            - --file=/sql/provision-lorem.sql
+            - /bin/sh
+            - -ceu
+            - |
+              attempt=1
+              until psql --no-psqlrc --set=ON_ERROR_STOP=1 --command="SELECT 1" >/dev/null 2>&1; do
+                if [ "$attempt" -ge 60 ]; then
+                  psql --no-psqlrc --set=ON_ERROR_STOP=1 --command="SELECT 1"
+                  exit 1
+                fi
+                echo "waiting for database ${PGDATABASE} to accept migration connection"
+                attempt=$((attempt + 1))
+                sleep 5
+              done
+              psql --no-psqlrc --set=ON_ERROR_STOP=1 --file=/sql/provision-lorem.sql
           volumeMounts:
             - name: sql
               mountPath: /sql
@@ -78,9 +89,20 @@ spec:
             - name: PGOPTIONS
               value: -c role=ipsum_app
           command:
-            - psql
-            - --set=ON_ERROR_STOP=1
-            - --file=/sql/provision-ipsum.sql
+            - /bin/sh
+            - -ceu
+            - |
+              attempt=1
+              until psql --no-psqlrc --set=ON_ERROR_STOP=1 --command="SELECT 1" >/dev/null 2>&1; do
+                if [ "$attempt" -ge 60 ]; then
+                  psql --no-psqlrc --set=ON_ERROR_STOP=1 --command="SELECT 1"
+                  exit 1
+                fi
+                echo "waiting for database ${PGDATABASE} to accept migration connection"
+                attempt=$((attempt + 1))
+                sleep 5
+              done
+              psql --no-psqlrc --set=ON_ERROR_STOP=1 --file=/sql/provision-ipsum.sql
           volumeMounts:
             - name: sql
               mountPath: /sql
