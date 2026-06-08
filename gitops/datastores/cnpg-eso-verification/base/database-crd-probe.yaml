@@ -9,7 +9,9 @@ spec:
     name: cnpg-eso-verification
   name: cnpg_eso_crd_probe
   owner: app
+  ensure: present
   databaseReclaimPolicy: delete
   schemas:
     - name: app_crd
       owner: app
+      ensure: present
