@@ -26,7 +26,7 @@ spec:
       source:
         repoURL: https://github.com/alex-on-java/portfolio-project.git
         targetRevision: '{{index .metadata.annotations "target-revision"}}'
-        path: gitops/datastores/cnpg-eso-verification/base
+        path: gitops/datastores/cnpg-eso-verification/overlays/ephemeral
       destination:
         server: https://kubernetes.default.svc
         namespace: datastores

@@ -4,7 +4,7 @@ import rego.v1
 
 deny contains msg if {
 	walk(input, [path, value])
-	path[count(path) - 1] == "image"
+	_is_image_key(path[count(path) - 1])
 	is_string(value)
 	not contains(value, "${{")
 	not contains(value, "{{")
@@ -20,7 +20,7 @@ deny contains msg if {
 
 deny contains msg if {
 	walk(input, [path, value])
-	path[count(path) - 1] == "image"
+	_is_image_key(path[count(path) - 1])
 	is_string(value)
 	not contains(value, "${{")
 	not contains(value, "{{")
@@ -31,6 +31,13 @@ deny contains msg if {
 		[value],
 	)
 }
+
+# Keys whose string value names a container image. `image` covers Pod
+# containers and most workloads; `imageName` is the CNPG `Cluster` operand
+# field (spec.imageName) — without it the server image slips the gate.
+_is_image_key("image")
+
+_is_image_key("imageName")
 
 _valid_digest_pin(image) if {
 	parts := split(image, "@")

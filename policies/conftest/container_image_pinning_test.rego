@@ -85,3 +85,19 @@ test_container_registry_with_port if {
 		{"name": "app", "image": "registry:5000/myapp:1.0.0"},
 	]}}
 }
+
+test_cnpg_cluster_imagename_digest_pinned if {
+	count(deny) == 0 with input as {"apiVersion": "postgresql.cnpg.io/v1", "kind": "Cluster", "spec": {"imageName": "ghcr.io/cloudnative-pg/postgresql:18.3-system-trixie@sha256:0f29b435fb501ee534cd0c555d122a6b8e90de477de8e8381c82c5e10d9a9de4"}}
+}
+
+test_cnpg_cluster_imagename_floating_tag_rejected if {
+	count(deny) > 0 with input as {"apiVersion": "postgresql.cnpg.io/v1", "kind": "Cluster", "spec": {"imageName": "ghcr.io/cloudnative-pg/postgresql:18.3-system-trixie"}}
+}
+
+test_cnpg_cluster_imagename_no_tag_rejected if {
+	count(deny) > 0 with input as {"apiVersion": "postgresql.cnpg.io/v1", "kind": "Cluster", "spec": {"imageName": "ghcr.io/cloudnative-pg/postgresql"}}
+}
+
+test_cnpg_cluster_imagename_object_skipped if {
+	count(deny) == 0 with input as {"apiVersion": "postgresql.cnpg.io/v1", "kind": "Cluster", "spec": {"imageCatalogRef": {"imageName": {"kind": "ImageCatalog"}}}}
+}

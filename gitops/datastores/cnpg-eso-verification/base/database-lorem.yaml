@@ -10,7 +10,7 @@ spec:
   name: lorem
   owner: lorem_app
   ensure: present
-  databaseReclaimPolicy: delete
+  databaseReclaimPolicy: retain
   schemas:
     - name: lorem
       owner: lorem_app

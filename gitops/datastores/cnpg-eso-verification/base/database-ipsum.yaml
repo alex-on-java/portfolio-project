@@ -10,7 +10,7 @@ spec:
   name: ipsum
   owner: ipsum_app
   ensure: present
-  databaseReclaimPolicy: delete
+  databaseReclaimPolicy: retain
   schemas:
     - name: ipsum
       owner: ipsum_app

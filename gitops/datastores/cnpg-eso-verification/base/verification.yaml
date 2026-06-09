@@ -65,14 +65,12 @@ data:
       ro_b_password="$5"
       rw_a_password="$6"
       rw_b_password="$7"
-      mig_b_password="$8"
 
       owner="${service}_app"
       ro_group="${service}_app_ro"
       rw_group="${service}_app_rw"
       mig_group="${service}_app_mig"
       mig_a="${service}_app_mig_a"
-      mig_b="${service}_app_mig_b"
       ro_a="${service}_app_ro_a"
       ro_b="${service}_app_ro_b"
       rw_a="${service}_app_rw_a"
@@ -117,14 +115,14 @@ data:
              CROSS JOIN LATERAL aclexplode(coalesce(d.datacl, acldefault('d', d.datdba))) acl
              JOIN pg_roles r ON r.oid = acl.grantee
             WHERE d.datname = '${service}'
-              AND r.rolname IN ('${ro_a}', '${ro_b}', '${rw_a}', '${rw_b}', '${mig_a}', '${mig_b}');"
+              AND r.rolname IN ('${ro_a}', '${ro_b}', '${rw_a}', '${rw_b}', '${mig_a}');"
       )"
 
       psql_as "$mig_a" "$mig_password" "$service" "$role_options" --command "
         DROP TABLE IF EXISTS ${service}.verification_items;
         DROP TABLE IF EXISTS ${service}.rw_forbidden;
         CREATE TABLE ${service}.verification_items (
-          id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+          id serial PRIMARY KEY,
           note text NOT NULL
         );
         INSERT INTO ${service}.verification_items (note) VALUES ('created-by-migration-slot');
@@ -143,8 +141,14 @@ data:
       expect_failure "${service} RO slot cannot write" "$ro_a" "$ro_a_password" "$service" "" \
         "INSERT INTO ${service}.verification_items (note) VALUES ('forbidden-ro-write');"
 
-      psql_as "$rw_a" "$rw_a_password" "$service" "" \
-        --command "INSERT INTO ${service}.verification_items (note) VALUES ('rw-write');"
+      assert_eq "${service} RW slot insert advances the sequence" "1" "$(
+        scalar_as "$rw_a" "$rw_a_password" "$service" "" \
+          "WITH ins AS (
+             INSERT INTO ${service}.verification_items (note) VALUES ('rw-write')
+               RETURNING id
+           )
+           SELECT (id > 0)::int FROM ins;"
+      )"
       expect_failure "${service} RW slot cannot perform DDL" "$rw_a" "$rw_a_password" "$service" "" \
         "CREATE TABLE ${service}.rw_forbidden (id integer);"
 
@@ -153,14 +157,13 @@ data:
       expect_failure "${service} RW A cannot connect to ${other}" "$rw_a" "$rw_a_password" "$other" "" "SELECT 1;"
       expect_failure "${service} RW B cannot connect to ${other}" "$rw_b" "$rw_b_password" "$other" "" "SELECT 1;"
       expect_failure "${service} MIG A cannot connect to ${other}" "$mig_a" "$mig_password" "$other" "$role_options" "SELECT 1;"
-      expect_failure "${service} MIG B cannot connect to ${other}" "$mig_b" "$mig_b_password" "$other" "$role_options" "SELECT 1;"
     }
 
     assert_eq "lorem and ipsum databases are on this cluster" "2" "$(
       scalar_as lorem_app_mig_a "$LOREM_MIG_A_PASSWORD" lorem "-c role=lorem_app" \
         "SELECT count(*) FROM pg_database WHERE datname IN ('lorem', 'ipsum');"
     )"
-    assert_eq "only namespaced service role families are present" "20" "$(
+    assert_eq "only namespaced service role families are present" "18" "$(
       scalar_as lorem_app_mig_a "$LOREM_MIG_A_PASSWORD" lorem "-c role=lorem_app" \
         "SELECT count(*) FROM pg_roles WHERE rolname ~ '^(lorem|ipsum)_app($|_)';"
     )"
@@ -172,12 +175,12 @@ data:
     verify_service \
       lorem ipsum \
       "$LOREM_MIG_A_PASSWORD" "$LOREM_RO_A_PASSWORD" "$LOREM_RO_B_PASSWORD" \
-      "$LOREM_RW_A_PASSWORD" "$LOREM_RW_B_PASSWORD" "$LOREM_MIG_B_PASSWORD"
+      "$LOREM_RW_A_PASSWORD" "$LOREM_RW_B_PASSWORD"
 
     verify_service \
       ipsum lorem \
       "$IPSUM_MIG_A_PASSWORD" "$IPSUM_RO_A_PASSWORD" "$IPSUM_RO_B_PASSWORD" \
-      "$IPSUM_RW_A_PASSWORD" "$IPSUM_RW_B_PASSWORD" "$IPSUM_MIG_B_PASSWORD"
+      "$IPSUM_RW_A_PASSWORD" "$IPSUM_RW_B_PASSWORD"
 ---
 apiVersion: batch/v1
 kind: Job
@@ -194,8 +197,17 @@ spec:
       restartPolicy: Never
       containers:
         - name: verify
-          image: postgres:18.3@sha256:7e32e9833a6fb1c92c32552794cb6ed569d51b445a54907d35fc112ef39684db
+          image: ghcr.io/cloudnative-pg/postgresql:18.3-system-trixie@sha256:0f29b435fb501ee534cd0c555d122a6b8e90de477de8e8381c82c5e10d9a9de4
           imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+              ephemeral-storage: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+              ephemeral-storage: 64Mi
           env:
             - name: PGHOST
               value: cnpg-eso-multidb-verification-rw
@@ -226,11 +238,6 @@ spec:
                 secretKeyRef:
                   name: cnpg-verification-lorem-app-mig-a
                   key: password
-            - name: LOREM_MIG_B_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: cnpg-verification-lorem-app-mig-b
-                  key: password
             - name: IPSUM_RO_A_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -255,11 +262,6 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: cnpg-verification-ipsum-app-mig-a
-                  key: password
-            - name: IPSUM_MIG_B_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: cnpg-verification-ipsum-app-mig-b
                   key: password
           command:
             - /bin/sh

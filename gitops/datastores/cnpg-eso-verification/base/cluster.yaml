@@ -14,20 +14,30 @@ spec:
       localeCType: C
       localeCollate: C
       owner: bootstrap_owner
-      secret:
-        name: cnpg-verification-bootstrap-owner
       postInitApplicationSQLRefs:
         configMapRefs:
           - name: cnpg-verification-postinit-sql
-            key: 00-roles-and-bootstrap-hardening.sql
+            key: 00-bootstrap-hardening.sql
   enablePDB: true
   enableSuperuserAccess: false
   failoverDelay: 0
-  imageName: ghcr.io/cloudnative-pg/postgresql:18.3-system-trixie
+  imageName: ghcr.io/cloudnative-pg/postgresql:18.3-system-trixie@sha256:0f29b435fb501ee534cd0c555d122a6b8e90de477de8e8381c82c5e10d9a9de4
   instances: 1
   logLevel: info
   managed:
     roles:
+      - name: lorem_app
+        ensure: present
+        login: false
+        inherit: false
+      - name: lorem_app_ro
+        ensure: present
+        login: false
+        inherit: false
+      - name: lorem_app_rw
+        ensure: present
+        login: false
+        inherit: false
       - name: lorem_app_mig
         ensure: present
         login: false
@@ -79,15 +89,18 @@ spec:
           - lorem_app_mig
         passwordSecret:
           name: cnpg-verification-lorem-app-mig-a
-      - name: lorem_app_mig_b
-        connectionLimit: -1
+      - name: ipsum_app
         ensure: present
-        login: true
-        inherit: true
-        inRoles:
-          - lorem_app_mig
-        passwordSecret:
-          name: cnpg-verification-lorem-app-mig-b
+        login: false
+        inherit: false
+      - name: ipsum_app_ro
+        ensure: present
+        login: false
+        inherit: false
+      - name: ipsum_app_rw
+        ensure: present
+        login: false
+        inherit: false
       - name: ipsum_app_mig
         ensure: present
         login: false
@@ -139,15 +152,6 @@ spec:
           - ipsum_app_mig
         passwordSecret:
           name: cnpg-verification-ipsum-app-mig-a
-      - name: ipsum_app_mig_b
-        connectionLimit: -1
-        ensure: present
-        login: true
-        inherit: true
-        inRoles:
-          - ipsum_app_mig
-        passwordSecret:
-          name: cnpg-verification-ipsum-app-mig-b
   maxSyncReplicas: 0
   minSyncReplicas: 0
   monitoring:
@@ -186,7 +190,7 @@ spec:
     syncReplicaElectionConstraint:
       enabled: false
   primaryUpdateMethod: restart
-  primaryUpdateStrategy: unsupervised
+  primaryUpdateStrategy: supervised
   probes:
     liveness:
       isolationCheck:

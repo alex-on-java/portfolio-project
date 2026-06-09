@@ -5,14 +5,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "-5"
 data:
-  00-roles-and-bootstrap-hardening.sql: |
-    CREATE ROLE lorem_app NOLOGIN;
-    CREATE ROLE lorem_app_ro NOLOGIN;
-    CREATE ROLE lorem_app_rw NOLOGIN;
-    CREATE ROLE ipsum_app NOLOGIN;
-    CREATE ROLE ipsum_app_ro NOLOGIN;
-    CREATE ROLE ipsum_app_rw NOLOGIN;
-
-    ALTER DATABASE cnpg_eso_bootstrap OWNER TO bootstrap_owner;
+  00-bootstrap-hardening.sql: |
+    ALTER ROLE bootstrap_owner NOLOGIN;
     REVOKE ALL ON DATABASE cnpg_eso_bootstrap FROM PUBLIC;
     DROP SCHEMA IF EXISTS public;
