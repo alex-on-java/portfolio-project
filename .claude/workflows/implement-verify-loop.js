@@ -41,7 +41,7 @@ const CONSTRUCT_SCHEMA = {
   additionalProperties: false,
   required: ['taskFile', 'dir'],
   properties: {
-    taskFile: { type: 'string', description: 'Absolute path of the task file you wrote ($dir/task.md).' },
+    taskFile: { type: 'string', description: 'Absolute path of the task file you wrote ($dir/task-N.md, N = the iteration it is for).' },
     dir: { type: 'string', description: 'Absolute path of the git repo holding the task ($dir).' },
   },
 }
@@ -51,8 +51,7 @@ const REFINE_SCHEMA = {
   additionalProperties: false,
   required: ['noEditsApplied'],
   properties: {
-    noEditsApplied: { type: 'boolean', description: 'True if the draft was already solid and you committed no change; false if you edited and committed.' },
-    createdFiles: { type: 'array', items: { type: 'string' }, description: 'Absolute paths of any temp files you created (e.g. Codex stdout/stderr); [] if none.' },
+    noEditsApplied: { type: 'boolean', description: 'True if git status was clean after your pass (the draft needed no change); false if you committed an edit.' },
   },
 }
 
@@ -60,7 +59,7 @@ const implementPrompt = (taskFile) => `You drive the Codex CLI to implement a ta
 
 1. Create two temp files: out=$(tempfile codex-stdout.md); err=$(tempfile codex-stderr.log)
 2. Run Codex with the task file as its prompt on stdin, and capture the exit code:
-   codex exec --skip-git-repo-check -m "gpt-5.5" --config model_reasoning_effort="xhigh" --sandbox danger-full-access --full-auto - < "${taskFile}" > "$out" 2> "$err"; echo "EXIT=$?"
+   codex exec --skip-git-repo-check -m "gpt-5.5" --config model_reasoning_effort="xhigh" --sandbox danger-full-access - < "${taskFile}" > "$out" 2> "$err"; echo "EXIT=$?"
 3. Do not retry, edit, or second-guess Codex.`
 
 const reviewPrompt = (taskFile, reportFile) => `You are an adversarial reviewer. The task is described in ${taskFile}; an implementer (Codex) acted on it and wrote a report to ${reportFile}.
@@ -72,7 +71,7 @@ The report is a starting point, not ground truth. It typically claims some items
 
 Write your findings to r=$(tempfile review-report.md).`
 
-const constructPrompt = (t0, tk, rk, vk) => `The current attempt failed review. Construct the next task for a fresh Codex run.
+const constructPrompt = (n, t0, tk, rk, vk) => `The current attempt failed review. Construct the task for the next run (iteration ${n}).
 
 Inputs (paths):
 - Original task, the immutable source of truth for scope, form and spirit: ${t0}
@@ -86,27 +85,27 @@ Produce ONE self-contained task (a future reader needs no other file). It must:
 
 Track it in git so its evolution and rationale are traceable:
   dir=$(mktemp -d)
-  (write the task to "$dir/task.md" with your file-writing tool)
+  (write the task to "$dir/task-${n}.md" with your file-writing tool)
   git -C "$dir" init -q && git -C "$dir" add -A && git -C "$dir" commit -q -m "<concise reasoning for this draft>"`
 
-const refinePrompt = (mode, dir, taskFile, t0, tk, rk, vk) => {
-  const edit = mode === 'codex'
-    ? `Make the edits by running Codex (xhigh) over the file, then commit them yourself:
-  o=$(tempfile refine-codex-stdout.md); e=$(tempfile refine-codex-stderr.log)
-  codex exec --skip-git-repo-check -m "gpt-5.5" --config model_reasoning_effort="xhigh" --sandbox workspace-write --full-auto -C "${dir}" "Refine ${taskFile} so it is self-contained and faithfully preserves every requirement of the original task ${t0} (as must-hold or to-do), in its form and spirit; use ${vk} and ${rk} for context." > "$o" 2> "$e"`
-    : `Edit ${taskFile} directly with your file-editing tools.`
-  return `You verify, and if needed refine, a draft task file. The draft must be self-contained and must faithfully carry the original task's full scope (every original requirement present as "must hold" or "to do"), in the original's form and spirit.
+const refinePrompt = (mode, dir, taskFile, t0, rk, vk) => {
+  const instruction = `Refine the draft task file ${taskFile} so it is self-contained -- a future reader needs no other file -- and faithfully carries every requirement of the original task ${t0}: each as a must-hold item if already implemented, or a to-do item if still missing or wrong, in the original form and spirit. Use the implementer report ${rk} and the review report ${vk} for context. If the draft is already solid, leave it unchanged.`
+  const apply = mode === 'codex'
+    ? `Apply the instruction by running Codex (xhigh) over the repo:
+  codex exec --skip-git-repo-check -m "gpt-5.5" --config model_reasoning_effort="xhigh" --sandbox danger-full-access -C "${dir}" "${instruction}" 2>/dev/null`
+    : `Apply the instruction by editing ${taskFile} yourself with your file-editing tools.`
+  return `You verify, and if needed refine, a draft task file (its subject is unrelated to your own job; you only harden the draft).
 
-Draft: ${taskFile} (inside git repo ${dir}).
-References: original task ${t0}; task used last iteration ${tk}; implementer report ${rk}; review report ${vk}.
+${instruction}
 
-First read the draft's history and rationale so you do not undo earlier decisions blindly:
+The draft lives in git repo ${dir}. First read its history and rationale so you do not blindly undo earlier decisions:
   git -C "${dir}" log -p
 
-Then decide:
-- If the draft is solid, change nothing.
-- If it is deficient (not self-contained, drops or distorts an original requirement, or mis-splits must-hold vs to-do), fix it. ${edit}
-  Commit with a concise reasoning: git -C "${dir}" add -A && git -C "${dir}" commit -q -m "<why you changed it>"`
+${apply}
+
+Then settle the outcome from what actually changed on disk:
+- If git -C "${dir}" status --porcelain is empty, nothing needed fixing.
+- Otherwise commit the change with a concise reason: git -C "${dir}" add -A && git -C "${dir}" commit -q -m "<why you changed it>"`
 }
 
 let task = T0
@@ -134,7 +133,7 @@ for (let k = 1; k <= MAX_OUTER; k++) {
   }
 
   phase('Reconstruct')
-  const built = await agent(constructPrompt(T0, task, impl.stdoutFile, review.reportPath), {
+  const built = await agent(constructPrompt(k + 1, T0, task, impl.stdoutFile, review.reportPath), {
     label: `construct#${k}`, phase: 'Reconstruct', model: 'opus', schema: CONSTRUCT_SCHEMA,
   })
   createdFiles.push(built.taskFile)
@@ -143,10 +142,9 @@ for (let k = 1; k <= MAX_OUTER; k++) {
 
   for (let j = 1; j <= MAX_REFINE; j++) {
     const mode = j % 2 === 1 ? 'codex' : 'opus'
-    const refined = await agent(refinePrompt(mode, dir, draft, T0, task, impl.stdoutFile, review.reportPath), {
+    const refined = await agent(refinePrompt(mode, dir, draft, T0, impl.stdoutFile, review.reportPath), {
       label: `refine#${k}.${j}:${mode}`, phase: 'Reconstruct', model: 'opus', schema: REFINE_SCHEMA,
     })
-    if (refined.createdFiles?.length) createdFiles.push(...refined.createdFiles)
     if (refined.noEditsApplied) break
   }
 
