@@ -7,5 +7,6 @@ resources:
   - cluster.yaml
   - database-lorem.yaml
   - database-ipsum.yaml
+  - database-dolor.yaml
   - provisioning-jobs.yaml
   - verification.yaml

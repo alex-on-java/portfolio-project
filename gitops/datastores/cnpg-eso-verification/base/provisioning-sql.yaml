@@ -33,3 +33,17 @@ data:
       GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO ipsum_app_rw;
     ALTER DEFAULT PRIVILEGES FOR ROLE ipsum_app IN SCHEMA ipsum
       GRANT USAGE, SELECT ON SEQUENCES TO ipsum_app_rw;
+  provision-dolor.sql: |
+    REVOKE ALL ON DATABASE dolor FROM PUBLIC;
+    GRANT CONNECT ON DATABASE dolor TO dolor_app, dolor_app_ro, dolor_app_rw, dolor_app_mig;
+    DROP SCHEMA IF EXISTS public;
+
+    GRANT USAGE ON SCHEMA dolor TO dolor_app_ro;
+    GRANT USAGE ON SCHEMA dolor TO dolor_app_rw;
+
+    ALTER DEFAULT PRIVILEGES FOR ROLE dolor_app IN SCHEMA dolor
+      GRANT SELECT ON TABLES TO dolor_app_ro;
+    ALTER DEFAULT PRIVILEGES FOR ROLE dolor_app IN SCHEMA dolor
+      GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO dolor_app_rw;
+    ALTER DEFAULT PRIVILEGES FOR ROLE dolor_app IN SCHEMA dolor
+      GRANT USAGE, SELECT ON SEQUENCES TO dolor_app_rw;
