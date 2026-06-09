@@ -1,9 +1,9 @@
 export const meta = {
   name: 'implement-verify-loop',
-  description: 'Codex implements a file-described task, an adversarial reviewer verifies it against the task letter and spirit, and on failure a git-tracked constructor + alternating refine loop builds a self-contained follow-up task for a fresh Codex run, up to 5 iterations.',
+  description: 'An Opus agent implements a file-described task directly, an adversarial Opus reviewer verifies it against the task letter and spirit, and on failure a git-tracked constructor + alternating refine loop (Codex on odd passes) builds a self-contained follow-up task, up to 5 iterations.',
   whenToUse: 'Invoke with args: {"taskFile": "/abs/path/to/task.md"}. Reusable: the task lives only in the file, never in these prompts.',
   phases: [
-    { title: 'Implement', detail: 'Codex (xhigh, danger sandbox) applies the current task' },
+    { title: 'Implement', detail: 'Opus implements the current task directly' },
     { title: 'Review', detail: 'adversarial verify of done-claims and not-done reasons' },
     { title: 'Reconstruct', detail: 'git-tracked constructor + alternating refine loop builds the next task' },
   ],
@@ -34,11 +34,9 @@ const createdFiles = []
 const IMPL_SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['exitCode', 'stdoutFile', 'stderrFile'],
+  required: ['reportFile'],
   properties: {
-    exitCode: { type: 'integer', description: 'The exit code Codex returned (the EXIT=$? value), not your own status.' },
-    stdoutFile: { type: 'string', description: 'Absolute path of the temp file capturing Codex stdout ($out).' },
-    stderrFile: { type: 'string', description: 'Absolute path of the temp file capturing Codex stderr ($err).' },
+    reportFile: { type: 'string', description: 'Absolute path of the report file you wrote ($report): what you implemented, what you deliberately left undone and why, and the verification you ran with its outcome.' },
   },
 }
 
@@ -71,14 +69,13 @@ const REFINE_SCHEMA = {
   },
 }
 
-const implementPrompt = (taskFile) => `You drive the Codex CLI to implement a task described in a file. You implement nothing yourself.
+const implementPrompt = (taskFile) => `You implement a task described in a file, directly, with your own tools, in the current repository.
 
-1. Create two temp files: out=$(tempfile codex-stdout.md); err=$(tempfile codex-stderr.log)
-2. Run Codex with the task file as its prompt on stdin, and capture the exit code:
-   codex exec --skip-git-repo-check -m "gpt-5.5" --config model_reasoning_effort="xhigh" --sandbox danger-full-access - < "${taskFile}" > "$out" 2> "$err"; echo "EXIT=$?"
-3. Do not retry, edit, or second-guess Codex.`
+1. Read the task at ${taskFile} and implement it in the repository, honouring both its letter and its spirit.
+2. Verify your work with the checks the task and repo make available -- run them yourself rather than assuming; linting is hygiene, not evidence the change works.
+3. Write a report to report=$(tempfile impl-report.md): what you implemented, what you deliberately left undone and why, and the verification you ran with its outcome. An adversarial reviewer reads this report, so be precise and honest -- unsupported "done" claims will be caught.`
 
-const reviewPrompt = (taskFile, reportFile) => `You are an adversarial reviewer. The task is described in ${taskFile}; an implementer (Codex) acted on it and wrote a report to ${reportFile}.
+const reviewPrompt = (taskFile, reportFile) => `You are an adversarial reviewer. The task is described in ${taskFile}; an implementer acted on it and wrote a report to ${reportFile}.
 
 The report is a starting point, not ground truth. It typically claims some items done and explains why others were not.
 - For every "done" claim: verify it against the actual repository state (inspect files, run checks). Do not trust the claim.
@@ -129,15 +126,12 @@ let task = T0
 for (let k = 1; k <= MAX_OUTER; k++) {
   phase('Implement')
   const impl = await agent(implementPrompt(task), {
-    label: `codex-impl#${k}`, phase: 'Implement', model: 'opus', schema: IMPL_SCHEMA,
+    label: `impl#${k}`, phase: 'Implement', model: 'opus', schema: IMPL_SCHEMA,
   })
-  createdFiles.push(impl.stdoutFile, impl.stderrFile)
-  if (impl.exitCode !== 0) {
-    return { status: 'halted', iteration: k, exitCode: impl.exitCode, stdoutFile: impl.stdoutFile, stderrFile: impl.stderrFile, createdFiles }
-  }
+  createdFiles.push(impl.reportFile)
 
   phase('Review')
-  const review = await agent(reviewPrompt(task, impl.stdoutFile), {
+  const review = await agent(reviewPrompt(task, impl.reportFile), {
     label: `review#${k}`, phase: 'Review', model: 'opus', schema: REVIEW_SCHEMA,
   })
   createdFiles.push(review.reportPath)
@@ -149,7 +143,7 @@ for (let k = 1; k <= MAX_OUTER; k++) {
   }
 
   phase('Reconstruct')
-  const built = await agent(constructPrompt(k + 1, T0, task, impl.stdoutFile, review.reportPath), {
+  const built = await agent(constructPrompt(k + 1, T0, task, impl.reportFile, review.reportPath), {
     label: `construct#${k}`, phase: 'Reconstruct', model: 'opus', schema: CONSTRUCT_SCHEMA,
   })
   createdFiles.push(built.taskFile)
@@ -158,7 +152,7 @@ for (let k = 1; k <= MAX_OUTER; k++) {
 
   for (let j = 1; j <= MAX_REFINE; j++) {
     const mode = j % 2 === 1 ? 'codex' : 'opus'
-    const refined = await agent(refinePrompt(mode, dir, draft, T0, impl.stdoutFile, review.reportPath), {
+    const refined = await agent(refinePrompt(mode, dir, draft, T0, impl.reportFile, review.reportPath), {
       label: `refine#${k}.${j}:${mode}`, phase: 'Reconstruct', model: 'opus', schema: REFINE_SCHEMA,
     })
     if (refined.noEditsApplied) break
