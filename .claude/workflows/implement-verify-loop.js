@@ -12,7 +12,23 @@ export const meta = {
 const MAX_OUTER = 5
 const MAX_REFINE = 5
 
-const T0 = args.taskFile
+function parseWorkflowArgs(rawArgs) {
+  if (!rawArgs) return {}
+  if (typeof rawArgs === 'string') {
+    const text = rawArgs.trim()
+    if (!text) return {}
+    try {
+      const parsed = JSON.parse(text)
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
+    } catch {
+      return {}
+    }
+  }
+  return typeof rawArgs === 'object' && !Array.isArray(rawArgs) ? rawArgs : {}
+}
+
+const workflowArgs = parseWorkflowArgs(typeof args === 'undefined' ? undefined : args)
+const T0 = workflowArgs.taskFile
 const createdFiles = []
 
 const IMPL_SCHEMA = {
