@@ -23,6 +23,7 @@ spec:
   monitoring:
     disableDefaultQueries: true
     enablePodMonitor: false
+  primaryUpdateStrategy: supervised
   replicationSlots:
     highAvailability:
       enabled: false

@@ -39,7 +39,6 @@ spec:
     syncReplicaElectionConstraint:
       enabled: false
   primaryUpdateMethod: restart
-  primaryUpdateStrategy: supervised
   probes:
     liveness:
       isolationCheck:
