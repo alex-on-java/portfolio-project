@@ -1,0 +1,72 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: cnpg-eso-multidb-verification
+spec:
+  managed:
+    roles:
+{%- for service in services %}
+      - name: {{ service }}_app
+        ensure: present
+        login: false
+        inherit: false
+      - name: {{ service }}_app_ro
+        ensure: present
+        login: false
+        inherit: false
+      - name: {{ service }}_app_rw
+        ensure: present
+        login: false
+        inherit: false
+      - name: {{ service }}_app_mig
+        ensure: present
+        login: false
+        inherit: false
+        inRoles:
+          - {{ service }}_app
+      - name: {{ service }}_app_ro_a
+        connectionLimit: -1
+        ensure: present
+        login: true
+        inherit: true
+        inRoles:
+          - {{ service }}_app_ro
+        passwordSecret:
+          name: cnpg-verification-{{ service }}-app-ro-a
+      - name: {{ service }}_app_ro_b
+        connectionLimit: -1
+        ensure: present
+        login: true
+        inherit: true
+        inRoles:
+          - {{ service }}_app_ro
+        passwordSecret:
+          name: cnpg-verification-{{ service }}-app-ro-b
+      - name: {{ service }}_app_rw_a
+        connectionLimit: -1
+        ensure: present
+        login: true
+        inherit: true
+        inRoles:
+          - {{ service }}_app_rw
+        passwordSecret:
+          name: cnpg-verification-{{ service }}-app-rw-a
+      - name: {{ service }}_app_rw_b
+        connectionLimit: -1
+        ensure: present
+        login: true
+        inherit: true
+        inRoles:
+          - {{ service }}_app_rw
+        passwordSecret:
+          name: cnpg-verification-{{ service }}-app-rw-b
+      - name: {{ service }}_app_mig_a
+        connectionLimit: -1
+        ensure: present
+        login: true
+        inherit: true
+        inRoles:
+          - {{ service }}_app_mig
+        passwordSecret:
+          name: cnpg-verification-{{ service }}-app-mig-a
+{%- endfor %}

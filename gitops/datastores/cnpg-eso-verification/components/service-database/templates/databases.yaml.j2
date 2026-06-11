@@ -1,17 +1,21 @@
+{% for service in services -%}
 apiVersion: postgresql.cnpg.io/v1
 kind: Database
 metadata:
-  name: cnpg-eso-ipsum
+  name: cnpg-eso-{{ service }}
   annotations:
     argocd.argoproj.io/sync-wave: "10"
 spec:
   cluster:
     name: cnpg-eso-multidb-verification
-  name: ipsum
-  owner: ipsum_app
+  name: {{ service }}
+  owner: {{ service }}_app
   ensure: present
   databaseReclaimPolicy: retain
   schemas:
-    - name: ipsum
-      owner: ipsum_app
+    - name: {{ service }}
+      owner: {{ service }}_app
       ensure: present
+{% if not loop.last %}---
+{% endif %}
+{%- endfor %}

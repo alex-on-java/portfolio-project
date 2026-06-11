@@ -1,15 +1,12 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - generated-secrets.yaml
+  - password-generator.yaml
   - postinit-sql.yaml
-  - provisioning-sql.yaml
   - cluster.yaml
-  - database-lorem.yaml
-  - database-ipsum.yaml
-  - database-dolor.yaml
-  - provisioning-jobs.yaml
   - verification.yaml
+components:
+  - ../components/service-database/generated
 patches:
   - path: operator-roundtrip-defaults.yaml
     target:

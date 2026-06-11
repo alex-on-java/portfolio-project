@@ -1,0 +1,69 @@
+{% for service in services -%}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cnpg-verification-provision-{{ service }}
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "20"
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: psql
+          image: ghcr.io/cloudnative-pg/postgresql:18.3-system-trixie@sha256:0f29b435fb501ee534cd0c555d122a6b8e90de477de8e8381c82c5e10d9a9de4
+          imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+              ephemeral-storage: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+              ephemeral-storage: 64Mi
+          env:
+            - name: PGHOST
+              value: cnpg-eso-multidb-verification-rw
+            - name: PGPORT
+              value: "5432"
+            - name: PGDATABASE
+              value: {{ service }}
+            - name: PGUSER
+              value: {{ service }}_app_mig_a
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cnpg-verification-{{ service }}-app-mig-a
+                  key: password
+            - name: PGOPTIONS
+              value: -c role={{ service }}_app
+          command:
+            - /bin/sh
+            - -ceu
+            - |
+              attempt=1
+              until psql --no-psqlrc --set=ON_ERROR_STOP=1 --command="SELECT 1" >/dev/null 2>&1; do
+                if [ "$attempt" -ge 60 ]; then
+                  psql --no-psqlrc --set=ON_ERROR_STOP=1 --command="SELECT 1"
+                  exit 1
+                fi
+                echo "waiting for database ${PGDATABASE} to accept migration connection"
+                attempt=$((attempt + 1))
+                sleep 5
+              done
+              psql --no-psqlrc --set=ON_ERROR_STOP=1 --file=/sql/provision-{{ service }}.sql
+          volumeMounts:
+            - name: sql
+              mountPath: /sql
+              readOnly: true
+      volumes:
+        - name: sql
+          configMap:
+            name: cnpg-verification-provisioning-sql
+{% if not loop.last %}---
+{% endif %}
+{%- endfor %}

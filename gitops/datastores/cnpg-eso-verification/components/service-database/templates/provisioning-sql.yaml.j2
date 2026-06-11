@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cnpg-verification-provisioning-sql
+  annotations:
+    argocd.argoproj.io/sync-wave: "-5"
+data:
+{%- for service in services %}
+  provision-{{ service }}.sql: |
+    REVOKE ALL ON DATABASE {{ service }} FROM PUBLIC;
+    GRANT CONNECT ON DATABASE {{ service }} TO {{ service }}_app, {{ service }}_app_ro, {{ service }}_app_rw, {{ service }}_app_mig;
+    DROP SCHEMA IF EXISTS public;
+
+    GRANT USAGE ON SCHEMA {{ service }} TO {{ service }}_app_ro;
+    GRANT USAGE ON SCHEMA {{ service }} TO {{ service }}_app_rw;
+
+    ALTER DEFAULT PRIVILEGES FOR ROLE {{ service }}_app IN SCHEMA {{ service }}
+      GRANT SELECT ON TABLES TO {{ service }}_app_ro;
+    ALTER DEFAULT PRIVILEGES FOR ROLE {{ service }}_app IN SCHEMA {{ service }}
+      GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO {{ service }}_app_rw;
+    ALTER DEFAULT PRIVILEGES FOR ROLE {{ service }}_app IN SCHEMA {{ service }}
+      GRANT USAGE, SELECT ON SEQUENCES TO {{ service }}_app_rw;
+{%- endfor %}
