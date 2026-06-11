@@ -132,3 +132,66 @@ spec:
           - ipsum_app_mig
         passwordSecret:
           name: cnpg-verification-ipsum-app-mig-a
+      - name: dolor_app
+        ensure: present
+        login: false
+        inherit: false
+      - name: dolor_app_ro
+        ensure: present
+        login: false
+        inherit: false
+      - name: dolor_app_rw
+        ensure: present
+        login: false
+        inherit: false
+      - name: dolor_app_mig
+        ensure: present
+        login: false
+        inherit: false
+        inRoles:
+          - dolor_app
+      - name: dolor_app_ro_a
+        connectionLimit: -1
+        ensure: present
+        login: true
+        inherit: true
+        inRoles:
+          - dolor_app_ro
+        passwordSecret:
+          name: cnpg-verification-dolor-app-ro-a
+      - name: dolor_app_ro_b
+        connectionLimit: -1
+        ensure: present
+        login: true
+        inherit: true
+        inRoles:
+          - dolor_app_ro
+        passwordSecret:
+          name: cnpg-verification-dolor-app-ro-b
+      - name: dolor_app_rw_a
+        connectionLimit: -1
+        ensure: present
+        login: true
+        inherit: true
+        inRoles:
+          - dolor_app_rw
+        passwordSecret:
+          name: cnpg-verification-dolor-app-rw-a
+      - name: dolor_app_rw_b
+        connectionLimit: -1
+        ensure: present
+        login: true
+        inherit: true
+        inRoles:
+          - dolor_app_rw
+        passwordSecret:
+          name: cnpg-verification-dolor-app-rw-b
+      - name: dolor_app_mig_a
+        connectionLimit: -1
+        ensure: present
+        login: true
+        inherit: true
+        inRoles:
+          - dolor_app_mig
+        passwordSecret:
+          name: cnpg-verification-dolor-app-mig-a

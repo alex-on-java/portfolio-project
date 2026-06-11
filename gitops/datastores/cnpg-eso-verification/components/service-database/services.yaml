@@ -1,3 +1,4 @@
 services:
   - lorem
   - ipsum
+  - dolor
