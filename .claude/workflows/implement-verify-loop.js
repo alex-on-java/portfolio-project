@@ -1,6 +1,6 @@
 export const meta = {
   name: 'implement-verify-loop',
-  description: 'An Opus agent implements a file-described task directly, an adversarial Opus reviewer verifies it against the task letter and spirit, and on failure a git-tracked constructor + alternating refine loop (Codex on odd passes) builds a self-contained follow-up task, up to 5 iterations.',
+  description: 'An Opus agent implements a file-described task directly, an adversarial Fable reviewer verifies it against the task letter and spirit, and on failure a git-tracked constructor + alternating refine loop (Codex on odd passes) builds a self-contained follow-up task, up to 5 iterations.',
   whenToUse: 'Invoke with args: {"taskFile": "/abs/path/to/task.md"}. Reusable: the task lives only in the file, never in these prompts.',
   phases: [
     { title: 'Implement', detail: 'Opus implements the current task directly' },
@@ -132,7 +132,7 @@ for (let k = 1; k <= MAX_OUTER; k++) {
 
   phase('Review')
   const review = await agent(reviewPrompt(task, impl.reportFile), {
-    label: `review#${k}`, phase: 'Review', model: 'opus', schema: REVIEW_SCHEMA,
+    label: `review#${k}`, phase: 'Review', model: 'fable', schema: REVIEW_SCHEMA,
   })
   createdFiles.push(review.reportPath)
   if (review.pass) {
