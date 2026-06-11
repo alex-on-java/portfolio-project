@@ -6,7 +6,6 @@ deny contains msg if {
 	walk(input, [path, value])
 	_is_image_key(path[count(path) - 1])
 	is_string(value)
-	not contains(value, "${{")
 	not contains(value, "{{")
 	not _valid_digest_pin(value)
 	tag := _extract_tag(value)
@@ -22,7 +21,6 @@ deny contains msg if {
 	walk(input, [path, value])
 	_is_image_key(path[count(path) - 1])
 	is_string(value)
-	not contains(value, "${{")
 	not contains(value, "{{")
 	not _valid_digest_pin(value)
 	_extract_tag(value) == ""

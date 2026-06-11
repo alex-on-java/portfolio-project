@@ -13,9 +13,6 @@ patches:
       - op: replace
         path: /spec/primaryUpdateStrategy
         value: unsupervised
-      - op: replace
-        path: /spec/postgresql/parameters/archive_mode
-        value: "off"
   - target:
       group: postgresql.cnpg.io
       version: v1

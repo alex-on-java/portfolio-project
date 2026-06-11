@@ -10,3 +10,10 @@ resources:
   - database-dolor.yaml
   - provisioning-jobs.yaml
   - verification.yaml
+patches:
+  - path: operator-roundtrip-defaults.yaml
+    target:
+      group: postgresql.cnpg.io
+      version: v1
+      kind: Cluster
+      name: cnpg-eso-multidb-verification
