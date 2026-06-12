@@ -1,0 +1,43 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: CLUSTER_NAME
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+    cnpg.io/skipWalArchiving: "enabled"
+spec:
+  bootstrap:
+    initdb:
+      database: cnpg_eso_bootstrap
+      encoding: UTF8
+      localeCType: C
+      localeCollate: C
+      owner: bootstrap_owner
+      postInitApplicationSQLRefs:
+        configMapRefs:
+          - name: POSTINIT_NAME
+            key: 00-bootstrap-hardening.sql
+  enableSuperuserAccess: false
+  imageName: ghcr.io/cloudnative-pg/postgresql:18.3-system-trixie@sha256:0f29b435fb501ee534cd0c555d122a6b8e90de477de8e8381c82c5e10d9a9de4
+  instances: 1
+  managed:
+    roles: []
+  monitoring:
+    disableDefaultQueries: true
+    enablePodMonitor: false
+  primaryUpdateStrategy: supervised
+  replicationSlots:
+    highAvailability:
+      enabled: false
+  storage:
+    storageClass: standard-rwo
+    size: 1Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+      ephemeral-storage: 256Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+      ephemeral-storage: 256Mi

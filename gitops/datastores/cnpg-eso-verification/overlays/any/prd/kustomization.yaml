@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: datastores-prd
+resources:
+  - cluster-bindings.yaml
+  - ../../../components/cluster/lorem
+  - ../../../components/cluster/ipsum
+  - ../../../components/cluster/dolor
+  - ../../../base
+components:
+  - ../../../components/service-wiring/lorem
+  - ../../../components/service-wiring/ipsum
+  - ../../../components/service-wiring/dolor
+  - ../../../components/cluster-binding
+  - ../../_ephemeral-relaxation

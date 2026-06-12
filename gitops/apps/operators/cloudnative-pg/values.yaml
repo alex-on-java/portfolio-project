@@ -1,0 +1,23 @@
+fullnameOverride: cloudnative-pg
+
+crds:
+  create: true
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+    ephemeral-storage: 64Mi
+  limits:
+    cpu: 100m
+    memory: 256Mi
+    ephemeral-storage: 64Mi
+
+webhook:
+  livenessProbe:
+    initialDelaySeconds: 10
+  readinessProbe:
+    initialDelaySeconds: 10
+  startupProbe:
+    failureThreshold: 12
+    periodSeconds: 5

@@ -1,0 +1,240 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+resources:
+- values.yaml
+components:
+- ../_shared
+replacements:
+- source:
+    kind: ConfigMap
+    name: cnpg-service-values-dolor
+    fieldPath: data.roleApp
+  targets:
+  - select:
+      kind: Job
+      name: cnpg-verification-provision-service
+    fieldPaths:
+    - spec.template.spec.containers.[name=psql].env.[name=PGOPTIONS].value
+    options:
+      delimiter: '='
+      index: 1
+- source:
+    kind: ConfigMap
+    name: cnpg-service-values-dolor
+    fieldPath: data.databaseOwner
+  targets:
+  - select:
+      kind: Database
+      name: cnpg-eso-service
+    fieldPaths:
+    - spec.owner
+- source:
+    kind: ConfigMap
+    name: cnpg-service-values-dolor
+    fieldPath: data.schemaName
+  targets:
+  - select:
+      kind: Database
+      name: cnpg-eso-service
+    fieldPaths:
+    - spec.schemas.0.name
+- source:
+    kind: ConfigMap
+    name: cnpg-service-values-dolor
+    fieldPath: data.schemaOwner
+  targets:
+  - select:
+      kind: Database
+      name: cnpg-eso-service
+    fieldPaths:
+    - spec.schemas.0.owner
+- source:
+    kind: ConfigMap
+    name: cnpg-service-values-dolor
+    fieldPath: data.roleAppRoA
+  targets:
+  - select:
+      kind: ExternalSecret
+      name: cnpg-verification-service-app-ro-a
+    fieldPaths:
+    - spec.target.template.data.username
+- source:
+    kind: ConfigMap
+    name: cnpg-service-values-dolor
+    fieldPath: data.secretRoA
+  targets:
+  - select:
+      kind: ExternalSecret
+      name: cnpg-verification-service-app-ro-a
+    fieldPaths:
+    - spec.target.name
+    - metadata.name
+- source:
+    kind: ConfigMap
+    name: cnpg-service-values-dolor
+    fieldPath: data.roleAppRoB
+  targets:
+  - select:
+      kind: ExternalSecret
+      name: cnpg-verification-service-app-ro-b
+    fieldPaths:
+    - spec.target.template.data.username
+- source:
+    kind: ConfigMap
+    name: cnpg-service-values-dolor
+    fieldPath: data.secretRoB
+  targets:
+  - select:
+      kind: ExternalSecret
+      name: cnpg-verification-service-app-ro-b
+    fieldPaths:
+    - spec.target.name
+    - metadata.name
+- source:
+    kind: ConfigMap
+    name: cnpg-service-values-dolor
+    fieldPath: data.roleAppRwA
+  targets:
+  - select:
+      kind: ExternalSecret
+      name: cnpg-verification-service-app-rw-a
+    fieldPaths:
+    - spec.target.template.data.username
+- source:
+    kind: ConfigMap
+    name: cnpg-service-values-dolor
+    fieldPath: data.secretRwA
+  targets:
+  - select:
+      kind: ExternalSecret
+      name: cnpg-verification-service-app-rw-a
+    fieldPaths:
+    - spec.target.name
+    - metadata.name
+- source:
+    kind: ConfigMap
+    name: cnpg-service-values-dolor
+    fieldPath: data.roleAppRwB
+  targets:
+  - select:
+      kind: ExternalSecret
+      name: cnpg-verification-service-app-rw-b
+    fieldPaths:
+    - spec.target.template.data.username
+- source:
+    kind: ConfigMap
+    name: cnpg-service-values-dolor
+    fieldPath: data.secretRwB
+  targets:
+  - select:
+      kind: ExternalSecret
+      name: cnpg-verification-service-app-rw-b
+    fieldPaths:
+    - spec.target.name
+    - metadata.name
+- source:
+    kind: ConfigMap
+    name: cnpg-service-values-dolor
+    fieldPath: data.roleAppMigA
+  targets:
+  - select:
+      kind: ExternalSecret
+      name: cnpg-verification-service-app-mig-a
+    fieldPaths:
+    - spec.target.template.data.username
+  - select:
+      kind: Job
+      name: cnpg-verification-provision-service
+    fieldPaths:
+    - spec.template.spec.containers.[name=psql].env.[name=PGUSER].value
+- source:
+    kind: ConfigMap
+    name: cnpg-service-values-dolor
+    fieldPath: data.secretMigA
+  targets:
+  - select:
+      kind: ExternalSecret
+      name: cnpg-verification-service-app-mig-a
+    fieldPaths:
+    - spec.target.name
+    - metadata.name
+  - select:
+      kind: Job
+      name: cnpg-verification-provision-service
+    fieldPaths:
+    - spec.template.spec.containers.[name=psql].env.[name=PGPASSWORD].valueFrom.secretKeyRef.name
+- source:
+    kind: ConfigMap
+    name: cnpg-service-values-dolor
+    fieldPath: data.databaseName
+  targets:
+  - select:
+      kind: Database
+      name: cnpg-eso-service
+    fieldPaths:
+    - spec.name
+  - select:
+      kind: Job
+      name: cnpg-verification-provision-service
+    fieldPaths:
+    - spec.template.spec.containers.[name=psql].env.[name=PGDATABASE].value
+- source:
+    kind: ConfigMap
+    name: cnpg-service-values-dolor
+    fieldPath: data.provisionSql
+  targets:
+  - select:
+      kind: ConfigMap
+      name: cnpg-verification-provisioning-sql
+    fieldPaths:
+    - data.[provision-dolor.sql]
+    options:
+      create: true
+- source:
+    kind: ConfigMap
+    name: cnpg-service-values-dolor
+    fieldPath: data.provisionSqlKey
+  targets:
+  - select:
+      kind: Job
+      name: cnpg-verification-provision-service
+    fieldPaths:
+    - spec.template.spec.containers.[name=psql].command.2
+    options:
+      delimiter: /sql/
+      index: 1
+- source:
+    kind: ConfigMap
+    name: cnpg-service-values-dolor
+    fieldPath: data.databaseResourceName
+  targets:
+  - select:
+      kind: Database
+      name: cnpg-eso-service
+    fieldPaths:
+    - metadata.name
+- source:
+    kind: ConfigMap
+    name: cnpg-service-values-dolor
+    fieldPath: data.provisionJobName
+  targets:
+  - select:
+      kind: Job
+      name: cnpg-verification-provision-service
+    fieldPaths:
+    - metadata.name
+- source:
+    kind: ConfigMap
+    name: cnpg-service-values-dolor
+    fieldPath: data.aliasName
+  targets:
+  - select:
+      kind: Service
+      name: SERVICE_DB_RW_ALIAS
+    fieldPaths:
+    - metadata.name
+  - select:
+      kind: Job
+      name: cnpg-verification-provision-dolor
+    fieldPaths:
+    - spec.template.spec.containers.[name=psql].env.[name=PGHOST].value

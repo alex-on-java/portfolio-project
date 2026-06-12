@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cnpg-service-values-ipsum
+  annotations:
+    config.kubernetes.io/local-config: "true"
+data:
+  serviceName: ipsum
+  aliasName: ipsum-db-rw
+  databaseResourceName: cnpg-eso-ipsum
+  databaseName: ipsum
+  databaseOwner: ipsum_app
+  schemaName: ipsum
+  schemaOwner: ipsum_app
+  roleApp: ipsum_app
+  roleAppRo: ipsum_app_ro
+  roleAppRw: ipsum_app_rw
+  roleAppMig: ipsum_app_mig
+  roleAppRoA: ipsum_app_ro_a
+  roleAppRoB: ipsum_app_ro_b
+  roleAppRwA: ipsum_app_rw_a
+  roleAppRwB: ipsum_app_rw_b
+  roleAppMigA: ipsum_app_mig_a
+  secretRoA: cnpg-verification-ipsum-app-ro-a
+  secretRoB: cnpg-verification-ipsum-app-ro-b
+  secretRwA: cnpg-verification-ipsum-app-rw-a
+  secretRwB: cnpg-verification-ipsum-app-rw-b
+  secretMigA: cnpg-verification-ipsum-app-mig-a
+  provisionJobName: cnpg-verification-provision-ipsum
+  provisionSqlKey: |
+    provision-ipsum.sql
+  provisionSql: |
+    REVOKE ALL ON DATABASE ipsum FROM PUBLIC;
+    GRANT CONNECT ON DATABASE ipsum TO ipsum_app, ipsum_app_ro, ipsum_app_rw, ipsum_app_mig;
+    DROP SCHEMA IF EXISTS public;
+
+    GRANT USAGE ON SCHEMA ipsum TO ipsum_app_ro;
+    GRANT USAGE ON SCHEMA ipsum TO ipsum_app_rw;
+
+    ALTER DEFAULT PRIVILEGES FOR ROLE ipsum_app IN SCHEMA ipsum
+      GRANT SELECT ON TABLES TO ipsum_app_ro;
+    ALTER DEFAULT PRIVILEGES FOR ROLE ipsum_app IN SCHEMA ipsum
+      GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO ipsum_app_rw;
+    ALTER DEFAULT PRIVILEGES FOR ROLE ipsum_app IN SCHEMA ipsum
+      GRANT USAGE, SELECT ON SEQUENCES TO ipsum_app_rw;

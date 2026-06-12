@@ -1,0 +1,53 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: datastores-cnpg-eso-verification
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-20"
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - matrix:
+        generators:
+          - clusters:
+              selector:
+                matchLabels:
+                  argocd.argoproj.io/secret-type: cluster
+          - list:
+              # stg is the only lifecycle-sensitive environment: shared on
+              # ephemeral (resolved here), per-service on main (deferred until a
+              # main cluster exists). dev and prd are cluster-type-invariant, so
+              # their segment is pinned to any.
+              elements:
+                - env: dev
+                  segment: any
+                - env: stg
+                  segment: ephemeral
+                - env: prd
+                  segment: any
+  template:
+    metadata:
+      name: "datastores-cnpg-eso-verification-{{.env}}"
+      namespace: argocd
+      annotations:
+        argocd.argoproj.io/compare-options: ServerSideDiff=true
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/alex-on-java/portfolio-project.git
+        targetRevision: '{{index .metadata.annotations "target-revision"}}'
+        path: "gitops/datastores/cnpg-eso-verification/overlays/{{.segment}}/{{.env}}"
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "datastores-{{.env}}"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true

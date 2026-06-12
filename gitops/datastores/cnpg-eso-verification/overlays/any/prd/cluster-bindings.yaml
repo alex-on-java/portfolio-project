@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cnpg-cluster-binding-lorem
+  annotations:
+    config.kubernetes.io/local-config: "true"
+data:
+  clusterName: cnpg-eso-lorem
+  clusterRwFqdn: cnpg-eso-lorem-rw.datastores-prd.svc.cluster.local
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cnpg-cluster-binding-ipsum
+  annotations:
+    config.kubernetes.io/local-config: "true"
+data:
+  clusterName: cnpg-eso-ipsum
+  clusterRwFqdn: cnpg-eso-ipsum-rw.datastores-prd.svc.cluster.local
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cnpg-cluster-binding-dolor
+  annotations:
+    config.kubernetes.io/local-config: "true"
+data:
+  clusterName: cnpg-eso-dolor
+  clusterRwFqdn: cnpg-eso-dolor-rw.datastores-prd.svc.cluster.local
