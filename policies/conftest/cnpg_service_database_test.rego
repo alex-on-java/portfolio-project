@@ -41,14 +41,38 @@ test_external_secret_password_template_mismatch_fails if {
 	count(deny) > 0 with input as bad
 }
 
+test_missing_provisioning_job_psql_container_fails if {
+	bad_job := json.patch(valid_job("lorem"), [{"op": "replace", "path": "/spec/template/spec/containers/0/name", "value": "not-psql"}])
+	bad := replace_doc(valid_rendered_input, "Job", "cnpg-verification-provision-lorem", bad_job)
+	count(deny) > 0 with input as bad
+}
+
+test_missing_provisioning_job_database_env_fails if {
+	bad_job := job_without_env("lorem", "PGDATABASE")
+	bad := replace_doc(valid_rendered_input, "Job", "cnpg-verification-provision-lorem", bad_job)
+	count(deny) > 0 with input as bad
+}
+
 test_wrong_provisioning_job_database_fails if {
 	bad_job := json.patch(valid_job("lorem"), [{"op": "replace", "path": "/spec/template/spec/containers/0/env/0/value", "value": "ipsum"}])
 	bad := replace_doc(valid_rendered_input, "Job", "cnpg-verification-provision-lorem", bad_job)
 	count(deny) > 0 with input as bad
 }
 
+test_missing_provisioning_job_user_env_fails if {
+	bad_job := job_without_env("lorem", "PGUSER")
+	bad := replace_doc(valid_rendered_input, "Job", "cnpg-verification-provision-lorem", bad_job)
+	count(deny) > 0 with input as bad
+}
+
 test_wrong_provisioning_job_user_fails if {
 	bad_job := json.patch(valid_job("lorem"), [{"op": "replace", "path": "/spec/template/spec/containers/0/env/1/value", "value": "ipsum_app_mig_a"}])
+	bad := replace_doc(valid_rendered_input, "Job", "cnpg-verification-provision-lorem", bad_job)
+	count(deny) > 0 with input as bad
+}
+
+test_missing_provisioning_job_password_env_fails if {
+	bad_job := job_without_env("lorem", "PGPASSWORD")
 	bad := replace_doc(valid_rendered_input, "Job", "cnpg-verification-provision-lorem", bad_job)
 	count(deny) > 0 with input as bad
 }
@@ -61,6 +85,18 @@ test_wrong_provisioning_job_secret_name_fails if {
 
 test_wrong_provisioning_job_secret_key_fails if {
 	bad_job := json.patch(valid_job("lorem"), [{"op": "replace", "path": "/spec/template/spec/containers/0/env/2/valueFrom/secretKeyRef/key", "value": "username"}])
+	bad := replace_doc(valid_rendered_input, "Job", "cnpg-verification-provision-lorem", bad_job)
+	count(deny) > 0 with input as bad
+}
+
+test_missing_provisioning_job_options_env_fails if {
+	bad_job := job_without_env("lorem", "PGOPTIONS")
+	bad := replace_doc(valid_rendered_input, "Job", "cnpg-verification-provision-lorem", bad_job)
+	count(deny) > 0 with input as bad
+}
+
+test_missing_provisioning_job_host_env_fails if {
+	bad_job := job_without_env("lorem", "PGHOST")
 	bad := replace_doc(valid_rendered_input, "Job", "cnpg-verification-provision-lorem", bad_job)
 	count(deny) > 0 with input as bad
 }
@@ -103,6 +139,14 @@ test_wrong_alias_target_fails if {
 	count(deny) > 0 with input as bad
 }
 
+test_missing_alias_service_fails if {
+	bad := [entry |
+		entry := valid_rendered_input[_]
+		metadata_name(entry.contents) != "lorem-db-rw"
+	]
+	count(deny) > 0 with input as bad
+}
+
 test_unrelated_rendered_manifest_bundle_is_ignored if {
 	unrelated := [{"path": "unrelated.yaml", "contents": {"apiVersion": "v1", "kind": "ConfigMap", "metadata": {"name": "ordinary", "namespace": "default"}, "data": {"key": "value"}}}]
 	count(deny) == 0 with input as unrelated
@@ -127,6 +171,19 @@ replace_entry(entry, kind, name, replacement) := entry if {
 replace_entry(entry, kind, name, replacement) := entry if {
 	object.get(entry.contents, "kind", "") == kind
 	metadata_name(entry.contents) != name
+}
+
+job_without_env(svc, env_name) := job if {
+	base := valid_job(svc)
+	env := [entry |
+		entry := base.spec.template.spec.containers[0].env[_]
+		object.get(entry, "name", "") != env_name
+	]
+	container := object.union(base.spec.template.spec.containers[0], {"env": env})
+	spec := object.union(base.spec.template.spec, {"containers": [container]})
+	template := object.union(base.spec.template, {"spec": spec})
+	job_spec := object.union(base.spec, {"template": template})
+	job := object.union(base, {"spec": job_spec})
 }
 
 valid_database(svc) := {

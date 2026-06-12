@@ -20,6 +20,14 @@ placeholder_fragments := {
 	"service_app",
 }
 
+required_job_env_names := {
+	"PGDATABASE",
+	"PGUSER",
+	"PGPASSWORD",
+	"PGOPTIONS",
+	"PGHOST",
+}
+
 deny contains msg if {
 	path := selected_paths[_]
 	db := service_databases(path)[_]
@@ -189,6 +197,26 @@ deny contains msg if {
 	db := service_databases(path)[_]
 	svc := service_name(db)
 	job := provisioning_job(path, svc, metadata_namespace(db))
+	not psql_container(job)
+	msg := sprintf("%s: Job/%s must contain a psql container", [path, provisioning_job_name(svc)])
+}
+
+deny contains msg if {
+	path := selected_paths[_]
+	db := service_databases(path)[_]
+	svc := service_name(db)
+	job := provisioning_job(path, svc, metadata_namespace(db))
+	container := psql_container(job)
+	env_name := required_job_env_names[_]
+	not env_present(container, env_name)
+	msg := sprintf("%s: Job/%s is missing env.%s", [path, provisioning_job_name(svc), env_name])
+}
+
+deny contains msg if {
+	path := selected_paths[_]
+	db := service_databases(path)[_]
+	svc := service_name(db)
+	job := provisioning_job(path, svc, metadata_namespace(db))
 	container := psql_container(job)
 	env_value(container, "PGDATABASE") != svc
 	msg := sprintf("%s: Job/%s PGDATABASE must be %s", [path, provisioning_job_name(svc), svc])
@@ -334,6 +362,14 @@ deny contains msg if {
 	path := selected_paths[_]
 	db := service_databases(path)[_]
 	svc := service_name(db)
+	not service_alias(path, svc, metadata_namespace(db))
+	msg := sprintf("%s: service '%s' is missing Service/%s", [path, svc, service_alias_name(svc)])
+}
+
+deny contains msg if {
+	path := selected_paths[_]
+	db := service_databases(path)[_]
+	svc := service_name(db)
 	alias := service_alias(path, svc, metadata_namespace(db))
 	object.get(object.get(alias, "spec", {}), "type", "") != "ExternalName"
 	msg := sprintf("%s: Service/%s type must be ExternalName", [path, service_alias_name(svc)])
@@ -443,6 +479,11 @@ managed_role(path, db, role_name) := role if {
 psql_container(job) := container if {
 	container := object.get(object.get(object.get(job, "spec", {}), "template", {}).spec, "containers", [])[_]
 	object.get(container, "name", "") == "psql"
+}
+
+env_present(container, name) if {
+	env := object.get(container, "env", [])[_]
+	object.get(env, "name", "") == name
 }
 
 env_value(container, name) := value if {
