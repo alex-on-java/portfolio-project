@@ -16,6 +16,10 @@ spec:
                 matchLabels:
                   argocd.argoproj.io/secret-type: cluster
           - list:
+              # stg is the only lifecycle-sensitive environment: shared on
+              # ephemeral (resolved here), per-service on main (deferred until a
+              # main cluster exists). dev and prd are cluster-type-invariant, so
+              # their segment is pinned to any.
               elements:
                 - env: dev
                   segment: any

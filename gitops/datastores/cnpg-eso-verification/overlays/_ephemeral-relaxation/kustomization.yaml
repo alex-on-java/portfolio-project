@@ -1,0 +1,22 @@
+# Include only from ephemeral consumption paths. A future main overlay must not
+# include this fragment: the base decision it relaxes is the safe default main
+# inherits (supervised primaryUpdateStrategy, retain databaseReclaimPolicy).
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+patches:
+  - target:
+      group: postgresql.cnpg.io
+      version: v1
+      kind: Cluster
+    patch: |-
+      - op: replace
+        path: /spec/primaryUpdateStrategy
+        value: unsupervised
+  - target:
+      group: postgresql.cnpg.io
+      version: v1
+      kind: Database
+    patch: |-
+      - op: replace
+        path: /spec/databaseReclaimPolicy
+        value: delete
