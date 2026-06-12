@@ -5,8 +5,8 @@ metadata:
   annotations:
     config.kubernetes.io/local-config: "true"
 data:
-  clusterName: cnpg-eso-lorem
-  clusterRwFqdn: cnpg-eso-lorem-rw.datastores-prd.svc.cluster.local
+  clusterName: cnpg-eso-multidb-verification
+  clusterRwFqdn: cnpg-eso-multidb-verification-rw.datastores-dev.svc.cluster.local
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -15,8 +15,8 @@ metadata:
   annotations:
     config.kubernetes.io/local-config: "true"
 data:
-  clusterName: cnpg-eso-ipsum
-  clusterRwFqdn: cnpg-eso-ipsum-rw.datastores-prd.svc.cluster.local
+  clusterName: cnpg-eso-multidb-verification
+  clusterRwFqdn: cnpg-eso-multidb-verification-rw.datastores-dev.svc.cluster.local
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -25,5 +25,5 @@ metadata:
   annotations:
     config.kubernetes.io/local-config: "true"
 data:
-  clusterName: cnpg-eso-dolor
-  clusterRwFqdn: cnpg-eso-dolor-rw.datastores-prd.svc.cluster.local
+  clusterName: cnpg-eso-multidb-verification
+  clusterRwFqdn: cnpg-eso-multidb-verification-rw.datastores-dev.svc.cluster.local

@@ -6,7 +6,7 @@ metadata:
     config.kubernetes.io/local-config: "true"
 data:
   clusterName: cnpg-eso-multidb-verification
-  clusterRwFqdn: cnpg-eso-multidb-verification-rw
+  clusterRwFqdn: cnpg-eso-multidb-verification-rw.datastores-stg.svc.cluster.local
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -16,7 +16,7 @@ metadata:
     config.kubernetes.io/local-config: "true"
 data:
   clusterName: cnpg-eso-multidb-verification
-  clusterRwFqdn: cnpg-eso-multidb-verification-rw
+  clusterRwFqdn: cnpg-eso-multidb-verification-rw.datastores-stg.svc.cluster.local
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -26,4 +26,4 @@ metadata:
     config.kubernetes.io/local-config: "true"
 data:
   clusterName: cnpg-eso-multidb-verification
-  clusterRwFqdn: cnpg-eso-multidb-verification-rw
+  clusterRwFqdn: cnpg-eso-multidb-verification-rw.datastores-stg.svc.cluster.local
