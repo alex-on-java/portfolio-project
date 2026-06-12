@@ -84,7 +84,12 @@ The negative control also held: normalized base and ephemeral renders differed b
 
 The combine-mode policy is wired into `prek` through `.pre-commit-scripts/check-cnpg-service-database-inventory`.
 
-Residual silent mode: Kustomize still cannot derive the provisioning SQL map key from a value, so each service component must name its SQL key field path literally. The current guardrail checks that field path and its `options.create: true` setting. A future guardrail could add a render-level policy that compares final rendered Database, Job, Secret, and role names back to the values files.
+The Python Kubernetes validator adds a render-level contract check. It renders the service database base, compares final rendered Database, ExternalSecret, Job, SQL ConfigMap, and CNPG managed-role fields back to the service values files, and fails if shared placeholders remain in rendered output. This catches replacement-target drift that source-shape policy alone cannot see.
+
+Residual silent modes:
+
+- Kustomize still cannot derive the provisioning SQL map key from a value, so each service component must name its SQL key field path literally. The current source policy and rendered-contract validator both check the resulting SQL key.
+- The committed acceptance Job intentionally verifies only `lorem` and `ipsum`. N+1 runtime behavior for `dolor` was proved manually in this round, not by an inventory-driven committed acceptance contract. A future guardrail could make the acceptance Job consume the same service inventory, but that was outside this slice.
 
 ## Static verification
 
@@ -92,10 +97,10 @@ Static checks passed after both implementation phases:
 
 - `conftest verify --policy policies/conftest`: 101 tests passed.
 - `sh .pre-commit-scripts/check-cnpg-service-database-inventory`: 39 tests passed.
-- `pnpm exec nx run gitops:lint`: 6 tests passed.
+- `pnpm exec nx run gitops:lint`: 7 tests passed after the rendered-contract validator was added.
 - `prek run --all-files`: all hooks passed.
 
-The Kubernetes validator now rejects the old generator paths and verifies that base service wiring, service directories, service values, and shared files agree.
+The Kubernetes validator rejects the old generator paths, checks coarse inventory shape, and verifies the rendered datastore objects against the service values files. Conftest carries the source-shape, service-derived value, SQL body, and combine-mode inventory checks.
 
 ## Live convergence
 
@@ -123,7 +128,7 @@ The CNPG cluster was healthy:
 - `cnpg-eso-dolor`: `APPLIED=true`.
 - all five `dolor` ExternalSecrets: `SecretSynced`, `READY=True`.
 - `cnpg-verification-provision-dolor`: `Complete`.
-- `cnpg-verification-acceptance`: `Complete`.
+- `cnpg-verification-acceptance`: `Complete` for its planned `lorem` and `ipsum` scope.
 
 ## Manual dolor proof
 
