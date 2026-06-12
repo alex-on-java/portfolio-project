@@ -9,6 +9,7 @@ resources:
 components:
   - ../components/service-database/lorem
   - ../components/service-database/ipsum
+  - ../components/service-database/dolor
 patches:
   - path: operator-roundtrip-defaults.yaml
     target:

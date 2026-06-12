@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cnpg-service-values-dolor
+  annotations:
+    config.kubernetes.io/local-config: "true"
+data:
+  serviceName: dolor
+  databaseResourceName: cnpg-eso-dolor
+  databaseName: dolor
+  databaseOwner: dolor_app
+  schemaName: dolor
+  schemaOwner: dolor_app
+  roleApp: dolor_app
+  roleAppRo: dolor_app_ro
+  roleAppRw: dolor_app_rw
+  roleAppMig: dolor_app_mig
+  roleAppRoA: dolor_app_ro_a
+  roleAppRoB: dolor_app_ro_b
+  roleAppRwA: dolor_app_rw_a
+  roleAppRwB: dolor_app_rw_b
+  roleAppMigA: dolor_app_mig_a
+  secretRoA: cnpg-verification-dolor-app-ro-a
+  secretRoB: cnpg-verification-dolor-app-ro-b
+  secretRwA: cnpg-verification-dolor-app-rw-a
+  secretRwB: cnpg-verification-dolor-app-rw-b
+  secretMigA: cnpg-verification-dolor-app-mig-a
+  provisionJobName: cnpg-verification-provision-dolor
+  provisionSqlKey: |
+    provision-dolor.sql
+  provisionSql: |
+    REVOKE ALL ON DATABASE dolor FROM PUBLIC;
+    GRANT CONNECT ON DATABASE dolor TO dolor_app, dolor_app_ro, dolor_app_rw, dolor_app_mig;
+    DROP SCHEMA IF EXISTS public;
+
+    GRANT USAGE ON SCHEMA dolor TO dolor_app_ro;
+    GRANT USAGE ON SCHEMA dolor TO dolor_app_rw;
+
+    ALTER DEFAULT PRIVILEGES FOR ROLE dolor_app IN SCHEMA dolor
+      GRANT SELECT ON TABLES TO dolor_app_ro;
+    ALTER DEFAULT PRIVILEGES FOR ROLE dolor_app IN SCHEMA dolor
+      GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO dolor_app_rw;
+    ALTER DEFAULT PRIVILEGES FOR ROLE dolor_app IN SCHEMA dolor
+      GRANT USAGE, SELECT ON SEQUENCES TO dolor_app_rw;
