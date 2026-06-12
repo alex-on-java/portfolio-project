@@ -104,17 +104,13 @@ Residual silent modes:
 
 ## Static verification
 
-Static checks passed after both implementation phases:
+Original Track B static verification passed at the time of the generator
+replacement, including Rego unit tests, the then-current dedicated inventory
+hook, `gitops:lint`, and `prek run --all-files`.
 
-- `conftest verify --policy policies/conftest`: 101 tests passed.
-- dedicated inventory hook: 39 tests passed.
-- `pnpm exec nx run gitops:lint`: 7 tests passed after the rendered-contract validator was added.
-- `prek run --all-files`: all hooks passed.
-
-Those static checks belong to the original Track B evidence above. Current
-static verification for the rendered migration is owned by `conftest verify`,
-`uv run --frozen pytest validators/`, `pnpm exec nx run gitops:lint`, and
-`prek run --all-files`.
+Current static verification for the rendered migration is owned by
+`conftest verify`, `uv run --frozen pytest validators/`,
+`pnpm exec nx run gitops:lint`, and `prek run --all-files`.
 
 ## Live convergence
 

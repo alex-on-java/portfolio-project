@@ -24,7 +24,7 @@ test_valid_rendered_cnpg_bundle_passes if {
 test_wrong_database_contract_fails if {
 	bad_db := json.patch(valid_database("lorem"), [{"op": "replace", "path": "/spec/databaseReclaimPolicy", "value": "retain"}])
 	bad := replace_doc(valid_rendered_input, "Database", "cnpg-eso-lorem", bad_db)
-	count(deny) > 0 with input as bad
+	"rendered-cnpg.yaml: Database/cnpg-eso-lorem databaseReclaimPolicy must render as delete" in deny with input as bad
 }
 
 test_missing_matching_external_secret_fails if {
@@ -32,79 +32,79 @@ test_missing_matching_external_secret_fails if {
 		entry := valid_rendered_input[_]
 		not object.get(entry.contents, "kind", "") == "ExternalSecret"
 	]
-	count(deny) > 0 with input as bad
+	"rendered-cnpg.yaml: service 'lorem' is missing ExternalSecret/cnpg-verification-lorem-app-ro-a" in deny with input as bad
 }
 
 test_external_secret_password_template_mismatch_fails if {
 	bad_secret := json.patch(valid_external_secret("lorem", "ro-a", service_role("lorem", "ro_a")), [{"op": "remove", "path": "/spec/target/template/data/password"}])
 	bad := replace_doc(valid_rendered_input, "ExternalSecret", "cnpg-verification-lorem-app-ro-a", bad_secret)
-	count(deny) > 0 with input as bad
+	"rendered-cnpg.yaml: ExternalSecret/cnpg-verification-lorem-app-ro-a password template must render the generated password" in deny with input as bad
 }
 
 test_missing_provisioning_job_psql_container_fails if {
 	bad_job := json.patch(valid_job("lorem"), [{"op": "replace", "path": "/spec/template/spec/containers/0/name", "value": "not-psql"}])
 	bad := replace_doc(valid_rendered_input, "Job", "cnpg-verification-provision-lorem", bad_job)
-	count(deny) > 0 with input as bad
+	"rendered-cnpg.yaml: Job/cnpg-verification-provision-lorem must contain a psql container" in deny with input as bad
 }
 
 test_missing_provisioning_job_database_env_fails if {
 	bad_job := job_without_env("lorem", "PGDATABASE")
 	bad := replace_doc(valid_rendered_input, "Job", "cnpg-verification-provision-lorem", bad_job)
-	count(deny) > 0 with input as bad
+	"rendered-cnpg.yaml: Job/cnpg-verification-provision-lorem is missing env.PGDATABASE" in deny with input as bad
 }
 
 test_wrong_provisioning_job_database_fails if {
 	bad_job := json.patch(valid_job("lorem"), [{"op": "replace", "path": "/spec/template/spec/containers/0/env/0/value", "value": "ipsum"}])
 	bad := replace_doc(valid_rendered_input, "Job", "cnpg-verification-provision-lorem", bad_job)
-	count(deny) > 0 with input as bad
+	"rendered-cnpg.yaml: Job/cnpg-verification-provision-lorem PGDATABASE must be lorem" in deny with input as bad
 }
 
 test_missing_provisioning_job_user_env_fails if {
 	bad_job := job_without_env("lorem", "PGUSER")
 	bad := replace_doc(valid_rendered_input, "Job", "cnpg-verification-provision-lorem", bad_job)
-	count(deny) > 0 with input as bad
+	"rendered-cnpg.yaml: Job/cnpg-verification-provision-lorem is missing env.PGUSER" in deny with input as bad
 }
 
 test_wrong_provisioning_job_user_fails if {
 	bad_job := json.patch(valid_job("lorem"), [{"op": "replace", "path": "/spec/template/spec/containers/0/env/1/value", "value": "ipsum_app_mig_a"}])
 	bad := replace_doc(valid_rendered_input, "Job", "cnpg-verification-provision-lorem", bad_job)
-	count(deny) > 0 with input as bad
+	"rendered-cnpg.yaml: Job/cnpg-verification-provision-lorem PGUSER must be lorem_app_mig_a" in deny with input as bad
 }
 
 test_missing_provisioning_job_password_env_fails if {
 	bad_job := job_without_env("lorem", "PGPASSWORD")
 	bad := replace_doc(valid_rendered_input, "Job", "cnpg-verification-provision-lorem", bad_job)
-	count(deny) > 0 with input as bad
+	"rendered-cnpg.yaml: Job/cnpg-verification-provision-lorem is missing env.PGPASSWORD" in deny with input as bad
 }
 
 test_wrong_provisioning_job_secret_name_fails if {
 	bad_job := json.patch(valid_job("lorem"), [{"op": "replace", "path": "/spec/template/spec/containers/0/env/2/valueFrom/secretKeyRef/name", "value": "cnpg-verification-ipsum-app-mig-a"}])
 	bad := replace_doc(valid_rendered_input, "Job", "cnpg-verification-provision-lorem", bad_job)
-	count(deny) > 0 with input as bad
+	"rendered-cnpg.yaml: Job/cnpg-verification-provision-lorem PGPASSWORD must come from Secret/cnpg-verification-lorem-app-mig-a" in deny with input as bad
 }
 
 test_wrong_provisioning_job_secret_key_fails if {
 	bad_job := json.patch(valid_job("lorem"), [{"op": "replace", "path": "/spec/template/spec/containers/0/env/2/valueFrom/secretKeyRef/key", "value": "username"}])
 	bad := replace_doc(valid_rendered_input, "Job", "cnpg-verification-provision-lorem", bad_job)
-	count(deny) > 0 with input as bad
+	"rendered-cnpg.yaml: Job/cnpg-verification-provision-lorem PGPASSWORD must read the password Secret key" in deny with input as bad
 }
 
 test_missing_provisioning_job_options_env_fails if {
 	bad_job := job_without_env("lorem", "PGOPTIONS")
 	bad := replace_doc(valid_rendered_input, "Job", "cnpg-verification-provision-lorem", bad_job)
-	count(deny) > 0 with input as bad
+	"rendered-cnpg.yaml: Job/cnpg-verification-provision-lorem is missing env.PGOPTIONS" in deny with input as bad
 }
 
 test_missing_provisioning_job_host_env_fails if {
 	bad_job := job_without_env("lorem", "PGHOST")
 	bad := replace_doc(valid_rendered_input, "Job", "cnpg-verification-provision-lorem", bad_job)
-	count(deny) > 0 with input as bad
+	"rendered-cnpg.yaml: Job/cnpg-verification-provision-lorem is missing env.PGHOST" in deny with input as bad
 }
 
 test_wrong_provisioning_job_sql_key_fails if {
 	bad_job := json.patch(valid_job("lorem"), [{"op": "replace", "path": "/spec/template/spec/containers/0/command/2", "value": "psql --no-psqlrc --set=ON_ERROR_STOP=1 --file=/sql/provision-ipsum.sql"}])
 	bad := replace_doc(valid_rendered_input, "Job", "cnpg-verification-provision-lorem", bad_job)
-	count(deny) > 0 with input as bad
+	"rendered-cnpg.yaml: Job/cnpg-verification-provision-lorem command must read /sql/provision-lorem.sql" in deny with input as bad
 }
 
 test_missing_sql_config_map_fails if {
@@ -112,31 +112,31 @@ test_missing_sql_config_map_fails if {
 		entry := valid_rendered_input[_]
 		metadata_name(entry.contents) != "cnpg-verification-provisioning-sql"
 	]
-	count(deny) > 0 with input as bad
+	"rendered-cnpg.yaml: service 'lorem' is missing ConfigMap/cnpg-verification-provisioning-sql" in deny with input as bad
 }
 
 test_sql_config_map_key_body_mismatch_fails if {
 	bad_config_map := json.patch(valid_sql_config_map("lorem"), [{"op": "replace", "path": "/data/provision-lorem.sql", "value": "SELECT 1;\n"}])
 	bad := replace_doc(valid_rendered_input, "ConfigMap", "cnpg-verification-provisioning-sql", bad_config_map)
-	count(deny) > 0 with input as bad
+	"rendered-cnpg.yaml: ConfigMap/cnpg-verification-provisioning-sql key provision-lorem.sql must match the derived SQL body" in deny with input as bad
 }
 
 test_managed_role_graph_mismatch_fails if {
 	bad_cluster := json.patch(valid_cluster("lorem"), [{"op": "replace", "path": "/spec/managed/roles/4/inRoles/0", "value": "lorem_app_rw"}])
 	bad := replace_doc(valid_rendered_input, "Cluster", "cnpg-eso-lorem", bad_cluster)
-	count(deny) > 0 with input as bad
+	"rendered-cnpg.yaml: managed login role lorem_app_ro_a must match group membership and password Secret" in deny with input as bad
 }
 
 test_unresolved_placeholder_fragment_fails if {
 	bad_job := json.patch(valid_job("lorem"), [{"op": "replace", "path": "/spec/template/spec/containers/0/env/3/value", "value": "cnpg-verification-service-placeholder"}])
 	bad := replace_doc(valid_rendered_input, "Job", "cnpg-verification-provision-lorem", bad_job)
-	count(deny) > 0 with input as bad
+	"rendered-cnpg.yaml: rendered CNPG bundle still contains legacy placeholder fragment cnpg-verification-service-" in deny with input as bad
 }
 
 test_wrong_alias_target_fails if {
 	bad_alias := json.patch(valid_alias("lorem"), [{"op": "replace", "path": "/spec/externalName", "value": "wrong-rw.datastores-dev.svc.cluster.local"}])
 	bad := replace_doc(valid_rendered_input, "Service", "lorem-db-rw", bad_alias)
-	count(deny) > 0 with input as bad
+	"rendered-cnpg.yaml: Service/lorem-db-rw externalName must be cnpg-eso-lorem-rw.datastores-dev.svc.cluster.local" in deny with input as bad
 }
 
 test_missing_alias_service_fails if {
@@ -144,7 +144,7 @@ test_missing_alias_service_fails if {
 		entry := valid_rendered_input[_]
 		metadata_name(entry.contents) != "lorem-db-rw"
 	]
-	count(deny) > 0 with input as bad
+	"rendered-cnpg.yaml: service 'lorem' is missing Service/lorem-db-rw" in deny with input as bad
 }
 
 test_unrelated_rendered_manifest_bundle_is_ignored if {
