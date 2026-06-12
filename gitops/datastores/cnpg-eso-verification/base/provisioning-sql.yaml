@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cnpg-verification-provisioning-sql
+  annotations:
+    argocd.argoproj.io/sync-wave: "-5"
+data: {}

@@ -1,0 +1,341 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+resources:
+  - values.yaml
+components:
+  - ../_shared
+replacements:
+  - source:
+      kind: ConfigMap
+      name: cnpg-service-values-lorem
+      fieldPath: data.roleApp
+    targets:
+      - select:
+          kind: Cluster
+          name: cnpg-eso-multidb-verification
+        fieldPaths:
+          - spec.managed.roles.[name=ROLE3_MIG_GROUP].inRoles.0
+          - spec.managed.roles.[name=ROLE0_OWNER].name
+      - select:
+          kind: Job
+          name: cnpg-verification-provision-service
+        fieldPaths:
+          - spec.template.spec.containers.[name=psql].env.[name=PGOPTIONS].value
+        options:
+          delimiter: "="
+          index: 1
+  - source:
+      kind: ConfigMap
+      name: cnpg-service-values-lorem
+      fieldPath: data.databaseOwner
+    targets:
+      - select:
+          kind: Database
+          name: cnpg-eso-service
+        fieldPaths:
+          - spec.owner
+  - source:
+      kind: ConfigMap
+      name: cnpg-service-values-lorem
+      fieldPath: data.schemaName
+    targets:
+      - select:
+          kind: Database
+          name: cnpg-eso-service
+        fieldPaths:
+          - spec.schemas.0.name
+  - source:
+      kind: ConfigMap
+      name: cnpg-service-values-lorem
+      fieldPath: data.schemaOwner
+    targets:
+      - select:
+          kind: Database
+          name: cnpg-eso-service
+        fieldPaths:
+          - spec.schemas.0.owner
+  - source:
+      kind: ConfigMap
+      name: cnpg-service-values-lorem
+      fieldPath: data.roleAppRo
+    targets:
+      - select:
+          kind: Cluster
+          name: cnpg-eso-multidb-verification
+        fieldPaths:
+          - spec.managed.roles.[name=ROLE4_RO_A_LOGIN].inRoles.0
+          - spec.managed.roles.[name=ROLE5_RO_B_LOGIN].inRoles.0
+          - spec.managed.roles.[name=ROLE1_RO_GROUP].name
+  - source:
+      kind: ConfigMap
+      name: cnpg-service-values-lorem
+      fieldPath: data.roleAppRw
+    targets:
+      - select:
+          kind: Cluster
+          name: cnpg-eso-multidb-verification
+        fieldPaths:
+          - spec.managed.roles.[name=ROLE6_RW_A_LOGIN].inRoles.0
+          - spec.managed.roles.[name=ROLE7_RW_B_LOGIN].inRoles.0
+          - spec.managed.roles.[name=ROLE2_RW_GROUP].name
+  - source:
+      kind: ConfigMap
+      name: cnpg-service-values-lorem
+      fieldPath: data.roleAppMig
+    targets:
+      - select:
+          kind: Cluster
+          name: cnpg-eso-multidb-verification
+        fieldPaths:
+          - spec.managed.roles.[name=ROLE8_MIG_A_LOGIN].inRoles.0
+          - spec.managed.roles.[name=ROLE3_MIG_GROUP].name
+  - source:
+      kind: ConfigMap
+      name: cnpg-service-values-lorem
+      fieldPath: data.roleAppRoA
+    targets:
+      - select:
+          kind: ExternalSecret
+          name: cnpg-verification-service-app-ro-a
+        fieldPaths:
+          - spec.target.template.data.username
+  - source:
+      kind: ConfigMap
+      name: cnpg-service-values-lorem
+      fieldPath: data.secretRoA
+    targets:
+      - select:
+          kind: Cluster
+          name: cnpg-eso-multidb-verification
+        fieldPaths:
+          - spec.managed.roles.[name=ROLE4_RO_A_LOGIN].passwordSecret.name
+      - select:
+          kind: ExternalSecret
+          name: cnpg-verification-service-app-ro-a
+        fieldPaths:
+          - spec.target.name
+          - metadata.name
+  - source:
+      kind: ConfigMap
+      name: cnpg-service-values-lorem
+      fieldPath: data.roleAppRoA
+    targets:
+      - select:
+          kind: Cluster
+          name: cnpg-eso-multidb-verification
+        fieldPaths:
+          - spec.managed.roles.[name=ROLE4_RO_A_LOGIN].name
+  - source:
+      kind: ConfigMap
+      name: cnpg-service-values-lorem
+      fieldPath: data.roleAppRoB
+    targets:
+      - select:
+          kind: ExternalSecret
+          name: cnpg-verification-service-app-ro-b
+        fieldPaths:
+          - spec.target.template.data.username
+  - source:
+      kind: ConfigMap
+      name: cnpg-service-values-lorem
+      fieldPath: data.secretRoB
+    targets:
+      - select:
+          kind: Cluster
+          name: cnpg-eso-multidb-verification
+        fieldPaths:
+          - spec.managed.roles.[name=ROLE5_RO_B_LOGIN].passwordSecret.name
+      - select:
+          kind: ExternalSecret
+          name: cnpg-verification-service-app-ro-b
+        fieldPaths:
+          - spec.target.name
+          - metadata.name
+  - source:
+      kind: ConfigMap
+      name: cnpg-service-values-lorem
+      fieldPath: data.roleAppRoB
+    targets:
+      - select:
+          kind: Cluster
+          name: cnpg-eso-multidb-verification
+        fieldPaths:
+          - spec.managed.roles.[name=ROLE5_RO_B_LOGIN].name
+  - source:
+      kind: ConfigMap
+      name: cnpg-service-values-lorem
+      fieldPath: data.roleAppRwA
+    targets:
+      - select:
+          kind: ExternalSecret
+          name: cnpg-verification-service-app-rw-a
+        fieldPaths:
+          - spec.target.template.data.username
+  - source:
+      kind: ConfigMap
+      name: cnpg-service-values-lorem
+      fieldPath: data.secretRwA
+    targets:
+      - select:
+          kind: Cluster
+          name: cnpg-eso-multidb-verification
+        fieldPaths:
+          - spec.managed.roles.[name=ROLE6_RW_A_LOGIN].passwordSecret.name
+      - select:
+          kind: ExternalSecret
+          name: cnpg-verification-service-app-rw-a
+        fieldPaths:
+          - spec.target.name
+          - metadata.name
+  - source:
+      kind: ConfigMap
+      name: cnpg-service-values-lorem
+      fieldPath: data.roleAppRwA
+    targets:
+      - select:
+          kind: Cluster
+          name: cnpg-eso-multidb-verification
+        fieldPaths:
+          - spec.managed.roles.[name=ROLE6_RW_A_LOGIN].name
+  - source:
+      kind: ConfigMap
+      name: cnpg-service-values-lorem
+      fieldPath: data.roleAppRwB
+    targets:
+      - select:
+          kind: ExternalSecret
+          name: cnpg-verification-service-app-rw-b
+        fieldPaths:
+          - spec.target.template.data.username
+  - source:
+      kind: ConfigMap
+      name: cnpg-service-values-lorem
+      fieldPath: data.secretRwB
+    targets:
+      - select:
+          kind: Cluster
+          name: cnpg-eso-multidb-verification
+        fieldPaths:
+          - spec.managed.roles.[name=ROLE7_RW_B_LOGIN].passwordSecret.name
+      - select:
+          kind: ExternalSecret
+          name: cnpg-verification-service-app-rw-b
+        fieldPaths:
+          - spec.target.name
+          - metadata.name
+  - source:
+      kind: ConfigMap
+      name: cnpg-service-values-lorem
+      fieldPath: data.roleAppRwB
+    targets:
+      - select:
+          kind: Cluster
+          name: cnpg-eso-multidb-verification
+        fieldPaths:
+          - spec.managed.roles.[name=ROLE7_RW_B_LOGIN].name
+  - source:
+      kind: ConfigMap
+      name: cnpg-service-values-lorem
+      fieldPath: data.roleAppMigA
+    targets:
+      - select:
+          kind: ExternalSecret
+          name: cnpg-verification-service-app-mig-a
+        fieldPaths:
+          - spec.target.template.data.username
+      - select:
+          kind: Job
+          name: cnpg-verification-provision-service
+        fieldPaths:
+          - spec.template.spec.containers.[name=psql].env.[name=PGUSER].value
+  - source:
+      kind: ConfigMap
+      name: cnpg-service-values-lorem
+      fieldPath: data.secretMigA
+    targets:
+      - select:
+          kind: Cluster
+          name: cnpg-eso-multidb-verification
+        fieldPaths:
+          - spec.managed.roles.[name=ROLE8_MIG_A_LOGIN].passwordSecret.name
+      - select:
+          kind: ExternalSecret
+          name: cnpg-verification-service-app-mig-a
+        fieldPaths:
+          - spec.target.name
+          - metadata.name
+      - select:
+          kind: Job
+          name: cnpg-verification-provision-service
+        fieldPaths:
+          - spec.template.spec.containers.[name=psql].env.[name=PGPASSWORD].valueFrom.secretKeyRef.name
+  - source:
+      kind: ConfigMap
+      name: cnpg-service-values-lorem
+      fieldPath: data.roleAppMigA
+    targets:
+      - select:
+          kind: Cluster
+          name: cnpg-eso-multidb-verification
+        fieldPaths:
+          - spec.managed.roles.[name=ROLE8_MIG_A_LOGIN].name
+  - source:
+      kind: ConfigMap
+      name: cnpg-service-values-lorem
+      fieldPath: data.databaseName
+    targets:
+      - select:
+          kind: Database
+          name: cnpg-eso-service
+        fieldPaths:
+          - spec.name
+      - select:
+          kind: Job
+          name: cnpg-verification-provision-service
+        fieldPaths:
+          - spec.template.spec.containers.[name=psql].env.[name=PGDATABASE].value
+  - source:
+      kind: ConfigMap
+      name: cnpg-service-values-lorem
+      fieldPath: data.provisionSql
+    targets:
+      - select:
+          kind: ConfigMap
+          name: cnpg-verification-provisioning-sql
+        fieldPaths:
+          - data.[provision-lorem.sql]
+        options:
+          create: true
+  - source:
+      kind: ConfigMap
+      name: cnpg-service-values-lorem
+      fieldPath: data.provisionSqlKey
+    targets:
+      - select:
+          kind: Job
+          name: cnpg-verification-provision-service
+        fieldPaths:
+          - spec.template.spec.containers.[name=psql].command.2
+        options:
+          delimiter: /sql/
+          index: 1
+  - source:
+      kind: ConfigMap
+      name: cnpg-service-values-lorem
+      fieldPath: data.databaseResourceName
+    targets:
+      - select:
+          kind: Database
+          name: cnpg-eso-service
+        fieldPaths:
+          - metadata.name
+  - source:
+      kind: ConfigMap
+      name: cnpg-service-values-lorem
+      fieldPath: data.provisionJobName
+    targets:
+      - select:
+          kind: Job
+          name: cnpg-verification-provision-service
+        fieldPaths:
+          - metadata.name

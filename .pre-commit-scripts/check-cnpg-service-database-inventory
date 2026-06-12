@@ -1,0 +1,16 @@
+#!/usr/bin/env sh
+set -eu
+
+root="gitops/datastores/cnpg-eso-verification"
+
+set -- "$root/base/kustomization.yaml" "$root/components/service-database/_shared/kustomization.yaml"
+
+for path in "$root"/components/service-database/_shared/*.yaml \
+  "$root"/components/service-database/*/kustomization.yaml \
+  "$root"/components/service-database/*/values.yaml; do
+  [ -f "$path" ] || continue
+  [ "$path" = "$root/components/service-database/_shared/kustomization.yaml" ] && continue
+  set -- "$@" "$path"
+done
+
+conftest test --combine --policy policies/conftest "$@"

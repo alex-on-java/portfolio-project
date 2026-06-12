@@ -3,10 +3,12 @@ kind: Kustomization
 resources:
   - password-generator.yaml
   - postinit-sql.yaml
+  - provisioning-sql.yaml
   - cluster.yaml
   - verification.yaml
 components:
-  - ../components/service-database/generated
+  - ../components/service-database/lorem
+  - ../components/service-database/ipsum
 patches:
   - path: operator-roundtrip-defaults.yaml
     target:

@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cnpg-service-values-lorem
+  annotations:
+    config.kubernetes.io/local-config: "true"
+data:
+  serviceName: lorem
+  databaseResourceName: cnpg-eso-lorem
+  databaseName: lorem
+  databaseOwner: lorem_app
+  schemaName: lorem
+  schemaOwner: lorem_app
+  roleApp: lorem_app
+  roleAppRo: lorem_app_ro
+  roleAppRw: lorem_app_rw
+  roleAppMig: lorem_app_mig
+  roleAppRoA: lorem_app_ro_a
+  roleAppRoB: lorem_app_ro_b
+  roleAppRwA: lorem_app_rw_a
+  roleAppRwB: lorem_app_rw_b
+  roleAppMigA: lorem_app_mig_a
+  secretRoA: cnpg-verification-lorem-app-ro-a
+  secretRoB: cnpg-verification-lorem-app-ro-b
+  secretRwA: cnpg-verification-lorem-app-rw-a
+  secretRwB: cnpg-verification-lorem-app-rw-b
+  secretMigA: cnpg-verification-lorem-app-mig-a
+  provisionJobName: cnpg-verification-provision-lorem
+  provisionSqlKey: |
+    provision-lorem.sql
+  provisionSql: |
+    REVOKE ALL ON DATABASE lorem FROM PUBLIC;
+    GRANT CONNECT ON DATABASE lorem TO lorem_app, lorem_app_ro, lorem_app_rw, lorem_app_mig;
+    DROP SCHEMA IF EXISTS public;
+
+    GRANT USAGE ON SCHEMA lorem TO lorem_app_ro;
+    GRANT USAGE ON SCHEMA lorem TO lorem_app_rw;
+
+    ALTER DEFAULT PRIVILEGES FOR ROLE lorem_app IN SCHEMA lorem
+      GRANT SELECT ON TABLES TO lorem_app_ro;
+    ALTER DEFAULT PRIVILEGES FOR ROLE lorem_app IN SCHEMA lorem
+      GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO lorem_app_rw;
+    ALTER DEFAULT PRIVILEGES FOR ROLE lorem_app IN SCHEMA lorem
+      GRANT USAGE, SELECT ON SEQUENCES TO lorem_app_rw;

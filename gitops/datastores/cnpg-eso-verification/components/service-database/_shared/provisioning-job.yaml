@@ -1,8 +1,7 @@
-{% for service in services -%}
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: cnpg-verification-provision-{{ service }}
+  name: cnpg-verification-provision-service
   annotations:
     argocd.argoproj.io/hook: Sync
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
@@ -31,16 +30,16 @@ spec:
             - name: PGPORT
               value: "5432"
             - name: PGDATABASE
-              value: {{ service }}
+              value: service
             - name: PGUSER
-              value: {{ service }}_app_mig_a
+              value: service_app_mig_a
             - name: PGPASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: cnpg-verification-{{ service }}-app-mig-a
+                  name: cnpg-verification-service-app-mig-a
                   key: password
             - name: PGOPTIONS
-              value: -c role={{ service }}_app
+              value: -c role=service_app
           command:
             - /bin/sh
             - -ceu
@@ -55,7 +54,7 @@ spec:
                 attempt=$((attempt + 1))
                 sleep 5
               done
-              psql --no-psqlrc --set=ON_ERROR_STOP=1 --file=/sql/provision-{{ service }}.sql
+              psql --no-psqlrc --set=ON_ERROR_STOP=1 --file=/sql/provision-service.sql
           volumeMounts:
             - name: sql
               mountPath: /sql
@@ -64,6 +63,3 @@ spec:
         - name: sql
           configMap:
             name: cnpg-verification-provisioning-sql
-{% if not loop.last %}---
-{% endif %}
-{%- endfor %}
