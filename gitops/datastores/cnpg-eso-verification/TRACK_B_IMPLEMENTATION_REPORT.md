@@ -66,7 +66,17 @@ The negative control also held: normalized base and ephemeral renders differed b
 
 ## Policy coverage
 
-`policies/conftest/cnpg_service_database.rego` checks the service values, service component shape, shared component shape, and combine-mode inventory. The tests in `policies/conftest/cnpg_service_database_test.rego` cover these induced failures:
+The validation described in this section was the Track B guardrail at the time
+of the generator replacement. It has since been superseded by the rendered
+Conftest migration: `policies/conftest/cnpg_service_database.rego` now runs in
+`package rendered` and validates the rendered CNPG service-database contract
+through the generic `tools/k8s-validation/validators/rendered_conftest_validator.py`
+bridge. The old dedicated `cnpg-service-database-inventory` hook and bespoke
+Python service-database validator have been removed.
+
+The original source-inventory policy checked service values, service component
+shape, shared component shape, and combine-mode inventory. Its tests covered
+these induced failures:
 
 - missing required value;
 - wrong service prefix in a role;
@@ -82,13 +92,14 @@ The negative control also held: normalized base and ephemeral renders differed b
 - component file in the wrong service directory;
 - wildcard replacement field path.
 
-The combine-mode policy is wired into `prek` through `.pre-commit-scripts/check-cnpg-service-database-inventory`.
-
-The Python Kubernetes validator adds a render-level contract check. It renders the service database base, compares final rendered Database, ExternalSecret, Job, SQL ConfigMap, and CNPG managed-role fields back to the service values files, and fails if shared placeholders remain in rendered output. This catches replacement-target drift that source-shape policy alone cannot see.
+The current rendered policy derives service expectations from rendered
+`Database` resources, then checks matching `ExternalSecret`, provisioning `Job`,
+SQL `ConfigMap`, CNPG managed-role, placeholder, and rendered DB alias service
+contracts inside each rendered manifest file independently.
 
 Residual silent modes:
 
-- Kustomize still cannot derive the provisioning SQL map key from a value, so each service component must name its SQL key field path literally. The current source policy and rendered-contract validator both check the resulting SQL key.
+- Kustomize still cannot derive the provisioning SQL map key from a value, so each service component must name its SQL key field path literally. The current rendered policy checks the resulting SQL key and body.
 - The committed acceptance Job intentionally verifies only `lorem` and `ipsum`. N+1 runtime behavior for `dolor` was proved manually in this round, not by an inventory-driven committed acceptance contract. A future guardrail could make the acceptance Job consume the same service inventory, but that was outside this slice.
 
 ## Static verification
@@ -96,11 +107,14 @@ Residual silent modes:
 Static checks passed after both implementation phases:
 
 - `conftest verify --policy policies/conftest`: 101 tests passed.
-- `sh .pre-commit-scripts/check-cnpg-service-database-inventory`: 39 tests passed.
+- dedicated inventory hook: 39 tests passed.
 - `pnpm exec nx run gitops:lint`: 7 tests passed after the rendered-contract validator was added.
 - `prek run --all-files`: all hooks passed.
 
-The Kubernetes validator rejects the old generator paths, checks coarse inventory shape, and verifies the rendered datastore objects against the service values files. Conftest carries the source-shape, service-derived value, SQL body, and combine-mode inventory checks.
+Those static checks belong to the original Track B evidence above. Current
+static verification for the rendered migration is owned by `conftest verify`,
+`uv run --frozen pytest validators/`, `pnpm exec nx run gitops:lint`, and
+`prek run --all-files`.
 
 ## Live convergence
 

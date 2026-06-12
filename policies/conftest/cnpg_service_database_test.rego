@@ -1,181 +1,224 @@
-package main
+package rendered
 
 import rego.v1
 
-valid_values(svc) := {
-	"apiVersion": "v1",
-	"kind": "ConfigMap",
-	"metadata": {
-		"name": sprintf("cnpg-service-values-%s", [svc]),
-		"annotations": {"config.kubernetes.io/local-config": "true"},
-	},
-	"data": object.union(
-		{"serviceName": svc, "provisionSql": expected_sql(svc)},
-		expected_values(svc),
-	),
-}
+valid_rendered_input := [{"path": "rendered-cnpg.yaml", "contents": doc} | doc := valid_rendered_docs[_]]
 
-valid_component(svc) := component if {
-	replacements := array.concat([
-		{"source": {"kind": "ConfigMap", "name": sprintf("cnpg-service-values-%s", [svc]), "fieldPath": field}, "targets": [{"select": {"kind": "ConfigMap", "name": "placeholder"}, "fieldPaths": ["data.placeholder"]}]}
-		| field := expected_component_source_fields[_]
-	], [
-		{
-			"source": {"kind": "ConfigMap", "name": sprintf("cnpg-service-values-%s", [svc]), "fieldPath": "data.provisionSql"},
-			"targets": [{
-				"select": {"kind": "ConfigMap", "name": "cnpg-verification-provisioning-sql"},
-				"fieldPaths": [sprintf("data.[provision-%s.sql]", [svc])],
-				"options": {"create": true},
-			}],
-		},
-		{
-			"source": {"kind": "ConfigMap", "name": sprintf("cnpg-service-values-%s", [svc]), "fieldPath": "data.provisionSqlKey"},
-			"targets": [{
-				"select": {"kind": "Job", "name": "cnpg-verification-provision-service"},
-				"fieldPaths": ["spec.template.spec.containers.[name=psql].command.2"],
-				"options": {"delimiter": "/sql/", "index": 1},
-			}],
-		},
-	])
-	component := {
-		"apiVersion": "kustomize.config.k8s.io/v1alpha1",
-		"kind": "Component",
-		"resources": ["values.yaml"],
-		"components": ["../_shared"],
-		"replacements": replacements,
-	}
-}
-
-base_file(services) := {
-	"path": "gitops/datastores/cnpg-eso-verification/base/kustomization.yaml",
-	"contents": {
-		"apiVersion": "kustomize.config.k8s.io/v1beta1",
-		"kind": "Kustomization",
-		"resources": ["password-generator.yaml", "postinit-sql.yaml", "provisioning-sql.yaml", "cluster.yaml", "verification.yaml"],
-		"components": [sprintf("../components/service-database/%s", [svc]) | svc := services[_]],
-	},
-}
-
-values_file(svc) := {
-	"path": sprintf("gitops/datastores/cnpg-eso-verification/components/service-database/%s/values.yaml", [svc]),
-	"contents": valid_values(svc),
-}
-
-component_file(svc) := {
-	"path": sprintf("gitops/datastores/cnpg-eso-verification/components/service-database/%s/kustomization.yaml", [svc]),
-	"contents": valid_component(svc),
-}
-
-valid_inventory := [
-	base_file(["lorem", "ipsum"]),
-	values_file("lorem"),
-	values_file("ipsum"),
-	component_file("lorem"),
-	component_file("ipsum"),
+valid_rendered_docs := [
+	valid_database("lorem"),
+	valid_sql_config_map("lorem"),
+	valid_alias("lorem"),
+	valid_job("lorem"),
+	valid_external_secret("lorem", "ro-a", service_role("lorem", "ro_a")),
+	valid_external_secret("lorem", "ro-b", service_role("lorem", "ro_b")),
+	valid_external_secret("lorem", "rw-a", service_role("lorem", "rw_a")),
+	valid_external_secret("lorem", "rw-b", service_role("lorem", "rw_b")),
+	valid_external_secret("lorem", "mig-a", service_role("lorem", "mig_a")),
+	valid_cluster("lorem"),
 ]
 
-test_valid_service_values_pass if {
-	count(deny) == 0 with input as valid_values("lorem")
+test_valid_rendered_cnpg_bundle_passes if {
+	count(deny) == 0 with input as valid_rendered_input
 }
 
-test_missing_required_value_rejected if {
-	bad := json.patch(valid_values("lorem"), [{"op": "remove", "path": "/data/roleAppRwB"}])
+test_wrong_database_contract_fails if {
+	bad_db := json.patch(valid_database("lorem"), [{"op": "replace", "path": "/spec/databaseReclaimPolicy", "value": "retain"}])
+	bad := replace_doc(valid_rendered_input, "Database", "cnpg-eso-lorem", bad_db)
 	count(deny) > 0 with input as bad
 }
 
-test_wrong_role_prefix_rejected if {
-	bad := json.patch(valid_values("lorem"), [{"op": "replace", "path": "/data/roleAppRoA", "value": "ipsum_app_ro_a"}])
-	count(deny) > 0 with input as bad
-}
-
-test_wrong_secret_prefix_rejected if {
-	bad := json.patch(valid_values("lorem"), [{"op": "replace", "path": "/data/secretRwA", "value": "cnpg-verification-ipsum-app-rw-a"}])
-	count(deny) > 0 with input as bad
-}
-
-test_duplicate_role_rejected if {
-	bad := json.patch(valid_values("lorem"), [{"op": "replace", "path": "/data/roleAppRoB", "value": "lorem_app_ro_a"}])
-	count(deny) > 0 with input as bad
-}
-
-test_duplicate_secret_rejected if {
-	bad := json.patch(valid_values("lorem"), [{"op": "replace", "path": "/data/secretRwB", "value": "cnpg-verification-lorem-app-rw-a"}])
-	count(deny) > 0 with input as bad
-}
-
-test_wrong_sql_key_rejected if {
-	bad := json.patch(valid_values("lorem"), [{"op": "replace", "path": "/data/provisionSqlKey", "value": "provision-ipsum.sql\n"}])
-	count(deny) > 0 with input as bad
-}
-
-test_wrong_sql_body_rejected if {
-	bad := json.patch(valid_values("lorem"), [{"op": "replace", "path": "/data/provisionSql", "value": "SELECT 1;\n"}])
-	count(deny) > 0 with input as bad
-}
-
-test_valid_service_component_pass if {
-	count(deny) == 0 with input as valid_component("lorem")
-}
-
-test_component_wrong_sql_key_field_rejected if {
-	base := valid_component("lorem")
-	without_sql := [repl | repl := base.replacements[_]; repl.source.fieldPath != "data.provisionSql"]
-	wrong_sql := {
-		"source": {"kind": "ConfigMap", "name": "cnpg-service-values-lorem", "fieldPath": "data.provisionSql"},
-		"targets": [{
-			"select": {"kind": "ConfigMap", "name": "cnpg-verification-provisioning-sql"},
-			"fieldPaths": ["data.[provision-ipsum.sql]"],
-			"options": {"create": true},
-		}],
-	}
-	bad := object.union(base, {"replacements": array.concat(without_sql, [wrong_sql])})
-	count(deny) > 0 with input as bad
-}
-
-test_component_wildcard_field_path_rejected if {
-	bad := json.patch(valid_component("lorem"), [{"op": "replace", "path": "/replacements/0/targets/0/fieldPaths/0", "value": "spec.managed.roles.*.name"}])
-	count(deny) > 0 with input as bad
-}
-
-test_valid_inventory_passes if {
-	count(deny) == 0 with input as valid_inventory
-}
-
-test_service_values_file_not_wired_into_base_rejected if {
-	count(deny) > 0 with input as array.concat(valid_inventory, [values_file("dolor"), component_file("dolor")])
-}
-
-test_base_references_service_with_no_values_file_rejected if {
-	bad := [
-		base_file(["lorem", "ipsum", "dolor"]),
-		values_file("lorem"),
-		values_file("ipsum"),
-		component_file("lorem"),
-		component_file("ipsum"),
-		component_file("dolor"),
+test_missing_matching_external_secret_fails if {
+	bad := [entry |
+		entry := valid_rendered_input[_]
+		not object.get(entry.contents, "kind", "") == "ExternalSecret"
 	]
 	count(deny) > 0 with input as bad
 }
 
-test_duplicate_service_wiring_rejected if {
-	bad := [
-		base_file(["lorem", "ipsum", "ipsum"]),
-		values_file("lorem"),
-		values_file("ipsum"),
-		component_file("lorem"),
-		component_file("ipsum"),
+test_external_secret_password_template_mismatch_fails if {
+	bad_secret := json.patch(valid_external_secret("lorem", "ro-a", service_role("lorem", "ro_a")), [{"op": "remove", "path": "/spec/target/template/data/password"}])
+	bad := replace_doc(valid_rendered_input, "ExternalSecret", "cnpg-verification-lorem-app-ro-a", bad_secret)
+	count(deny) > 0 with input as bad
+}
+
+test_wrong_provisioning_job_database_fails if {
+	bad_job := json.patch(valid_job("lorem"), [{"op": "replace", "path": "/spec/template/spec/containers/0/env/0/value", "value": "ipsum"}])
+	bad := replace_doc(valid_rendered_input, "Job", "cnpg-verification-provision-lorem", bad_job)
+	count(deny) > 0 with input as bad
+}
+
+test_wrong_provisioning_job_user_fails if {
+	bad_job := json.patch(valid_job("lorem"), [{"op": "replace", "path": "/spec/template/spec/containers/0/env/1/value", "value": "ipsum_app_mig_a"}])
+	bad := replace_doc(valid_rendered_input, "Job", "cnpg-verification-provision-lorem", bad_job)
+	count(deny) > 0 with input as bad
+}
+
+test_wrong_provisioning_job_secret_name_fails if {
+	bad_job := json.patch(valid_job("lorem"), [{"op": "replace", "path": "/spec/template/spec/containers/0/env/2/valueFrom/secretKeyRef/name", "value": "cnpg-verification-ipsum-app-mig-a"}])
+	bad := replace_doc(valid_rendered_input, "Job", "cnpg-verification-provision-lorem", bad_job)
+	count(deny) > 0 with input as bad
+}
+
+test_wrong_provisioning_job_secret_key_fails if {
+	bad_job := json.patch(valid_job("lorem"), [{"op": "replace", "path": "/spec/template/spec/containers/0/env/2/valueFrom/secretKeyRef/key", "value": "username"}])
+	bad := replace_doc(valid_rendered_input, "Job", "cnpg-verification-provision-lorem", bad_job)
+	count(deny) > 0 with input as bad
+}
+
+test_wrong_provisioning_job_sql_key_fails if {
+	bad_job := json.patch(valid_job("lorem"), [{"op": "replace", "path": "/spec/template/spec/containers/0/command/2", "value": "psql --no-psqlrc --set=ON_ERROR_STOP=1 --file=/sql/provision-ipsum.sql"}])
+	bad := replace_doc(valid_rendered_input, "Job", "cnpg-verification-provision-lorem", bad_job)
+	count(deny) > 0 with input as bad
+}
+
+test_missing_sql_config_map_fails if {
+	bad := [entry |
+		entry := valid_rendered_input[_]
+		metadata_name(entry.contents) != "cnpg-verification-provisioning-sql"
 	]
 	count(deny) > 0 with input as bad
 }
 
-test_component_file_not_matching_directory_rejected if {
-	misplaced := json.patch(component_file("ipsum"), [{"op": "replace", "path": "/path", "value": "gitops/datastores/cnpg-eso-verification/components/service-database/lorem/kustomization.yaml"}])
-	bad := [base_file(["lorem", "ipsum"]), values_file("lorem"), values_file("ipsum"), component_file("lorem"), misplaced]
+test_sql_config_map_key_body_mismatch_fails if {
+	bad_config_map := json.patch(valid_sql_config_map("lorem"), [{"op": "replace", "path": "/data/provision-lorem.sql", "value": "SELECT 1;\n"}])
+	bad := replace_doc(valid_rendered_input, "ConfigMap", "cnpg-verification-provisioning-sql", bad_config_map)
 	count(deny) > 0 with input as bad
 }
 
-test_values_file_not_matching_directory_rejected if {
-	misplaced := json.patch(values_file("ipsum"), [{"op": "replace", "path": "/path", "value": "gitops/datastores/cnpg-eso-verification/components/service-database/lorem/values.yaml"}])
-	bad := [base_file(["lorem", "ipsum"]), values_file("lorem"), misplaced, component_file("lorem"), component_file("ipsum")]
+test_managed_role_graph_mismatch_fails if {
+	bad_cluster := json.patch(valid_cluster("lorem"), [{"op": "replace", "path": "/spec/managed/roles/4/inRoles/0", "value": "lorem_app_rw"}])
+	bad := replace_doc(valid_rendered_input, "Cluster", "cnpg-eso-lorem", bad_cluster)
 	count(deny) > 0 with input as bad
+}
+
+test_unresolved_placeholder_fragment_fails if {
+	bad_job := json.patch(valid_job("lorem"), [{"op": "replace", "path": "/spec/template/spec/containers/0/env/3/value", "value": "cnpg-verification-service-placeholder"}])
+	bad := replace_doc(valid_rendered_input, "Job", "cnpg-verification-provision-lorem", bad_job)
+	count(deny) > 0 with input as bad
+}
+
+test_wrong_alias_target_fails if {
+	bad_alias := json.patch(valid_alias("lorem"), [{"op": "replace", "path": "/spec/externalName", "value": "wrong-rw.datastores-dev.svc.cluster.local"}])
+	bad := replace_doc(valid_rendered_input, "Service", "lorem-db-rw", bad_alias)
+	count(deny) > 0 with input as bad
+}
+
+test_unrelated_rendered_manifest_bundle_is_ignored if {
+	unrelated := [{"path": "unrelated.yaml", "contents": {"apiVersion": "v1", "kind": "ConfigMap", "metadata": {"name": "ordinary", "namespace": "default"}, "data": {"key": "value"}}}]
+	count(deny) == 0 with input as unrelated
+}
+
+replace_doc(entries, kind, name, replacement) := updated if {
+	updated := [entry |
+		original := entries[_]
+		entry := replace_entry(original, kind, name, replacement)
+	]
+}
+
+replace_entry(entry, kind, name, replacement) := {"path": entry.path, "contents": replacement} if {
+	object.get(entry.contents, "kind", "") == kind
+	metadata_name(entry.contents) == name
+}
+
+replace_entry(entry, kind, name, replacement) := entry if {
+	not object.get(entry.contents, "kind", "") == kind
+}
+
+replace_entry(entry, kind, name, replacement) := entry if {
+	object.get(entry.contents, "kind", "") == kind
+	metadata_name(entry.contents) != name
+}
+
+valid_database(svc) := {
+	"apiVersion": "postgresql.cnpg.io/v1",
+	"kind": "Database",
+	"metadata": {"name": sprintf("cnpg-eso-%s", [svc]), "namespace": "datastores-dev"},
+	"spec": {
+		"cluster": {"name": sprintf("cnpg-eso-%s", [svc])},
+		"name": svc,
+		"owner": service_owner(svc),
+		"ensure": "present",
+		"databaseReclaimPolicy": "delete",
+		"schemas": [{"name": svc, "owner": service_owner(svc), "ensure": "present"}],
+	},
+}
+
+valid_sql_config_map(svc) := {
+	"apiVersion": "v1",
+	"kind": "ConfigMap",
+	"metadata": {"name": "cnpg-verification-provisioning-sql", "namespace": "datastores-dev"},
+	"data": {provision_sql_key(svc): expected_sql(svc)},
+}
+
+valid_alias(svc) := {
+	"apiVersion": "v1",
+	"kind": "Service",
+	"metadata": {"name": service_alias_name(svc), "namespace": "datastores-dev"},
+	"spec": {
+		"type": "ExternalName",
+		"externalName": sprintf("cnpg-eso-%s-rw.datastores-dev.svc.cluster.local", [svc]),
+	},
+}
+
+valid_job(svc) := {
+	"apiVersion": "batch/v1",
+	"kind": "Job",
+	"metadata": {"name": provisioning_job_name(svc), "namespace": "datastores-dev"},
+	"spec": {
+		"template": {
+			"spec": {
+				"containers": [{
+					"name": "psql",
+					"env": [
+						{"name": "PGDATABASE", "value": svc},
+						{"name": "PGUSER", "value": service_role(svc, "mig_a")},
+						{"name": "PGPASSWORD", "valueFrom": {"secretKeyRef": {"name": service_secret(svc, "mig-a"), "key": "password"}}},
+						{"name": "PGOPTIONS", "value": sprintf("-c role=%s", [service_owner(svc)])},
+						{"name": "PGHOST", "value": service_alias_name(svc)},
+					],
+					"command": ["/bin/sh", "-ceu", sprintf("psql --no-psqlrc --set=ON_ERROR_STOP=1 --file=/sql/%s", [provision_sql_key(svc)])],
+				}],
+			},
+		},
+	},
+}
+
+valid_external_secret(svc, suffix, username) := {
+	"apiVersion": "external-secrets.io/v1",
+	"kind": "ExternalSecret",
+	"metadata": {"name": service_secret(svc, suffix), "namespace": "datastores-dev"},
+	"spec": {
+		"refreshInterval": "0s",
+		"refreshPolicy": "CreatedOnce",
+		"target": {
+			"name": service_secret(svc, suffix),
+			"creationPolicy": "Owner",
+			"template": {
+				"type": "kubernetes.io/basic-auth",
+				"metadata": {"labels": {"cnpg.io/reload": "true"}},
+				"data": {"username": username, "password": "{{ .password }}"},
+			},
+		},
+	},
+}
+
+valid_cluster(svc) := {
+	"apiVersion": "postgresql.cnpg.io/v1",
+	"kind": "Cluster",
+	"metadata": {"name": sprintf("cnpg-eso-%s", [svc]), "namespace": "datastores-dev"},
+	"spec": {
+		"managed": {
+			"roles": [
+				{"name": service_owner(svc), "ensure": "present", "login": false, "inherit": false},
+				{"name": service_role(svc, "ro"), "ensure": "present", "login": false, "inherit": false},
+				{"name": service_role(svc, "rw"), "ensure": "present", "login": false, "inherit": false},
+				{"name": service_role(svc, "mig"), "ensure": "present", "login": false, "inherit": false, "inRoles": [service_owner(svc)]},
+				{"name": service_role(svc, "ro_a"), "ensure": "present", "login": true, "inherit": true, "connectionLimit": -1, "inRoles": [service_role(svc, "ro")], "passwordSecret": {"name": service_secret(svc, "ro-a")}},
+				{"name": service_role(svc, "ro_b"), "ensure": "present", "login": true, "inherit": true, "connectionLimit": -1, "inRoles": [service_role(svc, "ro")], "passwordSecret": {"name": service_secret(svc, "ro-b")}},
+				{"name": service_role(svc, "rw_a"), "ensure": "present", "login": true, "inherit": true, "connectionLimit": -1, "inRoles": [service_role(svc, "rw")], "passwordSecret": {"name": service_secret(svc, "rw-a")}},
+				{"name": service_role(svc, "rw_b"), "ensure": "present", "login": true, "inherit": true, "connectionLimit": -1, "inRoles": [service_role(svc, "rw")], "passwordSecret": {"name": service_secret(svc, "rw-b")}},
+				{"name": service_role(svc, "mig_a"), "ensure": "present", "login": true, "inherit": true, "connectionLimit": -1, "inRoles": [service_role(svc, "mig")], "passwordSecret": {"name": service_secret(svc, "mig-a")}},
+			],
+		},
+	},
 }

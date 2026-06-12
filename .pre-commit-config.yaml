@@ -27,14 +27,6 @@ repos:
         always_run: true
         stages: [pre-commit]
 
-      - id: cnpg-service-database-inventory
-        name: CNPG service database inventory
-        language: system
-        entry: sh .pre-commit-scripts/check-cnpg-service-database-inventory
-        pass_filenames: false
-        always_run: true
-        stages: [pre-commit]
-
   - repo: https://github.com/shellcheck-py/shellcheck-py
     rev: v0.11.0.1
     hooks:
