@@ -1,0 +1,63 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+replacements:
+  - source:
+      kind: ConfigMap
+      name: cnpg-cluster-binding-lorem
+      fieldPath: data.clusterName
+    targets:
+      - select:
+          kind: Database
+          name: cnpg-eso-lorem
+        fieldPaths:
+          - spec.cluster.name
+  - source:
+      kind: ConfigMap
+      name: cnpg-cluster-binding-lorem
+      fieldPath: data.clusterRwFqdn
+    targets:
+      - select:
+          kind: Service
+          name: lorem-db-rw
+        fieldPaths:
+          - spec.externalName
+  - source:
+      kind: ConfigMap
+      name: cnpg-cluster-binding-ipsum
+      fieldPath: data.clusterName
+    targets:
+      - select:
+          kind: Database
+          name: cnpg-eso-ipsum
+        fieldPaths:
+          - spec.cluster.name
+  - source:
+      kind: ConfigMap
+      name: cnpg-cluster-binding-ipsum
+      fieldPath: data.clusterRwFqdn
+    targets:
+      - select:
+          kind: Service
+          name: ipsum-db-rw
+        fieldPaths:
+          - spec.externalName
+  - source:
+      kind: ConfigMap
+      name: cnpg-cluster-binding-dolor
+      fieldPath: data.clusterName
+    targets:
+      - select:
+          kind: Database
+          name: cnpg-eso-dolor
+        fieldPaths:
+          - spec.cluster.name
+  - source:
+      kind: ConfigMap
+      name: cnpg-cluster-binding-dolor
+      fieldPath: data.clusterRwFqdn
+    targets:
+      - select:
+          kind: Service
+          name: dolor-db-rw
+        fieldPaths:
+          - spec.externalName

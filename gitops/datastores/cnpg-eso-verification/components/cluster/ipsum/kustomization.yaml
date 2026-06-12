@@ -1,0 +1,46 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - values.yaml
+  - ../base
+patches:
+  - target:
+      group: postgresql.cnpg.io
+      version: v1
+      kind: Cluster
+      name: CLUSTER_NAME
+    patch: |-
+      - op: add
+        path: /metadata/labels
+        value:
+          datastore.cnpg/ipsum: "true"
+replacements:
+  - source:
+      kind: ConfigMap
+      name: cnpg-cluster-values-ipsum
+      fieldPath: data.postinitName
+    targets:
+      - select:
+          kind: ConfigMap
+          name: POSTINIT_NAME
+        fieldPaths:
+          - metadata.name
+      - select:
+          group: postgresql.cnpg.io
+          version: v1
+          kind: Cluster
+          name: CLUSTER_NAME
+        fieldPaths:
+          - spec.bootstrap.initdb.postInitApplicationSQLRefs.configMapRefs.0.name
+  - source:
+      kind: ConfigMap
+      name: cnpg-cluster-values-ipsum
+      fieldPath: data.clusterName
+    targets:
+      - select:
+          group: postgresql.cnpg.io
+          version: v1
+          kind: Cluster
+          name: CLUSTER_NAME
+        fieldPaths:
+          - metadata.name

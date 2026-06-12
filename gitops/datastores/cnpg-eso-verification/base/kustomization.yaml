@@ -2,18 +2,8 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - password-generator.yaml
-  - postinit-sql.yaml
   - provisioning-sql.yaml
-  - cluster.yaml
-  - verification.yaml
 components:
   - ../components/service-database/lorem
   - ../components/service-database/ipsum
   - ../components/service-database/dolor
-patches:
-  - path: operator-roundtrip-defaults.yaml
-    target:
-      group: postgresql.cnpg.io
-      version: v1
-      kind: Cluster
-      name: cnpg-eso-multidb-verification

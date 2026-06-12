@@ -6,7 +6,7 @@ metadata:
     argocd.argoproj.io/sync-wave: "10"
 spec:
   cluster:
-    name: cnpg-eso-multidb-verification
+    name: CLUSTER_NAME
   name: service
   owner: service_app
   ensure: present

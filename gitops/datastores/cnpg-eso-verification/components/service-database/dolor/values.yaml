@@ -6,6 +6,7 @@ metadata:
     config.kubernetes.io/local-config: "true"
 data:
   serviceName: dolor
+  aliasName: dolor-db-rw
   databaseResourceName: cnpg-eso-dolor
   databaseName: dolor
   databaseOwner: dolor_app

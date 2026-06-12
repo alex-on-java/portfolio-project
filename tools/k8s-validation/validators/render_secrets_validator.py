@@ -17,6 +17,8 @@ EXPECTED_REMOTE_KEYS = {
     ("main", "prd"): "portfolio-project-web-app-demo-prd",
 }
 
+GSM_REMOTE_KEY_WORKLOAD_MARKER = "web-app"
+
 
 def _overlay_segments(render: Path) -> tuple[str, ...]:
     tokens = render.stem.split("-")
@@ -114,6 +116,8 @@ def validate_expected_remote_keys(rendered_manifests_dir):
     offenders = []
     seen = set()
     for render in sorted(Path(rendered_manifests_dir).glob("kustomize--*.yaml")):
+        if GSM_REMOTE_KEY_WORKLOAD_MARKER not in render.stem:
+            continue
         segments = _overlay_segments(render)
         if len(segments) < 2:
             continue

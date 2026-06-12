@@ -6,6 +6,7 @@ metadata:
     config.kubernetes.io/local-config: "true"
 data:
   serviceName: lorem
+  aliasName: lorem-db-rw
   databaseResourceName: cnpg-eso-lorem
   databaseName: lorem
   databaseOwner: lorem_app

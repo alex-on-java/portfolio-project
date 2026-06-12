@@ -26,7 +26,7 @@ spec:
               ephemeral-storage: 64Mi
           env:
             - name: PGHOST
-              value: cnpg-eso-multidb-verification-rw
+              value: SERVICE_DB_RW_ALIAS
             - name: PGPORT
               value: "5432"
             - name: PGDATABASE

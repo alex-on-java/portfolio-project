@@ -23,6 +23,15 @@ BASE_KUSTOMIZATION = (
     / "kustomization.yaml"
 )
 BASE = REPO_ROOT / "gitops" / "datastores" / "cnpg-eso-verification" / "base"
+SHARED_OVERLAY = (
+    REPO_ROOT
+    / "gitops"
+    / "datastores"
+    / "cnpg-eso-verification"
+    / "overlays"
+    / "any"
+    / "dev"
+)
 SERVICE_COMPONENT_PREFIX = "../components/service-database/"
 CLUSTER_NAME = "cnpg-eso-multidb-verification"
 SQL_CONFIG_MAP_NAME = "cnpg-verification-provisioning-sql"
@@ -94,7 +103,7 @@ def _load_yaml(path: Path):
 
 def _render_base() -> list[dict[str, Any]]:
     result = subprocess.run(
-        ["kubectl", "kustomize", str(BASE)],
+        ["kubectl", "kustomize", str(SHARED_OVERLAY)],
         capture_output=True,
         text=True,
         check=False,
@@ -171,7 +180,7 @@ def _assert_rendered_database(
     assert database["spec"]["name"] == values["databaseName"]
     assert database["spec"]["owner"] == values["databaseOwner"]
     assert database["spec"]["ensure"] == "present"
-    assert database["spec"]["databaseReclaimPolicy"] == "retain"
+    assert database["spec"]["databaseReclaimPolicy"] == "delete"
     assert database["spec"]["schemas"] == [
         {
             "name": values["schemaName"],

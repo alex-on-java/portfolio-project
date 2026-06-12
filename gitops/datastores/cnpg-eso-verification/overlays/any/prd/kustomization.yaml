@@ -1,14 +1,22 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+namespace: datastores-prd
 resources:
-  - ../../base
-
+  - cluster-bindings.yaml
+  - ../../../components/cluster/lorem
+  - ../../../components/cluster/ipsum
+  - ../../../components/cluster/dolor
+  - ../../../base
+components:
+  - ../../../components/service-wiring/lorem
+  - ../../../components/service-wiring/ipsum
+  - ../../../components/service-wiring/dolor
+  - ../../../components/cluster-binding
 patches:
   - target:
       group: postgresql.cnpg.io
       version: v1
       kind: Cluster
-      name: cnpg-eso-multidb-verification
     patch: |-
       - op: replace
         path: /spec/primaryUpdateStrategy

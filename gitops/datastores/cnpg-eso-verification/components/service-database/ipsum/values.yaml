@@ -6,6 +6,7 @@ metadata:
     config.kubernetes.io/local-config: "true"
 data:
   serviceName: ipsum
+  aliasName: ipsum-db-rw
   databaseResourceName: cnpg-eso-ipsum
   databaseName: ipsum
   databaseOwner: ipsum_app

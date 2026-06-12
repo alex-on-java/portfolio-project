@@ -36,12 +36,9 @@ expected_component_source_fields := {
 	"data.provisionSql",
 	"data.provisionSqlKey",
 	"data.roleApp",
-	"data.roleAppMig",
 	"data.roleAppMigA",
-	"data.roleAppRo",
 	"data.roleAppRoA",
 	"data.roleAppRoB",
-	"data.roleAppRw",
 	"data.roleAppRwA",
 	"data.roleAppRwB",
 	"data.schemaName",
@@ -181,14 +178,8 @@ deny contains msg if {
 
 deny contains msg if {
 	is_shared_component(input)
-	input.resources != ["external-secrets.yaml", "database.yaml", "provisioning-job.yaml"]
+	input.resources != ["external-secrets.yaml", "database.yaml", "provisioning-job.yaml", "db-alias.yaml"]
 	msg := "CNPG shared service component resources must stay canonical"
-}
-
-deny contains msg if {
-	is_shared_component(input)
-	not shared_component_has_role_patch(input)
-	msg := "CNPG shared service component must include the managed-roles JSON6902 patch"
 }
 
 deny contains msg if {
@@ -284,15 +275,6 @@ is_shared_component(doc) if {
 	object.get(doc, "apiVersion", "") == "kustomize.config.k8s.io/v1alpha1"
 	object.get(doc, "kind", "") == "Component"
 	"external-secrets.yaml" in object.get(doc, "resources", [])
-}
-
-shared_component_has_role_patch(doc) if {
-	patch := doc.patches[_]
-	patch.path == "managed-roles-patch.yaml"
-	patch.target.group == "postgresql.cnpg.io"
-	patch.target.version == "v1"
-	patch.target.kind == "Cluster"
-	patch.target.name == "cnpg-eso-multidb-verification"
 }
 
 component_services(doc) := services if {

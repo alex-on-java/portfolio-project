@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: cnpg-verification-postinit-sql
+  name: POSTINIT_NAME
   annotations:
     argocd.argoproj.io/sync-wave: "-5"
 data:

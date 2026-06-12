@@ -1,0 +1,246 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+patches:
+  - target:
+      group: postgresql.cnpg.io
+      version: v1
+      kind: Cluster
+      labelSelector: "datastore.cnpg/lorem=true"
+    patch: |-
+      - op: add
+        path: /spec/managed/roles/-
+        value:
+          name: ROLE0_OWNER
+          ensure: present
+          login: false
+          inherit: false
+      - op: add
+        path: /spec/managed/roles/-
+        value:
+          name: ROLE1_RO_GROUP
+          ensure: present
+          login: false
+          inherit: false
+      - op: add
+        path: /spec/managed/roles/-
+        value:
+          name: ROLE2_RW_GROUP
+          ensure: present
+          login: false
+          inherit: false
+      - op: add
+        path: /spec/managed/roles/-
+        value:
+          name: ROLE3_MIG_GROUP
+          ensure: present
+          login: false
+          inherit: false
+          inRoles:
+            - ROLE0_OWNER
+      - op: add
+        path: /spec/managed/roles/-
+        value:
+          name: ROLE4_RO_A_LOGIN
+          connectionLimit: -1
+          ensure: present
+          login: true
+          inherit: true
+          inRoles:
+            - ROLE1_RO_GROUP
+          passwordSecret:
+            name: SERVICE_SECRET_RO_A
+      - op: add
+        path: /spec/managed/roles/-
+        value:
+          name: ROLE5_RO_B_LOGIN
+          connectionLimit: -1
+          ensure: present
+          login: true
+          inherit: true
+          inRoles:
+            - ROLE1_RO_GROUP
+          passwordSecret:
+            name: SERVICE_SECRET_RO_B
+      - op: add
+        path: /spec/managed/roles/-
+        value:
+          name: ROLE6_RW_A_LOGIN
+          connectionLimit: -1
+          ensure: present
+          login: true
+          inherit: true
+          inRoles:
+            - ROLE2_RW_GROUP
+          passwordSecret:
+            name: SERVICE_SECRET_RW_A
+      - op: add
+        path: /spec/managed/roles/-
+        value:
+          name: ROLE7_RW_B_LOGIN
+          connectionLimit: -1
+          ensure: present
+          login: true
+          inherit: true
+          inRoles:
+            - ROLE2_RW_GROUP
+          passwordSecret:
+            name: SERVICE_SECRET_RW_B
+      - op: add
+        path: /spec/managed/roles/-
+        value:
+          name: ROLE8_MIG_A_LOGIN
+          connectionLimit: -1
+          ensure: present
+          login: true
+          inherit: true
+          inRoles:
+            - ROLE3_MIG_GROUP
+          passwordSecret:
+            name: SERVICE_SECRET_MIG_A
+replacements:
+- source:
+    kind: ConfigMap
+    name: cnpg-service-values-lorem
+    fieldPath: data.roleApp
+  targets:
+  - select:
+      kind: Cluster
+      labelSelector: datastore.cnpg/lorem=true
+    fieldPaths:
+    - spec.managed.roles.[name=ROLE3_MIG_GROUP].inRoles.0
+    - spec.managed.roles.[name=ROLE0_OWNER].name
+- source:
+    kind: ConfigMap
+    name: cnpg-service-values-lorem
+    fieldPath: data.roleAppRo
+  targets:
+  - select:
+      kind: Cluster
+      labelSelector: datastore.cnpg/lorem=true
+    fieldPaths:
+    - spec.managed.roles.[name=ROLE4_RO_A_LOGIN].inRoles.0
+    - spec.managed.roles.[name=ROLE5_RO_B_LOGIN].inRoles.0
+    - spec.managed.roles.[name=ROLE1_RO_GROUP].name
+- source:
+    kind: ConfigMap
+    name: cnpg-service-values-lorem
+    fieldPath: data.roleAppRw
+  targets:
+  - select:
+      kind: Cluster
+      labelSelector: datastore.cnpg/lorem=true
+    fieldPaths:
+    - spec.managed.roles.[name=ROLE6_RW_A_LOGIN].inRoles.0
+    - spec.managed.roles.[name=ROLE7_RW_B_LOGIN].inRoles.0
+    - spec.managed.roles.[name=ROLE2_RW_GROUP].name
+- source:
+    kind: ConfigMap
+    name: cnpg-service-values-lorem
+    fieldPath: data.roleAppMig
+  targets:
+  - select:
+      kind: Cluster
+      labelSelector: datastore.cnpg/lorem=true
+    fieldPaths:
+    - spec.managed.roles.[name=ROLE8_MIG_A_LOGIN].inRoles.0
+    - spec.managed.roles.[name=ROLE3_MIG_GROUP].name
+- source:
+    kind: ConfigMap
+    name: cnpg-service-values-lorem
+    fieldPath: data.secretRoA
+  targets:
+  - select:
+      kind: Cluster
+      labelSelector: datastore.cnpg/lorem=true
+    fieldPaths:
+    - spec.managed.roles.[name=ROLE4_RO_A_LOGIN].passwordSecret.name
+- source:
+    kind: ConfigMap
+    name: cnpg-service-values-lorem
+    fieldPath: data.roleAppRoA
+  targets:
+  - select:
+      kind: Cluster
+      labelSelector: datastore.cnpg/lorem=true
+    fieldPaths:
+    - spec.managed.roles.[name=ROLE4_RO_A_LOGIN].name
+- source:
+    kind: ConfigMap
+    name: cnpg-service-values-lorem
+    fieldPath: data.secretRoB
+  targets:
+  - select:
+      kind: Cluster
+      labelSelector: datastore.cnpg/lorem=true
+    fieldPaths:
+    - spec.managed.roles.[name=ROLE5_RO_B_LOGIN].passwordSecret.name
+- source:
+    kind: ConfigMap
+    name: cnpg-service-values-lorem
+    fieldPath: data.roleAppRoB
+  targets:
+  - select:
+      kind: Cluster
+      labelSelector: datastore.cnpg/lorem=true
+    fieldPaths:
+    - spec.managed.roles.[name=ROLE5_RO_B_LOGIN].name
+- source:
+    kind: ConfigMap
+    name: cnpg-service-values-lorem
+    fieldPath: data.secretRwA
+  targets:
+  - select:
+      kind: Cluster
+      labelSelector: datastore.cnpg/lorem=true
+    fieldPaths:
+    - spec.managed.roles.[name=ROLE6_RW_A_LOGIN].passwordSecret.name
+- source:
+    kind: ConfigMap
+    name: cnpg-service-values-lorem
+    fieldPath: data.roleAppRwA
+  targets:
+  - select:
+      kind: Cluster
+      labelSelector: datastore.cnpg/lorem=true
+    fieldPaths:
+    - spec.managed.roles.[name=ROLE6_RW_A_LOGIN].name
+- source:
+    kind: ConfigMap
+    name: cnpg-service-values-lorem
+    fieldPath: data.secretRwB
+  targets:
+  - select:
+      kind: Cluster
+      labelSelector: datastore.cnpg/lorem=true
+    fieldPaths:
+    - spec.managed.roles.[name=ROLE7_RW_B_LOGIN].passwordSecret.name
+- source:
+    kind: ConfigMap
+    name: cnpg-service-values-lorem
+    fieldPath: data.roleAppRwB
+  targets:
+  - select:
+      kind: Cluster
+      labelSelector: datastore.cnpg/lorem=true
+    fieldPaths:
+    - spec.managed.roles.[name=ROLE7_RW_B_LOGIN].name
+- source:
+    kind: ConfigMap
+    name: cnpg-service-values-lorem
+    fieldPath: data.secretMigA
+  targets:
+  - select:
+      kind: Cluster
+      labelSelector: datastore.cnpg/lorem=true
+    fieldPaths:
+    - spec.managed.roles.[name=ROLE8_MIG_A_LOGIN].passwordSecret.name
+- source:
+    kind: ConfigMap
+    name: cnpg-service-values-lorem
+    fieldPath: data.roleAppMigA
+  targets:
+  - select:
+      kind: Cluster
+      labelSelector: datastore.cnpg/lorem=true
+    fieldPaths:
+    - spec.managed.roles.[name=ROLE8_MIG_A_LOGIN].name

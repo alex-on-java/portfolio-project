@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cnpg-cluster-binding-lorem
+  annotations:
+    config.kubernetes.io/local-config: "true"
+data:
+  clusterName: cnpg-eso-multidb-verification
+  clusterRwFqdn: cnpg-eso-multidb-verification-rw
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cnpg-cluster-binding-ipsum
+  annotations:
+    config.kubernetes.io/local-config: "true"
+data:
+  clusterName: cnpg-eso-multidb-verification
+  clusterRwFqdn: cnpg-eso-multidb-verification-rw
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cnpg-cluster-binding-dolor
+  annotations:
+    config.kubernetes.io/local-config: "true"
+data:
+  clusterName: cnpg-eso-multidb-verification
+  clusterRwFqdn: cnpg-eso-multidb-verification-rw

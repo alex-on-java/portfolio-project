@@ -1,7 +1,7 @@
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
-  name: cnpg-eso-multidb-verification
+  name: operator-roundtrip-defaults-target
 spec:
   affinity:
     podAntiAffinityType: preferred
