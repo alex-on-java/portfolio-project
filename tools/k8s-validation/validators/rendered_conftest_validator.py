@@ -2,7 +2,10 @@ from conftest import run_cli_json
 from k8s_validator.config import REPO_ROOT
 
 
-def validate_rendered_manifests_with_conftest(rendered_manifests_dir):
+def validate_rendered_manifests_with_conftest(
+    rendered_manifests_dir,
+    rendered_contract_data_dir,
+):
     cmd = [
         "conftest",
         "test",
@@ -11,6 +14,8 @@ def validate_rendered_manifests_with_conftest(rendered_manifests_dir):
         "rendered",
         "--policy",
         str(REPO_ROOT / "policies" / "conftest"),
+        "--data",
+        str(rendered_contract_data_dir),
         str(rendered_manifests_dir),
         "--output",
         "json",
