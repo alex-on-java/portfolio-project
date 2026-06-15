@@ -13,7 +13,7 @@ resources:
   - edge-routing-appset.yaml
   - external-dns-helm-appset.yaml
   - analysis-templates-appset.yaml
-  - datastores-cnpg-eso-verification-appset.yaml
+  - datastores-service-databases-appset.yaml
   - workload-appset.yaml
   - convergence-checker-appset.yaml
   - kargo-observability-appset.yaml

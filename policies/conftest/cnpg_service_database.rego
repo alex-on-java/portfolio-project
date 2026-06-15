@@ -13,9 +13,9 @@ placeholder_fragments := {
 	"ROLE7_",
 	"ROLE8_",
 	"SERVICE_SECRET_",
-	"cnpg-eso-service",
-	"cnpg-verification-service-",
-	"cnpg-verification-provision-service",
+	"SERVICE_DATABASE_RESOURCE",
+	"service-db-",
+	"service-db-provision",
 	"provision-service.sql",
 	"service_app",
 }
@@ -32,8 +32,8 @@ deny contains msg if {
 	path := selected_paths[_]
 	db := service_databases(path)[_]
 	svc := service_name(db)
-	metadata_name(db) != sprintf("cnpg-eso-%s", [svc])
-	msg := sprintf("%s: Database for service '%s' must be named cnpg-eso-%s", [path, svc, svc])
+	metadata_name(db) != database_resource_name(svc)
+	msg := sprintf("%s: Database for service '%s' must be named %s", [path, svc, database_resource_name(svc)])
 }
 
 deny contains msg if {
@@ -287,7 +287,7 @@ deny contains msg if {
 	db := service_databases(path)[_]
 	svc := service_name(db)
 	not provisioning_sql_config_map(path, metadata_namespace(db))
-	msg := sprintf("%s: service '%s' is missing ConfigMap/cnpg-verification-provisioning-sql", [path, svc])
+	msg := sprintf("%s: service '%s' is missing ConfigMap/service-database-provisioning-sql", [path, svc])
 }
 
 deny contains msg if {
@@ -297,7 +297,7 @@ deny contains msg if {
 	config_map := provisioning_sql_config_map(path, metadata_namespace(db))
 	config_map_data := object.get(config_map, "data", {})
 	object.get(config_map_data, provision_sql_key(svc), "") != expected_sql(svc)
-	msg := sprintf("%s: ConfigMap/cnpg-verification-provisioning-sql key %s must match the derived SQL body", [path, provision_sql_key(svc)])
+	msg := sprintf("%s: ConfigMap/service-database-provisioning-sql key %s must match the derived SQL body", [path, provision_sql_key(svc)])
 }
 
 deny contains msg if {
@@ -418,7 +418,7 @@ is_service_database(doc) if {
 	spec := object.get(doc, "spec", {})
 	svc := object.get(spec, "name", "")
 	regex.match("^[a-z][a-z0-9]*$", svc)
-	startswith(metadata_name(doc), "cnpg-eso-")
+	object.get(spec, "owner", "") == service_owner(svc)
 }
 
 is_service_database(doc) if {
@@ -427,7 +427,7 @@ is_service_database(doc) if {
 	spec := object.get(doc, "spec", {})
 	svc := object.get(spec, "name", "")
 	regex.match("^[a-z][a-z0-9]*$", svc)
-	startswith(object.get(object.get(spec, "cluster", {}), "name", ""), "cnpg-eso-")
+	metadata_name(doc) == database_resource_name(svc)
 }
 
 cluster_for_database(path, db) if {
@@ -459,7 +459,7 @@ provisioning_job(path, svc, namespace) := doc if {
 provisioning_sql_config_map(path, namespace) := doc if {
 	doc := docs_for_path(path)[_]
 	object.get(doc, "kind", "") == "ConfigMap"
-	metadata_name(doc) == "cnpg-verification-provisioning-sql"
+	metadata_name(doc) == "service-database-provisioning-sql"
 	metadata_namespace(doc) == namespace
 }
 
@@ -543,11 +543,13 @@ service_owner(svc) := sprintf("%s_app", [svc])
 
 service_role(svc, suffix) := sprintf("%s_app_%s", [svc, suffix])
 
-service_secret(svc, suffix) := sprintf("cnpg-verification-%s-app-%s", [svc, suffix])
+database_resource_name(svc) := sprintf("%s-database", [svc])
+
+service_secret(svc, suffix) := sprintf("%s-db-app-%s", [svc, suffix])
 
 service_alias_name(svc) := sprintf("%s-db-rw", [svc])
 
-provisioning_job_name(svc) := sprintf("cnpg-verification-provision-%s", [svc])
+provisioning_job_name(svc) := sprintf("%s-db-provision", [svc])
 
 provision_sql_key(svc) := sprintf("provision-%s.sql", [svc])
 

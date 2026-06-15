@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: service-database-provisioning-sql
+  annotations:
+    argocd.argoproj.io/sync-wave: "-5"
+data: {}

@@ -28,7 +28,7 @@ test_valid_rendered_cnpg_bundle_passes if {
 test_wrong_database_contract_fails if {
 	bad_db := json.patch(valid_database(fixture_service), [{"op": "replace", "path": "/spec/databaseReclaimPolicy", "value": "retain"}])
 	bad := replace_doc(valid_rendered_input, "Database", database_resource_name(fixture_service), bad_db)
-	"rendered-cnpg.yaml: Database/cnpg-eso-fixturealpha databaseReclaimPolicy must render as delete" in deny with input as bad
+	"rendered-cnpg.yaml: Database/fixturealpha-database databaseReclaimPolicy must render as delete" in deny with input as bad
 }
 
 test_missing_matching_external_secret_fails if {
@@ -36,111 +36,111 @@ test_missing_matching_external_secret_fails if {
 		entry := valid_rendered_input[_]
 		not object.get(entry.contents, "kind", "") == "ExternalSecret"
 	]
-	"rendered-cnpg.yaml: service 'fixturealpha' is missing ExternalSecret/cnpg-verification-fixturealpha-app-ro-a" in deny with input as bad
+	"rendered-cnpg.yaml: service 'fixturealpha' is missing ExternalSecret/fixturealpha-db-app-ro-a" in deny with input as bad
 }
 
 test_external_secret_password_template_mismatch_fails if {
 	bad_secret := json.patch(valid_external_secret(fixture_service, "ro-a", service_role(fixture_service, "ro_a")), [{"op": "remove", "path": "/spec/target/template/data/password"}])
 	bad := replace_doc(valid_rendered_input, "ExternalSecret", service_secret(fixture_service, "ro-a"), bad_secret)
-	"rendered-cnpg.yaml: ExternalSecret/cnpg-verification-fixturealpha-app-ro-a password template must render the generated password" in deny with input as bad
+	"rendered-cnpg.yaml: ExternalSecret/fixturealpha-db-app-ro-a password template must render the generated password" in deny with input as bad
 }
 
 test_missing_provisioning_job_psql_container_fails if {
 	bad_job := json.patch(valid_job(fixture_service), [{"op": "replace", "path": "/spec/template/spec/containers/0/name", "value": "not-psql"}])
 	bad := replace_doc(valid_rendered_input, "Job", provisioning_job_name(fixture_service), bad_job)
-	"rendered-cnpg.yaml: Job/cnpg-verification-provision-fixturealpha must contain a psql container" in deny with input as bad
+	"rendered-cnpg.yaml: Job/fixturealpha-db-provision must contain a psql container" in deny with input as bad
 }
 
 test_missing_provisioning_job_database_env_fails if {
 	bad_job := job_without_env(fixture_service, "PGDATABASE")
 	bad := replace_doc(valid_rendered_input, "Job", provisioning_job_name(fixture_service), bad_job)
-	"rendered-cnpg.yaml: Job/cnpg-verification-provision-fixturealpha is missing env.PGDATABASE" in deny with input as bad
+	"rendered-cnpg.yaml: Job/fixturealpha-db-provision is missing env.PGDATABASE" in deny with input as bad
 }
 
 test_wrong_provisioning_job_database_fails if {
 	bad_job := json.patch(valid_job(fixture_service), [{"op": "replace", "path": "/spec/template/spec/containers/0/env/0/value", "value": "fixturebravo"}])
 	bad := replace_doc(valid_rendered_input, "Job", provisioning_job_name(fixture_service), bad_job)
-	"rendered-cnpg.yaml: Job/cnpg-verification-provision-fixturealpha PGDATABASE must be fixturealpha" in deny with input as bad
+	"rendered-cnpg.yaml: Job/fixturealpha-db-provision PGDATABASE must be fixturealpha" in deny with input as bad
 }
 
 test_missing_provisioning_job_user_env_fails if {
 	bad_job := job_without_env(fixture_service, "PGUSER")
 	bad := replace_doc(valid_rendered_input, "Job", provisioning_job_name(fixture_service), bad_job)
-	"rendered-cnpg.yaml: Job/cnpg-verification-provision-fixturealpha is missing env.PGUSER" in deny with input as bad
+	"rendered-cnpg.yaml: Job/fixturealpha-db-provision is missing env.PGUSER" in deny with input as bad
 }
 
 test_wrong_provisioning_job_user_fails if {
 	bad_job := json.patch(valid_job(fixture_service), [{"op": "replace", "path": "/spec/template/spec/containers/0/env/1/value", "value": "fixturebravo_app_mig_a"}])
 	bad := replace_doc(valid_rendered_input, "Job", provisioning_job_name(fixture_service), bad_job)
-	"rendered-cnpg.yaml: Job/cnpg-verification-provision-fixturealpha PGUSER must be fixturealpha_app_mig_a" in deny with input as bad
+	"rendered-cnpg.yaml: Job/fixturealpha-db-provision PGUSER must be fixturealpha_app_mig_a" in deny with input as bad
 }
 
 test_missing_provisioning_job_password_env_fails if {
 	bad_job := job_without_env(fixture_service, "PGPASSWORD")
 	bad := replace_doc(valid_rendered_input, "Job", provisioning_job_name(fixture_service), bad_job)
-	"rendered-cnpg.yaml: Job/cnpg-verification-provision-fixturealpha is missing env.PGPASSWORD" in deny with input as bad
+	"rendered-cnpg.yaml: Job/fixturealpha-db-provision is missing env.PGPASSWORD" in deny with input as bad
 }
 
 test_wrong_provisioning_job_secret_name_fails if {
-	bad_job := json.patch(valid_job(fixture_service), [{"op": "replace", "path": "/spec/template/spec/containers/0/env/2/valueFrom/secretKeyRef/name", "value": "cnpg-verification-fixturebravo-app-mig-a"}])
+	bad_job := json.patch(valid_job(fixture_service), [{"op": "replace", "path": "/spec/template/spec/containers/0/env/2/valueFrom/secretKeyRef/name", "value": "fixturebravo-db-app-mig-a"}])
 	bad := replace_doc(valid_rendered_input, "Job", provisioning_job_name(fixture_service), bad_job)
-	"rendered-cnpg.yaml: Job/cnpg-verification-provision-fixturealpha PGPASSWORD must come from Secret/cnpg-verification-fixturealpha-app-mig-a" in deny with input as bad
+	"rendered-cnpg.yaml: Job/fixturealpha-db-provision PGPASSWORD must come from Secret/fixturealpha-db-app-mig-a" in deny with input as bad
 }
 
 test_wrong_provisioning_job_secret_key_fails if {
 	bad_job := json.patch(valid_job(fixture_service), [{"op": "replace", "path": "/spec/template/spec/containers/0/env/2/valueFrom/secretKeyRef/key", "value": "username"}])
 	bad := replace_doc(valid_rendered_input, "Job", provisioning_job_name(fixture_service), bad_job)
-	"rendered-cnpg.yaml: Job/cnpg-verification-provision-fixturealpha PGPASSWORD must read the password Secret key" in deny with input as bad
+	"rendered-cnpg.yaml: Job/fixturealpha-db-provision PGPASSWORD must read the password Secret key" in deny with input as bad
 }
 
 test_missing_provisioning_job_options_env_fails if {
 	bad_job := job_without_env(fixture_service, "PGOPTIONS")
 	bad := replace_doc(valid_rendered_input, "Job", provisioning_job_name(fixture_service), bad_job)
-	"rendered-cnpg.yaml: Job/cnpg-verification-provision-fixturealpha is missing env.PGOPTIONS" in deny with input as bad
+	"rendered-cnpg.yaml: Job/fixturealpha-db-provision is missing env.PGOPTIONS" in deny with input as bad
 }
 
 test_missing_provisioning_job_host_env_fails if {
 	bad_job := job_without_env(fixture_service, "PGHOST")
 	bad := replace_doc(valid_rendered_input, "Job", provisioning_job_name(fixture_service), bad_job)
-	"rendered-cnpg.yaml: Job/cnpg-verification-provision-fixturealpha is missing env.PGHOST" in deny with input as bad
+	"rendered-cnpg.yaml: Job/fixturealpha-db-provision is missing env.PGHOST" in deny with input as bad
 }
 
 test_wrong_provisioning_job_sql_key_fails if {
 	bad_job := json.patch(valid_job(fixture_service), [{"op": "replace", "path": "/spec/template/spec/containers/0/command/2", "value": "psql --no-psqlrc --set=ON_ERROR_STOP=1 --file=/sql/provision-fixturebravo.sql"}])
 	bad := replace_doc(valid_rendered_input, "Job", provisioning_job_name(fixture_service), bad_job)
-	"rendered-cnpg.yaml: Job/cnpg-verification-provision-fixturealpha command must read /sql/provision-fixturealpha.sql" in deny with input as bad
+	"rendered-cnpg.yaml: Job/fixturealpha-db-provision command must read /sql/provision-fixturealpha.sql" in deny with input as bad
 }
 
 test_missing_sql_config_map_fails if {
 	bad := [entry |
 		entry := valid_rendered_input[_]
-		metadata_name(entry.contents) != "cnpg-verification-provisioning-sql"
+		metadata_name(entry.contents) != "service-database-provisioning-sql"
 	]
-	"rendered-cnpg.yaml: service 'fixturealpha' is missing ConfigMap/cnpg-verification-provisioning-sql" in deny with input as bad
+	"rendered-cnpg.yaml: service 'fixturealpha' is missing ConfigMap/service-database-provisioning-sql" in deny with input as bad
 }
 
 test_sql_config_map_key_body_mismatch_fails if {
 	bad_config_map := json.patch(valid_sql_config_map(fixture_service), [{"op": "replace", "path": "/data/provision-fixturealpha.sql", "value": "SELECT 1;\n"}])
-	bad := replace_doc(valid_rendered_input, "ConfigMap", "cnpg-verification-provisioning-sql", bad_config_map)
-	"rendered-cnpg.yaml: ConfigMap/cnpg-verification-provisioning-sql key provision-fixturealpha.sql must match the derived SQL body" in deny with input as bad
+	bad := replace_doc(valid_rendered_input, "ConfigMap", "service-database-provisioning-sql", bad_config_map)
+	"rendered-cnpg.yaml: ConfigMap/service-database-provisioning-sql key provision-fixturealpha.sql must match the derived SQL body" in deny with input as bad
 }
 
 test_managed_role_graph_mismatch_fails if {
 	bad_cluster := json.patch(valid_cluster(fixture_service), [{"op": "replace", "path": "/spec/managed/roles/4/inRoles/0", "value": "fixturealpha_app_rw"}])
-	bad := replace_doc(valid_rendered_input, "Cluster", database_resource_name(fixture_service), bad_cluster)
+	bad := replace_doc(valid_rendered_input, "Cluster", cluster_resource_name(fixture_service), bad_cluster)
 	"rendered-cnpg.yaml: managed login role fixturealpha_app_ro_a must match group membership and password Secret" in deny with input as bad
 }
 
 test_unresolved_placeholder_fragment_fails if {
-	bad_job := json.patch(valid_job(fixture_service), [{"op": "replace", "path": "/spec/template/spec/containers/0/env/3/value", "value": "cnpg-verification-service-placeholder"}])
+	bad_job := json.patch(valid_job(fixture_service), [{"op": "replace", "path": "/spec/template/spec/containers/0/env/3/value", "value": "service-db-placeholder"}])
 	bad := replace_doc(valid_rendered_input, "Job", provisioning_job_name(fixture_service), bad_job)
-	"rendered-cnpg.yaml: rendered CNPG bundle still contains legacy placeholder fragment cnpg-verification-service-" in deny with input as bad
+	"rendered-cnpg.yaml: rendered CNPG bundle still contains legacy placeholder fragment service-db-" in deny with input as bad
 }
 
 test_wrong_alias_target_fails if {
 	bad_alias := json.patch(valid_alias(fixture_service), [{"op": "replace", "path": "/spec/externalName", "value": "wrong-rw.fixture-db.svc.cluster.local"}])
 	bad := replace_doc(valid_rendered_input, "Service", service_alias_name(fixture_service), bad_alias)
-	"rendered-cnpg.yaml: Service/fixturealpha-db-rw externalName must be cnpg-eso-fixturealpha-rw.fixture-db.svc.cluster.local" in deny with input as bad
+	"rendered-cnpg.yaml: Service/fixturealpha-db-rw externalName must be fixturealpha-postgres-rw.fixture-db.svc.cluster.local" in deny with input as bad
 }
 
 test_missing_alias_service_fails if {
@@ -195,7 +195,7 @@ valid_database(svc) := {
 	"kind": "Database",
 	"metadata": {"name": database_resource_name(svc), "namespace": fixture_namespace},
 	"spec": {
-		"cluster": {"name": database_resource_name(svc)},
+		"cluster": {"name": cluster_resource_name(svc)},
 		"name": svc,
 		"owner": service_owner(svc),
 		"ensure": "present",
@@ -207,7 +207,7 @@ valid_database(svc) := {
 valid_sql_config_map(svc) := {
 	"apiVersion": "v1",
 	"kind": "ConfigMap",
-	"metadata": {"name": "cnpg-verification-provisioning-sql", "namespace": fixture_namespace},
+	"metadata": {"name": "service-database-provisioning-sql", "namespace": fixture_namespace},
 	"data": {provision_sql_key(svc): expected_sql(svc)},
 }
 
@@ -217,7 +217,7 @@ valid_alias(svc) := {
 	"metadata": {"name": service_alias_name(svc), "namespace": fixture_namespace},
 	"spec": {
 		"type": "ExternalName",
-		"externalName": sprintf("%s-rw.%s.svc.cluster.local", [database_resource_name(svc), fixture_namespace]),
+		"externalName": sprintf("%s-rw.%s.svc.cluster.local", [cluster_resource_name(svc), fixture_namespace]),
 	},
 }
 
@@ -266,7 +266,7 @@ valid_external_secret(svc, suffix, username) := {
 valid_cluster(svc) := {
 	"apiVersion": "postgresql.cnpg.io/v1",
 	"kind": "Cluster",
-	"metadata": {"name": database_resource_name(svc), "namespace": fixture_namespace},
+	"metadata": {"name": cluster_resource_name(svc), "namespace": fixture_namespace},
 	"spec": {
 		"managed": {
 			"roles": [
@@ -284,4 +284,6 @@ valid_cluster(svc) := {
 	},
 }
 
-database_resource_name(svc) := sprintf("cnpg-eso-%s", [svc])
+database_resource_name(svc) := sprintf("%s-database", [svc])
+
+cluster_resource_name(svc) := sprintf("%s-postgres", [svc])
