@@ -1,0 +1,3 @@
+jqPathExpressions:
+  - '.metadata.annotations."cluster-autoscaler.kubernetes.io/last-updated"'
+  - '.metadata.annotations."control-plane.alpha.kubernetes.io/leader"'

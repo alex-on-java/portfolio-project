@@ -1,0 +1,2 @@
+jqPathExpressions:
+  - '.metadata.annotations."notified.notifications.argoproj.io"'

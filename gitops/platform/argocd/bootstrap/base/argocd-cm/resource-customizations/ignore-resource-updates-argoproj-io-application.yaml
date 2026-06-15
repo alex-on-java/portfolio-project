@@ -1,0 +1,5 @@
+jqPathExpressions:
+  - '.metadata.annotations."notified.notifications.argoproj.io"'
+  - '.metadata.annotations."argocd.argoproj.io/refresh"'
+  - '.metadata.annotations."argocd.argoproj.io/hydrate"'
+  - '.operation'
