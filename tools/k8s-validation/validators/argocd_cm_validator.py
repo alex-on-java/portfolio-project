@@ -1,3 +1,4 @@
+import re
 import subprocess
 from pathlib import Path
 
@@ -17,6 +18,23 @@ TIMEOUT_KEYS = {
     "timeout.reconciliation.jitter",
     "timeout.hard.reconciliation",
 }
+ARGOCD_CM_SEED_DATA = {
+    "application.instanceLabelKey": "argocd.argoproj.io/instance",
+}
+ARGOCD_CM_SEED_LABELS = {
+    "app.kubernetes.io/part-of": "argocd",
+}
+ARGOCD_CM_SEED_FORBIDDEN_EXACT_KEYS = {
+    "admin.enabled",
+    "exec.enabled",
+    "resource.exclusions",
+    "statusbadge.enabled",
+    "url",
+}
+ARGOCD_CM_SEED_FORBIDDEN_PREFIXES = (
+    "resource.customizations.",
+    "timeout.",
+)
 
 
 def _load_docs(text: str) -> list[dict]:
@@ -198,6 +216,99 @@ def validate_infra_argocd_module_source_contract():
     assert "--app-resync-jitter=60" in module_main
     assert "--revision-cache-expiration=${var.reconciliation_timeout}" in module_main
     assert 'regex("^[0-9]+s$", var.reconciliation_timeout)' in module_variables
+
+
+def validate_infra_argocd_cm_seed_contract():
+    infra_root = _infra_root()
+    if infra_root is None:
+        pytest.skip("private portfolio-project-infra sibling repo is not checked out")
+
+    seed_manifest = (infra_root / "infra/bootstrap/argocd-cm-seed.yaml").read_text(
+        encoding="utf-8"
+    )
+    docs = _load_docs(seed_manifest)
+
+    assert len(docs) == 1
+
+    cm = docs[0]
+    metadata = cm.get("metadata", {})
+    data = cm.get("data", {})
+
+    assert cm.get("apiVersion") == "v1"
+    assert cm.get("kind") == "ConfigMap"
+    assert metadata.get("name") == "argocd-cm"
+    assert "namespace" not in metadata
+    assert "annotations" not in metadata
+    assert "ownerReferences" not in metadata
+    assert metadata.get("labels") == ARGOCD_CM_SEED_LABELS
+    assert data == ARGOCD_CM_SEED_DATA
+
+    forbidden_exact = ARGOCD_CM_SEED_FORBIDDEN_EXACT_KEYS.intersection(data)
+    forbidden_prefixed = [
+        key for key in data if key.startswith(ARGOCD_CM_SEED_FORBIDDEN_PREFIXES)
+    ]
+
+    assert not forbidden_exact
+    assert not forbidden_prefixed
+
+
+def validate_infra_argocd_cm_seed_script_contract():
+    infra_root = _infra_root()
+    if infra_root is None:
+        pytest.skip("private portfolio-project-infra sibling repo is not checked out")
+
+    seed_script = infra_root / ".github/scripts/ensure-argocd-cm-seed.sh"
+    script = seed_script.read_text(encoding="utf-8")
+
+    assert script.startswith("#!/usr/bin/env bash\n")
+    assert 'kubectl --context "$context" --namespace "$namespace"' in script
+    assert "get configmap argocd-cm" in script
+    assert ' create --filename "$manifest"' in script
+    assert " apply " not in script
+    assert "AlreadyExists" in script
+    assert "ownerReferences" not in script
+    assert "argocd.argoproj.io/instance" not in script
+    assert "trash" not in script
+    assert "rm " not in script
+
+
+def validate_infra_argocd_cm_seed_terraform_ordering_contract():
+    infra_root = _infra_root()
+    if infra_root is None:
+        pytest.skip("private portfolio-project-infra sibling repo is not checked out")
+
+    bootstrap_main = (infra_root / "infra/bootstrap/main.tf").read_text(
+        encoding="utf-8"
+    )
+
+    assert (
+        'argocd_cm_seed_script   = "${path.root}/../../.github/scripts/ensure-argocd-cm-seed.sh"'
+        in bootstrap_main
+    )
+    assert (
+        'argocd_cm_seed_manifest = "${path.root}/argocd-cm-seed.yaml"' in bootstrap_main
+    )
+    assert (
+        'gke_kube_context        = "gke_${var.project_id}_${var.region}_${var.cluster_name}"'
+        in bootstrap_main
+    )
+    assert 'resource "terraform_data" "argocd_cm_seed"' in bootstrap_main
+    assert re.search(
+        r"seed_script_hash\s*=\s*filesha256\(local\.argocd_cm_seed_script\)",
+        bootstrap_main,
+    )
+    assert re.search(
+        r"seed_manifest_hash\s*=\s*filesha256\(local\.argocd_cm_seed_manifest\)",
+        bootstrap_main,
+    )
+    assert re.search(
+        r"namespace_uid\s*=\s*kubernetes_namespace_v1\.argocd\.metadata\[0\]\.uid",
+        bootstrap_main,
+    )
+    assert "depends_on = [kubernetes_namespace_v1.argocd]" in bootstrap_main
+    assert "depends_on = [terraform_data.argocd_cm_seed]" in bootstrap_main
+    assert '"kubernetes_config_map_v1" "argocd_cm"' not in bootstrap_main
+    assert '"kubernetes_config_map" "argocd_cm"' not in bootstrap_main
 
 
 def validate_infra_argocd_helm_rendering_contract(tmp_path):
