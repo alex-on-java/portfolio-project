@@ -1,13 +1,13 @@
 apiVersion: kustomize.config.k8s.io/v1alpha1
 kind: Component
 resources:
-- values.yaml
+- service-database-vars.yaml
 components:
 - ../_shared
 replacements:
 - source:
     kind: ConfigMap
-    name: service-database-values-ipsum
+    name: service-database-vars-ipsum
     fieldPath: data.roleApp
   targets:
   - select:
@@ -20,7 +20,7 @@ replacements:
       index: 1
 - source:
     kind: ConfigMap
-    name: service-database-values-ipsum
+    name: service-database-vars-ipsum
     fieldPath: data.databaseOwner
   targets:
   - select:
@@ -30,7 +30,7 @@ replacements:
     - spec.owner
 - source:
     kind: ConfigMap
-    name: service-database-values-ipsum
+    name: service-database-vars-ipsum
     fieldPath: data.schemaName
   targets:
   - select:
@@ -40,7 +40,7 @@ replacements:
     - spec.schemas.0.name
 - source:
     kind: ConfigMap
-    name: service-database-values-ipsum
+    name: service-database-vars-ipsum
     fieldPath: data.schemaOwner
   targets:
   - select:
@@ -50,7 +50,7 @@ replacements:
     - spec.schemas.0.owner
 - source:
     kind: ConfigMap
-    name: service-database-values-ipsum
+    name: service-database-vars-ipsum
     fieldPath: data.roleAppRoA
   targets:
   - select:
@@ -60,7 +60,7 @@ replacements:
     - spec.target.template.data.username
 - source:
     kind: ConfigMap
-    name: service-database-values-ipsum
+    name: service-database-vars-ipsum
     fieldPath: data.secretRoA
   targets:
   - select:
@@ -71,7 +71,7 @@ replacements:
     - metadata.name
 - source:
     kind: ConfigMap
-    name: service-database-values-ipsum
+    name: service-database-vars-ipsum
     fieldPath: data.roleAppRoB
   targets:
   - select:
@@ -81,7 +81,7 @@ replacements:
     - spec.target.template.data.username
 - source:
     kind: ConfigMap
-    name: service-database-values-ipsum
+    name: service-database-vars-ipsum
     fieldPath: data.secretRoB
   targets:
   - select:
@@ -92,7 +92,7 @@ replacements:
     - metadata.name
 - source:
     kind: ConfigMap
-    name: service-database-values-ipsum
+    name: service-database-vars-ipsum
     fieldPath: data.roleAppRwA
   targets:
   - select:
@@ -102,7 +102,7 @@ replacements:
     - spec.target.template.data.username
 - source:
     kind: ConfigMap
-    name: service-database-values-ipsum
+    name: service-database-vars-ipsum
     fieldPath: data.secretRwA
   targets:
   - select:
@@ -113,7 +113,7 @@ replacements:
     - metadata.name
 - source:
     kind: ConfigMap
-    name: service-database-values-ipsum
+    name: service-database-vars-ipsum
     fieldPath: data.roleAppRwB
   targets:
   - select:
@@ -123,7 +123,7 @@ replacements:
     - spec.target.template.data.username
 - source:
     kind: ConfigMap
-    name: service-database-values-ipsum
+    name: service-database-vars-ipsum
     fieldPath: data.secretRwB
   targets:
   - select:
@@ -134,7 +134,7 @@ replacements:
     - metadata.name
 - source:
     kind: ConfigMap
-    name: service-database-values-ipsum
+    name: service-database-vars-ipsum
     fieldPath: data.roleAppMigA
   targets:
   - select:
@@ -149,7 +149,7 @@ replacements:
     - spec.template.spec.containers.[name=psql].env.[name=PGUSER].value
 - source:
     kind: ConfigMap
-    name: service-database-values-ipsum
+    name: service-database-vars-ipsum
     fieldPath: data.secretMigA
   targets:
   - select:
@@ -165,7 +165,7 @@ replacements:
     - spec.template.spec.containers.[name=psql].env.[name=PGPASSWORD].valueFrom.secretKeyRef.name
 - source:
     kind: ConfigMap
-    name: service-database-values-ipsum
+    name: service-database-vars-ipsum
     fieldPath: data.databaseName
   targets:
   - select:
@@ -180,7 +180,7 @@ replacements:
     - spec.template.spec.containers.[name=psql].env.[name=PGDATABASE].value
 - source:
     kind: ConfigMap
-    name: service-database-values-ipsum
+    name: service-database-vars-ipsum
     fieldPath: data.provisionSql
   targets:
   - select:
@@ -192,7 +192,7 @@ replacements:
       create: true
 - source:
     kind: ConfigMap
-    name: service-database-values-ipsum
+    name: service-database-vars-ipsum
     fieldPath: data.provisionSqlKey
   targets:
   - select:
@@ -205,7 +205,7 @@ replacements:
       index: 1
 - source:
     kind: ConfigMap
-    name: service-database-values-ipsum
+    name: service-database-vars-ipsum
     fieldPath: data.databaseResourceName
   targets:
   - select:
@@ -215,7 +215,7 @@ replacements:
     - metadata.name
 - source:
     kind: ConfigMap
-    name: service-database-values-ipsum
+    name: service-database-vars-ipsum
     fieldPath: data.provisionJobName
   targets:
   - select:
@@ -225,7 +225,7 @@ replacements:
     - metadata.name
 - source:
     kind: ConfigMap
-    name: service-database-values-ipsum
+    name: service-database-vars-ipsum
     fieldPath: data.aliasName
   targets:
   - select:

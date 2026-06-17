@@ -100,7 +100,7 @@ patches:
 replacements:
 - source:
     kind: ConfigMap
-    name: service-database-values-ipsum
+    name: service-database-vars-ipsum
     fieldPath: data.roleApp
   targets:
   - select:
@@ -111,7 +111,7 @@ replacements:
     - spec.managed.roles.[name=ROLE0_OWNER].name
 - source:
     kind: ConfigMap
-    name: service-database-values-ipsum
+    name: service-database-vars-ipsum
     fieldPath: data.roleAppRo
   targets:
   - select:
@@ -123,7 +123,7 @@ replacements:
     - spec.managed.roles.[name=ROLE1_RO_GROUP].name
 - source:
     kind: ConfigMap
-    name: service-database-values-ipsum
+    name: service-database-vars-ipsum
     fieldPath: data.roleAppRw
   targets:
   - select:
@@ -135,7 +135,7 @@ replacements:
     - spec.managed.roles.[name=ROLE2_RW_GROUP].name
 - source:
     kind: ConfigMap
-    name: service-database-values-ipsum
+    name: service-database-vars-ipsum
     fieldPath: data.roleAppMig
   targets:
   - select:
@@ -146,7 +146,7 @@ replacements:
     - spec.managed.roles.[name=ROLE3_MIG_GROUP].name
 - source:
     kind: ConfigMap
-    name: service-database-values-ipsum
+    name: service-database-vars-ipsum
     fieldPath: data.secretRoA
   targets:
   - select:
@@ -156,7 +156,7 @@ replacements:
     - spec.managed.roles.[name=ROLE4_RO_A_LOGIN].passwordSecret.name
 - source:
     kind: ConfigMap
-    name: service-database-values-ipsum
+    name: service-database-vars-ipsum
     fieldPath: data.roleAppRoA
   targets:
   - select:
@@ -166,7 +166,7 @@ replacements:
     - spec.managed.roles.[name=ROLE4_RO_A_LOGIN].name
 - source:
     kind: ConfigMap
-    name: service-database-values-ipsum
+    name: service-database-vars-ipsum
     fieldPath: data.secretRoB
   targets:
   - select:
@@ -176,7 +176,7 @@ replacements:
     - spec.managed.roles.[name=ROLE5_RO_B_LOGIN].passwordSecret.name
 - source:
     kind: ConfigMap
-    name: service-database-values-ipsum
+    name: service-database-vars-ipsum
     fieldPath: data.roleAppRoB
   targets:
   - select:
@@ -186,7 +186,7 @@ replacements:
     - spec.managed.roles.[name=ROLE5_RO_B_LOGIN].name
 - source:
     kind: ConfigMap
-    name: service-database-values-ipsum
+    name: service-database-vars-ipsum
     fieldPath: data.secretRwA
   targets:
   - select:
@@ -196,7 +196,7 @@ replacements:
     - spec.managed.roles.[name=ROLE6_RW_A_LOGIN].passwordSecret.name
 - source:
     kind: ConfigMap
-    name: service-database-values-ipsum
+    name: service-database-vars-ipsum
     fieldPath: data.roleAppRwA
   targets:
   - select:
@@ -206,7 +206,7 @@ replacements:
     - spec.managed.roles.[name=ROLE6_RW_A_LOGIN].name
 - source:
     kind: ConfigMap
-    name: service-database-values-ipsum
+    name: service-database-vars-ipsum
     fieldPath: data.secretRwB
   targets:
   - select:
@@ -216,7 +216,7 @@ replacements:
     - spec.managed.roles.[name=ROLE7_RW_B_LOGIN].passwordSecret.name
 - source:
     kind: ConfigMap
-    name: service-database-values-ipsum
+    name: service-database-vars-ipsum
     fieldPath: data.roleAppRwB
   targets:
   - select:
@@ -226,7 +226,7 @@ replacements:
     - spec.managed.roles.[name=ROLE7_RW_B_LOGIN].name
 - source:
     kind: ConfigMap
-    name: service-database-values-ipsum
+    name: service-database-vars-ipsum
     fieldPath: data.secretMigA
   targets:
   - select:
@@ -236,7 +236,7 @@ replacements:
     - spec.managed.roles.[name=ROLE8_MIG_A_LOGIN].passwordSecret.name
 - source:
     kind: ConfigMap
-    name: service-database-values-ipsum
+    name: service-database-vars-ipsum
     fieldPath: data.roleAppMigA
   targets:
   - select:

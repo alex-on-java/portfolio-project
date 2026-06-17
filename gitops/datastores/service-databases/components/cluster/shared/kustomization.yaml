@@ -1,7 +1,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - values.yaml
+  - postgres-cluster-vars.yaml
   - ../base
 patches:
   - target:
@@ -18,7 +18,7 @@ patches:
 replacements:
   - source:
       kind: ConfigMap
-      name: postgres-cluster-values-shared
+      name: postgres-cluster-vars-shared
       fieldPath: data.postinitName
     targets:
       - select:
@@ -35,7 +35,7 @@ replacements:
           - spec.bootstrap.initdb.postInitApplicationSQLRefs.configMapRefs.0.name
   - source:
       kind: ConfigMap
-      name: postgres-cluster-values-shared
+      name: postgres-cluster-vars-shared
       fieldPath: data.clusterName
     targets:
       - select:

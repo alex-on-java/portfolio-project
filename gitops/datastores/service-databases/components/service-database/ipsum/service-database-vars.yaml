@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: service-database-values-ipsum
+  name: service-database-vars-ipsum
   annotations:
     config.kubernetes.io/local-config: "true"
 data:
