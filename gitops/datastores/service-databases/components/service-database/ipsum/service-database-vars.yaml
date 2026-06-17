@@ -27,8 +27,7 @@ data:
   secretRwB: ipsum-db-app-rw-b
   secretMigA: ipsum-db-app-mig-a
   provisionJobName: ipsum-db-provision
-  provisionSqlKey: |
-    provision-ipsum.sql
+  provisionSqlKey: provision-ipsum.sql
   provisionSql: |
     REVOKE ALL ON DATABASE ipsum FROM PUBLIC;
     GRANT CONNECT ON DATABASE ipsum TO ipsum_app, ipsum_app_ro, ipsum_app_rw, ipsum_app_mig;

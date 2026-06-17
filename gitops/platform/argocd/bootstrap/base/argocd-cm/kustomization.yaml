@@ -17,6 +17,7 @@ configMapGenerator:
       - statusbadge.enabled=false
       - url=https://argocd.example.com
     files:
+      - resource.customizations.health.postgresql.cnpg.io_Database=resource-health/postgresql.cnpg.io_Database.lua
       - resource.customizations.ignoreResourceUpdates.all=resource-customizations/ignore-resource-updates-all.yaml
       - resource.customizations.ignoreResourceUpdates.argoproj.io_Application=resource-customizations/ignore-resource-updates-argoproj-io-application.yaml
       - resource.customizations.ignoreResourceUpdates.argoproj.io_Rollout=resource-customizations/ignore-resource-updates-argoproj-io-rollout.yaml

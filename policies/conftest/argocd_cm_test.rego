@@ -30,6 +30,7 @@ argocd_test_valid_cm := {
 		"application.instanceLabelKey": "argocd.argoproj.io/instance",
 		"resource.exclusions": "- apiGroups: ['fixture.example.invalid']\n",
 		"resource.customizations.ignoreResourceUpdates.all": "jsonPointers:\n  - /status\n",
+		"resource.customizations.health.postgresql.cnpg.io_Database": "hs = {}\n",
 	},
 }
 
@@ -91,16 +92,22 @@ test_missing_ignore_resource_updates_all_fails if {
 	sprintf("%s: ConfigMap/argocd-cm must include data.resource.customizations.ignoreResourceUpdates.all", [argocd_test_main_path]) in argocd_test_deny(bad)
 }
 
+test_missing_cnpg_database_health_customization_fails if {
+	bad_cm := json.patch(argocd_test_valid_cm, [{"op": "remove", "path": "/data/resource.customizations.health.postgresql.cnpg.io_Database"}])
+	bad := argocd_test_replace_entry(argocd_test_valid_input, argocd_test_main_path, bad_cm)
+	sprintf("%s: ConfigMap/argocd-cm must include data.resource.customizations.health.postgresql.cnpg.io_Database", [argocd_test_main_path]) in argocd_test_deny(bad)
+}
+
 test_timeout_reconciliation_is_forbidden if {
 	bad_cm := json.patch(argocd_test_valid_cm, [{"op": "add", "path": "/data/timeout.reconciliation", "value": "180s"}])
 	bad := argocd_test_replace_entry(argocd_test_valid_input, argocd_test_main_path, bad_cm)
 	sprintf("%s: ConfigMap/argocd-cm must not include data.timeout.reconciliation", [argocd_test_main_path]) in argocd_test_deny(bad)
 }
 
-test_cnpg_database_health_customization_is_forbidden if {
-	bad_cm := json.patch(argocd_test_valid_cm, [{"op": "add", "path": "/data/resource.customizations.health.postgresql.cnpg.io_Database", "value": "hs = {}\n"}])
+test_cnpg_cluster_health_customization_is_forbidden if {
+	bad_cm := json.patch(argocd_test_valid_cm, [{"op": "add", "path": "/data/resource.customizations.health.postgresql.cnpg.io_Cluster", "value": "hs = {}\n"}])
 	bad := argocd_test_replace_entry(argocd_test_valid_input, argocd_test_main_path, bad_cm)
-	sprintf("%s: ConfigMap/argocd-cm must not include data.resource.customizations.health.postgresql.cnpg.io_Database", [argocd_test_main_path]) in argocd_test_deny(bad)
+	sprintf("%s: ConfigMap/argocd-cm must not include data.resource.customizations.health.postgresql.cnpg.io_Cluster", [argocd_test_main_path]) in argocd_test_deny(bad)
 }
 
 test_unrelated_rendered_input_is_ignored if {

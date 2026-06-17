@@ -106,9 +106,24 @@ test_missing_provisioning_job_host_env_fails if {
 }
 
 test_wrong_provisioning_job_sql_key_fails if {
-	bad_job := json.patch(valid_job(fixture_service), [{"op": "replace", "path": "/spec/template/spec/containers/0/command/2", "value": "psql --no-psqlrc --set=ON_ERROR_STOP=1 --file=/sql/provision-fixturebravo.sql"}])
+	bad_job := json.patch(valid_job(fixture_service), [{"op": "replace", "path": "/spec/template/spec/containers/0/args/2", "value": "--file=/sql/provision-fixturebravo.sql"}])
 	bad := replace_doc(valid_rendered_input, "Job", provisioning_job_name(fixture_service), bad_job)
-	"rendered-cnpg.yaml: Job/fixturealpha-db-provision command must read /sql/provision-fixturealpha.sql" in deny with input as bad
+	"rendered-cnpg.yaml: Job/fixturealpha-db-provision args must run /sql/provision-fixturealpha.sql with ON_ERROR_STOP=1" in deny with input as bad
+}
+
+test_shell_provisioning_job_command_fails if {
+	bad_job := json.patch(valid_job(fixture_service), [{"op": "replace", "path": "/spec/template/spec/containers/0/command", "value": ["/bin/sh", "-ceu", "psql --no-psqlrc --set=ON_ERROR_STOP=1 --file=/sql/provision-fixturealpha.sql"]}])
+	bad := replace_doc(valid_rendered_input, "Job", provisioning_job_name(fixture_service), bad_job)
+	"rendered-cnpg.yaml: Job/fixturealpha-db-provision command must run psql directly" in deny with input as bad
+}
+
+test_provisioning_job_wait_fragment_fails if {
+	bad_job := json.patch(valid_job(fixture_service), [{"op": "replace", "path": "/spec/template/spec/containers/0/args/2", "value": "until psql --command=\"SELECT 1\"; do sleep 5; done"}])
+	bad := replace_doc(valid_rendered_input, "Job", provisioning_job_name(fixture_service), bad_job)
+	"rendered-cnpg.yaml: Job/fixturealpha-db-provision args must run /sql/provision-fixturealpha.sql with ON_ERROR_STOP=1" in deny with input as bad
+	"rendered-cnpg.yaml: Job/fixturealpha-db-provision must not contain provisioning wait fragment until" in deny with input as bad
+	"rendered-cnpg.yaml: Job/fixturealpha-db-provision must not contain provisioning wait fragment sleep" in deny with input as bad
+	"rendered-cnpg.yaml: Job/fixturealpha-db-provision must not contain provisioning wait fragment SELECT 1" in deny with input as bad
 }
 
 test_missing_sql_config_map_fails if {
@@ -237,7 +252,8 @@ valid_job(svc) := {
 						{"name": "PGOPTIONS", "value": sprintf("-c role=%s", [service_owner(svc)])},
 						{"name": "PGHOST", "value": service_alias_name(svc)},
 					],
-					"command": ["/bin/sh", "-ceu", sprintf("psql --no-psqlrc --set=ON_ERROR_STOP=1 --file=/sql/%s", [provision_sql_key(svc)])],
+					"command": ["psql"],
+					"args": ["--no-psqlrc", "--set=ON_ERROR_STOP=1", sprintf("--file=/sql/%s", [provision_sql_key(svc)])],
 				}],
 			},
 		},

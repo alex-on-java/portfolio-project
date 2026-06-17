@@ -17,7 +17,7 @@ argocd_cm_forbidden_data_keys := {
 	"timeout.reconciliation",
 	"timeout.reconciliation.jitter",
 	"timeout.hard.reconciliation",
-	"resource.customizations.health.postgresql.cnpg.io_Database",
+	"resource.customizations.health.postgresql.cnpg.io_Cluster",
 }
 
 argocd_cm_required_data := {"application.instanceLabelKey": "argocd.argoproj.io/instance"}
@@ -25,6 +25,7 @@ argocd_cm_required_data := {"application.instanceLabelKey": "argocd.argoproj.io/
 argocd_cm_required_data_keys := {
 	"resource.exclusions",
 	"resource.customizations.ignoreResourceUpdates.all",
+	"resource.customizations.health.postgresql.cnpg.io_Database",
 }
 
 deny contains msg if {

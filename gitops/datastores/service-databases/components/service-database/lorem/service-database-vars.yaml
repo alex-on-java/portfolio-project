@@ -27,8 +27,7 @@ data:
   secretRwB: lorem-db-app-rw-b
   secretMigA: lorem-db-app-mig-a
   provisionJobName: lorem-db-provision
-  provisionSqlKey: |
-    provision-lorem.sql
+  provisionSqlKey: provision-lorem.sql
   provisionSql: |
     REVOKE ALL ON DATABASE lorem FROM PUBLIC;
     GRANT CONNECT ON DATABASE lorem TO lorem_app, lorem_app_ro, lorem_app_rw, lorem_app_mig;

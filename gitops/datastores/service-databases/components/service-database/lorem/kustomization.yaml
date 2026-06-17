@@ -199,7 +199,7 @@ replacements:
       kind: Job
       name: service-db-provision
     fieldPaths:
-    - spec.template.spec.containers.[name=psql].command.2
+    - spec.template.spec.containers.[name=psql].args.2
     options:
       delimiter: /sql/
       index: 1

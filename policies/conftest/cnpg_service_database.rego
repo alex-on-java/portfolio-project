@@ -278,8 +278,29 @@ deny contains msg if {
 	svc := service_name(db)
 	job := provisioning_job(path, svc, metadata_namespace(db))
 	container := psql_container(job)
-	not command_contains(container, sprintf("--file=/sql/%s", [provision_sql_key(svc)]))
-	msg := sprintf("%s: Job/%s command must read /sql/%s", [path, provisioning_job_name(svc), provision_sql_key(svc)])
+	object.get(container, "command", []) != ["psql"]
+	msg := sprintf("%s: Job/%s command must run psql directly", [path, provisioning_job_name(svc)])
+}
+
+deny contains msg if {
+	path := selected_paths[_]
+	db := service_databases(path)[_]
+	svc := service_name(db)
+	job := provisioning_job(path, svc, metadata_namespace(db))
+	container := psql_container(job)
+	object.get(container, "args", []) != ["--no-psqlrc", "--set=ON_ERROR_STOP=1", sprintf("--file=/sql/%s", [provision_sql_key(svc)])]
+	msg := sprintf("%s: Job/%s args must run /sql/%s with ON_ERROR_STOP=1", [path, provisioning_job_name(svc), provision_sql_key(svc)])
+}
+
+deny contains msg if {
+	path := selected_paths[_]
+	db := service_databases(path)[_]
+	svc := service_name(db)
+	job := provisioning_job(path, svc, metadata_namespace(db))
+	container := psql_container(job)
+	forbidden := forbidden_provisioning_job_fragment[_]
+	container_text_contains(container, forbidden)
+	msg := sprintf("%s: Job/%s must not contain provisioning wait fragment %s", [path, provisioning_job_name(svc), forbidden])
 }
 
 deny contains msg if {
@@ -504,10 +525,12 @@ env_secret_key(container, name) := secret_key if {
 	secret_key := object.get(object.get(object.get(env, "valueFrom", {}), "secretKeyRef", {}), "key", "")
 }
 
-command_contains(container, fragment) if {
-	command := object.get(container, "command", [])[_]
-	contains(command, fragment)
+container_text_contains(container, fragment) if {
+	value := string_values(container)[_]
+	contains(value, fragment)
 }
+
+forbidden_provisioning_job_fragment := {"/bin/sh", "-ceu", "until", "sleep", "SELECT 1"}
 
 stable_role_shape(role) if {
 	object.get(role, "ensure", "") == "present"

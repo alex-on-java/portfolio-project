@@ -41,20 +41,11 @@ spec:
             - name: PGOPTIONS
               value: -c role=service_app
           command:
-            - /bin/sh
-            - -ceu
-            - |
-              attempt=1
-              until psql --no-psqlrc --set=ON_ERROR_STOP=1 --command="SELECT 1" >/dev/null 2>&1; do
-                if [ "$attempt" -ge 60 ]; then
-                  psql --no-psqlrc --set=ON_ERROR_STOP=1 --command="SELECT 1"
-                  exit 1
-                fi
-                echo "waiting for database ${PGDATABASE} to accept migration connection"
-                attempt=$((attempt + 1))
-                sleep 5
-              done
-              psql --no-psqlrc --set=ON_ERROR_STOP=1 --file=/sql/provision-service.sql
+            - psql
+          args:
+            - --no-psqlrc
+            - --set=ON_ERROR_STOP=1
+            - --file=/sql/provision-service.sql
           volumeMounts:
             - name: sql
               mountPath: /sql
