@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: POSTINIT_NAME
+  annotations:
+    argocd.argoproj.io/sync-wave: "-5"
+data:
+  00-bootstrap-hardening.sql: |
+    ALTER ROLE bootstrap_owner NOLOGIN;
+    REVOKE ALL ON DATABASE cnpg_eso_bootstrap FROM PUBLIC;
+    DROP SCHEMA IF EXISTS public;

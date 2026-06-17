@@ -1,0 +1,29 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: argocd
+generatorOptions:
+  disableNameSuffixHash: true
+  labels:
+    app.kubernetes.io/part-of: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-90"
+configMapGenerator:
+  - name: argocd-cm
+    literals:
+      - admin.enabled=true
+      - application.instanceLabelKey=argocd.argoproj.io/instance
+      - application.sync.impersonation.enabled=false
+      - exec.enabled=false
+      - statusbadge.enabled=false
+      - url=https://argocd.example.com
+    files:
+      - resource.customizations.health.postgresql.cnpg.io_Database=resource-health/postgresql.cnpg.io_Database.lua
+      - resource.customizations.ignoreResourceUpdates.all=resource-customizations/ignore-resource-updates-all.yaml
+      - resource.customizations.ignoreResourceUpdates.argoproj.io_Application=resource-customizations/ignore-resource-updates-argoproj-io-application.yaml
+      - resource.customizations.ignoreResourceUpdates.argoproj.io_Rollout=resource-customizations/ignore-resource-updates-argoproj-io-rollout.yaml
+      - resource.customizations.ignoreResourceUpdates.autoscaling_HorizontalPodAutoscaler=resource-customizations/ignore-resource-updates-autoscaling-horizontalpodautoscaler.yaml
+      - resource.customizations.ignoreResourceUpdates.ConfigMap=resource-customizations/ignore-resource-updates-configmap.yaml
+      - resource.customizations.ignoreResourceUpdates.apps_ReplicaSet=resource-customizations/ignore-resource-updates-apps-replicaset.yaml
+      - resource.customizations.ignoreResourceUpdates.discovery.k8s.io_EndpointSlice=resource-customizations/ignore-resource-updates-discovery-k8s-io-endpointslice.yaml
+      - resource.customizations.ignoreResourceUpdates.Endpoints=resource-customizations/ignore-resource-updates-endpoints.yaml
+      - resource.exclusions=resource-exclusions.yaml

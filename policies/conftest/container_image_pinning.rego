@@ -4,10 +4,10 @@ import rego.v1
 
 deny contains msg if {
 	walk(input, [path, value])
-	path[count(path) - 1] == "image"
+	_is_image_key(path[count(path) - 1])
 	is_string(value)
-	not contains(value, "${{")
 	not contains(value, "{{")
+	not _valid_digest_pin(value)
 	tag := _extract_tag(value)
 	tag != ""
 	not _valid_container_tag(tag)
@@ -19,15 +19,29 @@ deny contains msg if {
 
 deny contains msg if {
 	walk(input, [path, value])
-	path[count(path) - 1] == "image"
+	_is_image_key(path[count(path) - 1])
 	is_string(value)
-	not contains(value, "${{")
 	not contains(value, "{{")
+	not _valid_digest_pin(value)
 	_extract_tag(value) == ""
 	msg := sprintf(
 		"Container image '%s' has no tag — must include a pinned version tag",
 		[value],
 	)
+}
+
+# Keys whose string value names a container image. `image` covers Pod
+# containers and most workloads; `imageName` is the CNPG `Cluster` operand
+# field (spec.imageName) — without it the server image slips the gate.
+_is_image_key("image")
+
+_is_image_key("imageName")
+
+_valid_digest_pin(image) if {
+	parts := split(image, "@")
+	count(parts) == 2
+	regex.match("^sha256:[a-f0-9]{64}$", parts[1])
+	_extract_tag(parts[0]) != ""
 }
 
 _extract_tag(image) := tag if {

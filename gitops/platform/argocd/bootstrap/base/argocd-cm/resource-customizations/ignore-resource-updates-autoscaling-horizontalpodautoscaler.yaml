@@ -1,0 +1,5 @@
+jqPathExpressions:
+  - '.metadata.annotations."autoscaling.alpha.kubernetes.io/behavior"'
+  - '.metadata.annotations."autoscaling.alpha.kubernetes.io/conditions"'
+  - '.metadata.annotations."autoscaling.alpha.kubernetes.io/metrics"'
+  - '.metadata.annotations."autoscaling.alpha.kubernetes.io/current-metrics"'

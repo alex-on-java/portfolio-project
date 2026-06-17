@@ -1,0 +1,240 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+resources:
+- service-database-vars.yaml
+components:
+- ../_shared
+replacements:
+- source:
+    kind: ConfigMap
+    name: service-database-vars-ipsum
+    fieldPath: data.roleApp
+  targets:
+  - select:
+      kind: Job
+      name: service-db-provision
+    fieldPaths:
+    - spec.template.spec.containers.[name=psql].env.[name=PGOPTIONS].value
+    options:
+      delimiter: '='
+      index: 1
+- source:
+    kind: ConfigMap
+    name: service-database-vars-ipsum
+    fieldPath: data.databaseOwner
+  targets:
+  - select:
+      kind: Database
+      name: SERVICE_DATABASE_RESOURCE
+    fieldPaths:
+    - spec.owner
+- source:
+    kind: ConfigMap
+    name: service-database-vars-ipsum
+    fieldPath: data.schemaName
+  targets:
+  - select:
+      kind: Database
+      name: SERVICE_DATABASE_RESOURCE
+    fieldPaths:
+    - spec.schemas.0.name
+- source:
+    kind: ConfigMap
+    name: service-database-vars-ipsum
+    fieldPath: data.schemaOwner
+  targets:
+  - select:
+      kind: Database
+      name: SERVICE_DATABASE_RESOURCE
+    fieldPaths:
+    - spec.schemas.0.owner
+- source:
+    kind: ConfigMap
+    name: service-database-vars-ipsum
+    fieldPath: data.roleAppRoA
+  targets:
+  - select:
+      kind: ExternalSecret
+      name: service-db-app-ro-a
+    fieldPaths:
+    - spec.target.template.data.username
+- source:
+    kind: ConfigMap
+    name: service-database-vars-ipsum
+    fieldPath: data.secretRoA
+  targets:
+  - select:
+      kind: ExternalSecret
+      name: service-db-app-ro-a
+    fieldPaths:
+    - spec.target.name
+    - metadata.name
+- source:
+    kind: ConfigMap
+    name: service-database-vars-ipsum
+    fieldPath: data.roleAppRoB
+  targets:
+  - select:
+      kind: ExternalSecret
+      name: service-db-app-ro-b
+    fieldPaths:
+    - spec.target.template.data.username
+- source:
+    kind: ConfigMap
+    name: service-database-vars-ipsum
+    fieldPath: data.secretRoB
+  targets:
+  - select:
+      kind: ExternalSecret
+      name: service-db-app-ro-b
+    fieldPaths:
+    - spec.target.name
+    - metadata.name
+- source:
+    kind: ConfigMap
+    name: service-database-vars-ipsum
+    fieldPath: data.roleAppRwA
+  targets:
+  - select:
+      kind: ExternalSecret
+      name: service-db-app-rw-a
+    fieldPaths:
+    - spec.target.template.data.username
+- source:
+    kind: ConfigMap
+    name: service-database-vars-ipsum
+    fieldPath: data.secretRwA
+  targets:
+  - select:
+      kind: ExternalSecret
+      name: service-db-app-rw-a
+    fieldPaths:
+    - spec.target.name
+    - metadata.name
+- source:
+    kind: ConfigMap
+    name: service-database-vars-ipsum
+    fieldPath: data.roleAppRwB
+  targets:
+  - select:
+      kind: ExternalSecret
+      name: service-db-app-rw-b
+    fieldPaths:
+    - spec.target.template.data.username
+- source:
+    kind: ConfigMap
+    name: service-database-vars-ipsum
+    fieldPath: data.secretRwB
+  targets:
+  - select:
+      kind: ExternalSecret
+      name: service-db-app-rw-b
+    fieldPaths:
+    - spec.target.name
+    - metadata.name
+- source:
+    kind: ConfigMap
+    name: service-database-vars-ipsum
+    fieldPath: data.roleAppMigA
+  targets:
+  - select:
+      kind: ExternalSecret
+      name: service-db-app-mig-a
+    fieldPaths:
+    - spec.target.template.data.username
+  - select:
+      kind: Job
+      name: service-db-provision
+    fieldPaths:
+    - spec.template.spec.containers.[name=psql].env.[name=PGUSER].value
+- source:
+    kind: ConfigMap
+    name: service-database-vars-ipsum
+    fieldPath: data.secretMigA
+  targets:
+  - select:
+      kind: ExternalSecret
+      name: service-db-app-mig-a
+    fieldPaths:
+    - spec.target.name
+    - metadata.name
+  - select:
+      kind: Job
+      name: service-db-provision
+    fieldPaths:
+    - spec.template.spec.containers.[name=psql].env.[name=PGPASSWORD].valueFrom.secretKeyRef.name
+- source:
+    kind: ConfigMap
+    name: service-database-vars-ipsum
+    fieldPath: data.databaseName
+  targets:
+  - select:
+      kind: Database
+      name: SERVICE_DATABASE_RESOURCE
+    fieldPaths:
+    - spec.name
+  - select:
+      kind: Job
+      name: service-db-provision
+    fieldPaths:
+    - spec.template.spec.containers.[name=psql].env.[name=PGDATABASE].value
+- source:
+    kind: ConfigMap
+    name: service-database-vars-ipsum
+    fieldPath: data.provisionSql
+  targets:
+  - select:
+      kind: ConfigMap
+      name: service-database-provisioning-sql
+    fieldPaths:
+    - data.[provision-ipsum.sql]
+    options:
+      create: true
+- source:
+    kind: ConfigMap
+    name: service-database-vars-ipsum
+    fieldPath: data.provisionSqlKey
+  targets:
+  - select:
+      kind: Job
+      name: service-db-provision
+    fieldPaths:
+    - spec.template.spec.containers.[name=psql].args.2
+    options:
+      delimiter: /sql/
+      index: 1
+- source:
+    kind: ConfigMap
+    name: service-database-vars-ipsum
+    fieldPath: data.databaseResourceName
+  targets:
+  - select:
+      kind: Database
+      name: SERVICE_DATABASE_RESOURCE
+    fieldPaths:
+    - metadata.name
+- source:
+    kind: ConfigMap
+    name: service-database-vars-ipsum
+    fieldPath: data.provisionJobName
+  targets:
+  - select:
+      kind: Job
+      name: service-db-provision
+    fieldPaths:
+    - metadata.name
+- source:
+    kind: ConfigMap
+    name: service-database-vars-ipsum
+    fieldPath: data.aliasName
+  targets:
+  - select:
+      kind: Service
+      name: SERVICE_DB_RW_ALIAS
+    fieldPaths:
+    - metadata.name
+  - select:
+      kind: Job
+      name: ipsum-db-provision
+    fieldPaths:
+    - spec.template.spec.containers.[name=psql].env.[name=PGHOST].value

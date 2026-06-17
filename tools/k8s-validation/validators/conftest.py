@@ -2,6 +2,7 @@ import json
 import subprocess
 
 import pytest
+import yaml
 
 from k8s_validator.cache import ensure_all_charts_cached
 from k8s_validator.config import KUBERNETES_VERSION, REPO_ROOT, settings
@@ -42,6 +43,23 @@ def rendered_manifests_dir(helm_chart_paths, tmp_path_factory):
     overlays = discover_kustomize_overlays()
     output_dir = tmp_path_factory.mktemp("k8s-rendered")
     return render_all(overlays, charts, chart_paths, output_dir)
+
+
+@pytest.fixture(scope="session")
+def rendered_contract_data_dir(tmp_path_factory):
+    overlays = discover_kustomize_overlays()
+    data_dir = tmp_path_factory.mktemp("render-contract-data")
+    data_file = data_dir / "render_contract.yaml"
+    data = {
+        "render_contract": {
+            "discovered_overlays": [
+                {"path": str(overlay.path.relative_to(REPO_ROOT))}
+                for overlay in overlays
+            ]
+        }
+    }
+    data_file.write_text(yaml.safe_dump(data, sort_keys=True), encoding="utf-8")
+    return data_dir
 
 
 @pytest.fixture(scope="session")

@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-cluster-vars-shared
+  annotations:
+    config.kubernetes.io/local-config: "true"
+data:
+  clusterName: service-databases-shared-postgres
+  postinitName: service-database-postinit-sql

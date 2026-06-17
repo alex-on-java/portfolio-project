@@ -1,0 +1,90 @@
+- op: add
+  path: /spec/managed/roles/-
+  value:
+    name: ROLE0_OWNER
+    ensure: present
+    login: false
+    inherit: false
+- op: add
+  path: /spec/managed/roles/-
+  value:
+    name: ROLE1_RO_GROUP
+    ensure: present
+    login: false
+    inherit: false
+- op: add
+  path: /spec/managed/roles/-
+  value:
+    name: ROLE2_RW_GROUP
+    ensure: present
+    login: false
+    inherit: false
+- op: add
+  path: /spec/managed/roles/-
+  value:
+    name: ROLE3_MIG_GROUP
+    ensure: present
+    login: false
+    inherit: false
+    inRoles:
+      - ROLE0_OWNER
+- op: add
+  path: /spec/managed/roles/-
+  value:
+    name: ROLE4_RO_A_LOGIN
+    connectionLimit: -1
+    ensure: present
+    login: true
+    inherit: true
+    inRoles:
+      - ROLE1_RO_GROUP
+    passwordSecret:
+      name: SERVICE_SECRET_RO_A
+- op: add
+  path: /spec/managed/roles/-
+  value:
+    name: ROLE5_RO_B_LOGIN
+    connectionLimit: -1
+    ensure: present
+    login: true
+    inherit: true
+    inRoles:
+      - ROLE1_RO_GROUP
+    passwordSecret:
+      name: SERVICE_SECRET_RO_B
+- op: add
+  path: /spec/managed/roles/-
+  value:
+    name: ROLE6_RW_A_LOGIN
+    connectionLimit: -1
+    ensure: present
+    login: true
+    inherit: true
+    inRoles:
+      - ROLE2_RW_GROUP
+    passwordSecret:
+      name: SERVICE_SECRET_RW_A
+- op: add
+  path: /spec/managed/roles/-
+  value:
+    name: ROLE7_RW_B_LOGIN
+    connectionLimit: -1
+    ensure: present
+    login: true
+    inherit: true
+    inRoles:
+      - ROLE2_RW_GROUP
+    passwordSecret:
+      name: SERVICE_SECRET_RW_B
+- op: add
+  path: /spec/managed/roles/-
+  value:
+    name: ROLE8_MIG_A_LOGIN
+    connectionLimit: -1
+    ensure: present
+    login: true
+    inherit: true
+    inRoles:
+      - ROLE3_MIG_GROUP
+    passwordSecret:
+      name: SERVICE_SECRET_MIG_A

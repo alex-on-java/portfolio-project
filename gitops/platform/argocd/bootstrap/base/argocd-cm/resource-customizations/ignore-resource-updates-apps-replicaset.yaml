@@ -1,0 +1,4 @@
+jqPathExpressions:
+  - '.metadata.annotations."deployment.kubernetes.io/desired-replicas"'
+  - '.metadata.annotations."deployment.kubernetes.io/max-replicas"'
+  - '.metadata.annotations."rollout.argoproj.io/desired-replicas"'

@@ -1,0 +1,4 @@
+jsonPointers:
+  - /metadata
+  - /endpoints
+  - /ports
