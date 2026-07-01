@@ -1,4 +1,4 @@
-package main
+package raw_sources
 
 import rego.v1
 

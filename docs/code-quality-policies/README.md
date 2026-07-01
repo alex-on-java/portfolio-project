@@ -36,3 +36,5 @@ Each policy file ends with a *Sibling enforcement* section listing any hooks, li
 - [Pin external dependencies to exact versions](CQP-003-pin-external-versions.md)
 - [Test fixtures must use values distinct from production](CQP-004-test-fixtures-distinct-from-production.md)
 - [External-resource identifiers must be required inputs](CQP-005-external-resource-identifiers-as-required-inputs.md)
+- [Prefer policy engines over bespoke validators](CQP-006-prefer-policy-engines-over-bespoke-validators.md)
+- [Parallel-runnable checks avoid shared mutable generated state](CQP-007-parallel-runnable-checks-avoid-shared-mutable-state.md)

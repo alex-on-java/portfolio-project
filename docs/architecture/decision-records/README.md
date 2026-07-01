@@ -32,7 +32,7 @@ Decisions that shape the system's structure and are hard to reverse: technology 
 | [ADR-012](ADR-012-strict-semvers-false-for-warehouse-subscriptions.md)             | Strict semvers false for Warehouse subscriptions                                              | accepted              |
 | [ADR-013](ADR-013-policy-location-architecture.md)                                 | Separate policy locations by enforcement plane                                                | accepted              |
 | [ADR-014](ADR-014-crd-handling-in-validation-pipeline.md)                          | Exclude CRDs from rendering, include for schema extraction                                    | accepted              |
-| [ADR-015](ADR-015-schema-lifecycle.md)                                             | Clean generated CRD schemas before each generation run                                        | accepted              |
+| [ADR-015](ADR-015-schema-lifecycle.md)                                             | Clean generated CRD schemas before each generation run                                        | superseded by ADR-035 |
 | [ADR-016](ADR-016-pytest-as-orchestration-for-k8s-validation.md)                   | pytest as orchestration layer for K8s manifest validation                                     | accepted              |
 | [ADR-017](ADR-017-python-project-linting-via-poe-router.md)                        | Python project linting via poe tasks dispatched by a pre-commit router                        | superseded by ADR-025 |
 | [ADR-018](ADR-018-no-deployment-from-base-kustomize-directories.md)                | No deployment from base Kustomize directories (interim)                                       | accepted              |
@@ -51,3 +51,5 @@ Decisions that shape the system's structure and are hard to reverse: technology 
 | [ADR-031](ADR-031-ci-artifact-cleanup-as-hygiene.md)                               | End-of-pipeline artifact cleanup with deduplicated issue tracking, off the merge path         | accepted              |
 | [ADR-032](ADR-032-per-environment-lifecycle-segment-resolution-and-overlaytarget-retirement.md) | Per-environment lifecycle overlay resolution; retires fake `overlayTarget`, keeps `clusterLifecycle` | accepted              |
 | [ADR-033](ADR-033-secrets-management-with-eso-and-google-secret-manager.md)        | First secrets reference: ESO + GSM via Workload Identity, single store, overlay-mapped `prd` safety | accepted              |
+| [ADR-034](ADR-034-rendered-conftest-validation-architecture.md)                    | Rendered and raw-source Conftest contracts split by input shape through one rendered bridge    | accepted              |
+| [ADR-035](ADR-035-per-session-generated-crd-schema-lifecycle.md)                   | Generated CRD schemas are per-session output, not a shared mutable workspace directory         | accepted              |

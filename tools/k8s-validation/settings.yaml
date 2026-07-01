@@ -11,7 +11,6 @@ kubeconform:
     - CustomResourceDefinition
 
 schemas:
-  output_dir: .cache/generated-crd-schemas
   k8s_schemas_dir: .cache/k8s-schemas
   k8s_schema_repo_url: "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/50b79917c7f9c60d528e5ba6d113aa845a4b6fbf"
   from_charts:

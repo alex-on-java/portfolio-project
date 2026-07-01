@@ -131,7 +131,6 @@ def _crd_to_schemas(crd: dict) -> list[tuple[str, str, str, dict]]:
 
 
 def _write_schemas(schemas: list[tuple[str, str, str, dict]], output_dir: Path) -> None:
-    output_dir.mkdir(parents=True, exist_ok=True)
     for kind, group, version, schema in schemas:
         filename = crd_schema_filename(kind, group, version)
         with open(output_dir / filename, "w", encoding="utf-8") as f:
@@ -200,19 +199,16 @@ def extract_from_releases() -> list[tuple[str, str, str, dict]]:
     return all_schemas
 
 
-def generate_all_schemas(charts: list[HelmChart], chart_paths: dict[str, Path]) -> Path:
-    output_dir = REPO_ROOT / settings.schemas.output_dir
-
-    resolved = output_dir.resolve()
-    cache_root = (REPO_ROOT / ".cache").resolve()
-    if not resolved.is_relative_to(cache_root) or resolved == cache_root:
+def generate_all_schemas(
+    charts: list[HelmChart],
+    chart_paths: dict[str, Path],
+    output_dir: Path,
+) -> Path:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    if any(output_dir.iterdir()):
         raise ValueError(
-            f"schemas.output_dir must be a subdirectory of .cache/: got {output_dir}"
+            f"generated CRD schema output directory must be empty: {output_dir}"
         )
-
-    if output_dir.exists():
-        shutil.rmtree(output_dir)
-
     schemas = extract_from_charts(charts, chart_paths)
     schemas.extend(extract_from_releases())
     _write_schemas(schemas, output_dir)

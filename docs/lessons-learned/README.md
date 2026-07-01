@@ -85,3 +85,5 @@ Surprising platform behaviors, invisible failure modes, misleading defaults, and
 - [ESO generators are stateless — a timer `refreshInterval` regenerates the value every cycle; only `refreshPolicy: CreatedOnce` pins it](LL-0071-generated-secret-rotates-every-refresh-interval.md)
 - [ESO's ServiceAccount name is release-derived; renaming its Application breaks Workload Identity auth unless `fullnameOverride` pins it](LL-0072-external-secrets-gsm-auth-breaks-on-application-rename.md)
 - [A GCP IAM `startsWith` condition with an empty prefix matches everything, collapsing a scoped `secretAccessor` grant to project-wide](LL-0073-secret-accessor-grant-matches-every-secret.md)
+- [Image-pin policy must split the `@sha256:` digest before the tag; its colon otherwise gets parsed as the tag, rejecting a valid pin](LL-0074-valid-digest-pinned-image-rejected-by-tag-policy.md)
+- [Conftest merges all files of a Rego package into one namespace, so a sibling's `deny`, `data`, and `test_` rules leak into unrelated tests](LL-0075-rego-test-passes-on-sibling-policy-denial.md)
