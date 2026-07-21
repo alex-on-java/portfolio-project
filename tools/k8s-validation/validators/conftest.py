@@ -2,6 +2,7 @@ import json
 import subprocess
 
 import pytest
+import yaml
 
 from k8s_validator.cache import ensure_all_charts_cached
 from k8s_validator.config import KUBERNETES_VERSION, REPO_ROOT, settings
@@ -45,9 +46,27 @@ def rendered_manifests_dir(helm_chart_paths, tmp_path_factory):
 
 
 @pytest.fixture(scope="session")
-def crd_schemas_dir(helm_chart_paths, rendered_manifests_dir):
+def rendered_contract_data_dir(tmp_path_factory):
+    overlays = discover_kustomize_overlays()
+    data_dir = tmp_path_factory.mktemp("render-contract-data")
+    data_file = data_dir / "render_contract.yaml"
+    data = {
+        "render_contract": {
+            "discovered_overlays": [
+                {"path": str(overlay.path.relative_to(REPO_ROOT))}
+                for overlay in overlays
+            ]
+        }
+    }
+    data_file.write_text(yaml.safe_dump(data, sort_keys=True), encoding="utf-8")
+    return data_dir
+
+
+@pytest.fixture(scope="session")
+def crd_schemas_dir(helm_chart_paths, rendered_manifests_dir, tmp_path_factory):
     charts, chart_paths = helm_chart_paths
-    schemas_dir = generate_all_schemas(charts, chart_paths)
+    schemas_dir = tmp_path_factory.mktemp("crd-schemas")
+    generate_all_schemas(charts, chart_paths, schemas_dir)
     uncovered = coverage_gate(rendered_manifests_dir, schemas_dir)
     if uncovered:
         pytest.fail(

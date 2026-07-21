@@ -59,25 +59,25 @@ repos:
         name: conftest (YAML version pinning)
         files: (^gitops/|^\.pre-commit-config\.yaml$)
         types: [yaml]
-        args: [--policy, policies/conftest]
+        args: [--policy, policies/conftest, --namespace, raw_sources]
 
       - id: conftest-test
         alias: conftest-toml
         name: conftest (TOML version pinning)
         files: (^mise\.toml$|(^|/)pyproject\.toml$)
-        args: [--policy, policies/conftest, --parser, toml]
+        args: [--policy, policies/conftest, --namespace, raw_sources, --parser, toml]
 
       - id: conftest-test
         alias: conftest-dockerfile
         name: conftest (Dockerfile version pinning)
         files: Dockerfile
-        args: [--policy, policies/conftest, --parser, dockerfile]
+        args: [--policy, policies/conftest, --namespace, raw_sources, --parser, dockerfile]
 
       - id: conftest-test
         alias: conftest-json
         name: conftest (JSON version pinning)
         files: (^|/)package\.json$
-        args: [--policy, policies/conftest, --parser, json]
+        args: [--policy, policies/conftest, --namespace, raw_sources, --parser, json]
 
       - id: conftest-verify
         alias: conftest-verify

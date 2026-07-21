@@ -14,6 +14,7 @@
         "{workspaceRoot}/tools/k8s-validation/pyproject.toml",
         "{workspaceRoot}/tools/k8s-validation/uv.lock",
         "{workspaceRoot}/tools/k8s-validation/settings.yaml",
+        "{workspaceRoot}/policies/conftest/**",
         "{workspaceRoot}/mise.toml"
       ],
       "options": {
