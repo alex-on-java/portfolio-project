@@ -1,25 +1,10 @@
 # CQP-006: Prefer policy engines over bespoke validators
 
-**Rule:** Do not build a custom validation program for artifact semantics when an
-established policy, schema, or test engine can own the rule. Local code may
-prepare inputs and invoke tools, but project-specific correctness belongs in the
-tool-native rule surface: policy files, tests, schemas, or configuration.
+**Rule:** Express project-specific correctness rules for repository artifacts in the native rule format of an established policy, schema, or test engine: policy files, tests, schemas, or configuration. Local code may prepare inputs and invoke tools, but it must not decide whether an artifact is correct.
 
-**Why this matters:** A custom validator becomes a private validation engine even
-when it starts small. It usually grows its own parsing logic, rule vocabulary,
-failure language, fixture style, and extension pattern. The next change then has
-to answer a question that should already be obvious: should this rule be Python,
-Bash, JavaScript, Java, Rego, schema configuration, or a test? That uncertainty
-is expensive because each answer creates a different place to look and a
-different way to prove correctness.
+**Why this matters:** A custom validator becomes a private validation engine even when it starts small. It grows its own parsing logic, rule vocabulary, failure language, fixture style, and extension pattern, and each of those is one more thing a reviewer must audit and one more place the next rule could land. Per artifact class, the question of where a rule lives and how its correctness is proved should have a single obvious answer; a bespoke engine multiplies the answers.
 
-The harmful shape is the combination, not the implementation language. A script
-that discovers inputs, parses them, makes project-specific judgements, formats
-custom failures, and becomes the place future checks are added has crossed from
-adapter into validation engine. Once that happens, the normal policy or test
-tool no longer carries the contract. Reviewers have to audit both the rule and
-the private engine around it, and future agents get a copyable example of the
-wrong extension point.
+A script crosses the line from adapter to validation engine when it combines input discovery, parsing, project-specific judgements, custom failure formatting, and the role of default home for future checks. Once that happens the established tool no longer carries the contract: reviewers must audit both the rule and the private engine around it, and future agents inherit a copyable example of the wrong extension point.
 
 ## Scope
 
@@ -28,91 +13,47 @@ The rule applies to repository checks over committed or rendered artifacts:
 - Kubernetes manifests and rendered GitOps output
 - Terraform, Helm, Kustomize, CI, package, and tool configuration
 - Generated contract data used by validation tools
-- Source files whose correctness can be expressed with an existing linter,
-  schema validator, policy engine, or test runner
+- Source files whose correctness an existing linter, schema validator, policy engine, or test runner can express
 
-It applies independently of language. Replacing a bespoke Python validator with
-a bespoke shell, JavaScript, Java, or Go validator does not satisfy the rule if
-the new program still owns the project-specific policy.
+It applies independently of implementation language. Rewriting a bespoke Python validator in shell, Go, or any other language does not satisfy the rule while the new program still owns the project-specific policy.
 
-## Layer Boundary
+## Layer boundary
 
-Validation should keep three responsibilities separate:
+Validation keeps three responsibilities separate:
 
-- **Preparation:** discover files, render generated artifacts, normalize data,
-  build caches, route inputs, and invoke tools.
-- **Tool execution:** run the established validator or test runner that owns the
-  evaluation model.
-- **Rules and configuration:** define what is correct in the tool-native surface.
+- **Preparation:** discover files, render generated artifacts, normalize data, build caches, route inputs, and invoke tools.
+- **Tool execution:** run the established validator or test runner that owns the evaluation model.
+- **Rules and configuration:** define what is correct, in the tool's own rule format.
 
-Preparation code is allowed when it stays boring. It can answer "which inputs
-does this tool need?" It must not quietly answer "is this project artifact
-correct?"
+Preparation code earns its keep by staying mechanical. It may know which inputs a tool needs and in what form; domain facts that decide pass or fail belong in the rules layer.
 
-## Compliant Examples
+## Compliant examples
 
-- ✓ A runner renders Kustomize and Helm output once, passes the combined
-  manifests to Conftest, and Rego policies define the Kubernetes contract.
-- ✓ A schema-preparation module downloads or generates schemas, then kubeconform
-  validates resources against those schemas.
-- ✓ A Terraform source file is checked by a tool that parses HCL, with the
-  project relationship expressed as policy or a native test.
-- ✓ A shell script is verified by executing it through a test harness
-  with a fake external command on `PATH`; the expected behavior lives in the
-  test, not in a source-text scanner.
-- ✓ A tiny adapter fills a gap no existing tool exposes, and it stays limited to
-  the missing mechanical check rather than becoming a home for unrelated domain
-  rules.
+- ✓ A runner renders Kustomize and Helm output once, passes the combined manifests to Conftest, and Rego policies define the Kubernetes contract.
+- ✓ A schema-preparation module downloads or generates schemas, then kubeconform validates resources against those schemas.
+- ✓ A Terraform source file is checked by a tool that parses HCL, with the project relationship expressed as policy or a native test.
+- ✓ A shell script is verified by executing it through a test harness with a fake external command on `PATH`; the expected behavior lives in the test rather than in a source-text scanner.
+- ✓ A tiny adapter fills a gap no existing tool exposes, and it stays limited to the missing mechanical check rather than becoming a home for unrelated domain rules.
 
-## Non-compliant Examples
+## Non-compliant examples
 
-- ✗ A custom program renders YAML, parses the result, checks project-specific
-  Kubernetes semantics, and formats bespoke failure messages when Conftest or
-  another policy engine can express the same rule.
-- ✗ A source scanner reads Terraform or YAML as text and asserts project-specific
-  resource relationships with substring or regular-expression checks when a
-  structured parser and policy/test surface are available.
-- ✗ A validator mixes sibling-repository discovery, tool invocation, artifact
-  parsing, domain constants, and correctness assertions in one domain-named
-  command.
-- ✗ A new check is added to an existing custom validator because it is nearby,
-  even though a standard tool already owns that class of rule.
-- ✗ A bespoke validator is rewritten in another language while preserving the
-  same private parsing, policy, and failure model.
+- ✗ A custom program renders YAML, parses the result, checks project-specific Kubernetes semantics, and formats bespoke failure messages when Conftest or another policy engine can express the same rule.
+- ✗ A source scanner reads Terraform or YAML as text and asserts project-specific resource relationships with substring or regular-expression checks when a structured parser and a policy or test engine are available.
+- ✗ A validator mixes sibling-repository discovery, tool invocation, artifact parsing, domain constants, and correctness assertions in one domain-named command.
+- ✗ A new check is added to an existing custom validator because it is nearby, even though a standard tool already owns that class of rule.
+- ✗ A bespoke validator is rewritten in another language while preserving the same private parsing, policy, and failure model.
 
 ## Exceptions
 
-- **Preparation and orchestration.** A local runner is acceptable when it only
-  discovers, renders, converts, caches, routes, invokes, and reports an
-  output from an established tool.
-- **Behavioral targets.** Some claims must be proved by running the real target
-  or a controlled double of it. In that case, use a normal test harness and put
-  the assertion in tests.
-- **Runtime controllers.** A component that evaluates live system state and
-  publishes a runtime decision is product logic, not a static artifact
-  validator. It should still keep parsing, evaluation, and reporting boundaries
-  clear.
-- **Small missing-tool checks.** A narrowly scoped local check can be acceptable
-  when no established tool exposes the invariant. If the check starts acquiring
-  multiple domains, a rule language, or its own fixture style, revisit the
-  design.
+- **Preparation and orchestration.** A local runner is acceptable when it only discovers, renders, converts, caches, routes, invokes, and reports an output from an established tool.
+- **Behavioral targets.** Some claims must be proved by running the real target or a controlled double of it. In that case, use a normal test harness and put the assertion in tests.
+- **Runtime controllers.** A component that evaluates live system state and publishes a runtime decision is product logic and sits outside this rule; it should still keep parsing, evaluation, and reporting boundaries clear.
+- **Small missing-tool checks.** A narrowly scoped local check can be acceptable when no established tool exposes the invariant. If the check starts acquiring multiple domains, a rule language, or its own fixture style, revisit the design.
 
-## Review Heuristic
+## Review heuristic
 
-Ask where the next similar rule would go. If the answer is "add more code to
-this custom validator," the boundary is probably wrong. If the answer is "add a
-policy, schema, config entry, or test for the existing tool," the boundary is
-probably healthy.
+Ask where the next similar rule would go. A healthy boundary routes it into the rule format of the existing tool; a broken one routes it into more code in the custom validator. What the custom code knows is the second signal: knowledge of inputs and invocation is preparation, while knowledge of domain facts that decide pass or fail means a rule has leaked out of its layer.
 
-Also ask what the custom code knows. Knowing how to prepare input is fine.
-Knowing domain facts that decide pass or fail is the signal to move the rule
-into a policy, schema, configuration, or test surface.
+## Sibling enforcement
 
-## Sibling Enforcement
-
-No automated check today. This policy is enforced during review of new
-validators, pre-commit hooks, CI scripts, and validation tooling changes.
-
-When reviewing such a change, name the three layers explicitly: preparation,
-tool execution, and rules. If one custom artifact owns all three, require a
-design change or a written exception.
+No automated check today. This policy is enforced during review of new validators, pre-commit hooks, CI scripts, and validation tooling changes. When reviewing such a change, name the three layers from *Layer boundary* explicitly; if one custom artifact owns all three, require a design change or a written exception.
